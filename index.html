@@ -34,6 +34,36 @@ td.l{text-align:right;white-space:normal;min-width:140px}
 .fl{background:var(--pri);color:#fff;font-weight:700}
 .msg{color:var(--mut);font-size:12px}
 #rep{--card:#fff;--tx:#000;--bd:#999;--ok:#c6efce;--warn:#ffeb9c;--bad:#ffc7ce;--pri:#1f4e79;background:#fff;color:#000}
+
+/* ---- توافق الشاشات ---- */
+html{-webkit-text-size-adjust:100%}
+.row label{flex:1 1 150px}
+.row label input,.row label select,.row label textarea{width:100%}
+.btn,select,input{min-height:38px}
+@media (max-width:720px){
+  body{font-size:15px}
+  input,select,textarea{font-size:16px}
+  main{padding:6px}
+  header{font-size:15px;padding:10px}
+  .row{flex-direction:column;align-items:stretch}
+  .row label{flex:1 1 auto}
+  .row label textarea{width:100%!important}
+  .btn{width:100%;min-height:44px}
+  .wrap{overflow:visible}
+  table.rt,table.rt tbody{display:block;width:100%}
+  table.rt tr:first-child{display:none}
+  table.rt tr{display:block;border:1px solid var(--bd);border-radius:10px;margin-bottom:10px;padding:4px 8px;background:var(--card)}
+  table.rt td{display:flex;justify-content:space-between;align-items:center;gap:8px;border:0;border-bottom:1px dashed var(--bd);text-align:right;padding:6px 2px}
+  table.rt td:last-child{border-bottom:0}
+  table.rt td::before{content:attr(data-l);color:var(--mut);font-size:12px;flex:0 0 36%;text-align:right}
+  table.rt td.l{min-width:0}
+  table.rt td.fl{justify-content:center;border-radius:6px}
+  table.rt td.fl::before{content:none}
+  table.rt td.s-ok,table.rt td.s-bad,table.rt td.s-warn{border-radius:6px}
+  table.rt select,table.rt input,table.rt textarea{flex:1;min-width:0!important;width:100%;max-width:62%}
+  .grid{grid-template-columns:repeat(2,1fr)}
+}
+@media (min-width:1400px){main{max-width:1500px}}
 </style>
 </head>
 <body>
@@ -61,7 +91,7 @@ td.l{text-align:right;white-space:normal;min-width:140px}
     const app=a.initializeApp(window.FIREBASE_CONFIG);
     const auth=au.getAuth(app);
     const fs=f.initializeFirestore(app,{localCache:f.persistentLocalCache(),ignoreUndefinedProperties:true});
-    await new Promise(res=>au.onAuthStateChanged(auth,u=>{if(u){const l=document.getElementById('lg');if(l)l.remove();window.USER_EMAIL=u.email;window.ROLE=(u.email||'').toLowerCase()===(window.ADMIN_EMAIL||'').toLowerCase()?'admin':'entry';res()}else loginUI(au,auth)}));
+    await new Promise(res=>au.onAuthStateChanged(auth,u=>{if(u){const l=document.getElementById('lg');if(l)l.remove();window.USER_EMAIL=u.email;window.ROLE=(!window.ADMIN_EMAIL||(u.email||'').toLowerCase()===window.ADMIN_EMAIL.toLowerCase())?'admin':'entry';res()}else loginUI(au,auth)}));
     return{collection:n=>({
       onSnapshot:cb=>f.onSnapshot(f.collection(fs,n),s=>cb({docs:s.docs.map(d=>({id:d.id,data:()=>d.data()}))})),
       doc:id=>({set:d=>f.setDoc(f.doc(fs,n,id),d),update:d=>f.updateDoc(f.doc(fs,n,id),d),delete:()=>f.deleteDoc(f.doc(fs,n,id))})})};
@@ -110,6 +140,14 @@ function render(){
   if(document.activeElement&&['INPUT','TEXTAREA'].includes(document.activeElement.tagName)&&document.activeElement.dataset.keep)return;
   $('#main').innerHTML=({round:vRound,notices:vNotices,purch:vPurch,sum:vSum,e_round:vERound,e_notice:vENotice,e_purch:vEPurch})[tab]();
   document.querySelectorAll('textarea').forEach(fit);
+  labelize();
+}
+function labelize(){
+  document.querySelectorAll('main table').forEach(t=>{
+    if(t.closest('#rep')||!t.rows.length||t.rows[0].cells[0].tagName!=='TH')return;
+    t.classList.add('rt');const hs=[...t.rows[0].cells].map(c=>c.textContent.trim());
+    [...t.rows].slice(1).forEach(r=>{if(r.cells.length===hs.length)[...r.cells].forEach((c,i)=>c.dataset.l=hs[i])});
+  });
 }
 function fit(t){t.style.height='auto';t.style.height=t.scrollHeight+'px'}
 let lastN=0,lastK=0;
