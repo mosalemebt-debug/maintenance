@@ -5,7 +5,7 @@ service cloud.firestore {
       return request.auth != null && request.auth.token.email == 'mohamedkhaledsalem3@gmail.com';
     }
     function isEntry() {
-      return request.auth != null && request.auth.token.email in ['mohamedkhaledsalem3@gmail.com'];
+      return request.auth != null && request.auth.token.email in ['['saed@ebtesama.com','ragb@ebtesama.com''];
     }
     // مدخل البيانات: يكتب فقط في صندوق الوارد، ولا يقرأ ولا يعدّل ولا يحذف أي شيء
     match /inbox/{id} {
