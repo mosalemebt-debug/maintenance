@@ -1,0 +1,20 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'mohamedkhaledsalem3@gmail.com';
+    }
+    function isEntry() {
+      return request.auth != null && request.auth.token.email in ['mohamedkhaledsalem3@gmail.com'];
+    }
+    // مدخل البيانات: يكتب فقط في صندوق الوارد، ولا يقرأ ولا يعدّل ولا يحذف أي شيء
+    match /inbox/{id} {
+      allow create: if isEntry() && request.resource.data.type in ['notice','purchase','mark'];
+      allow read, update, delete: if isAdmin();
+    }
+    // كل ما عدا ذلك للمدير فقط
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+}
