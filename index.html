@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>برنامج الصيانة – مستشفى الابتسامة</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--tx:#1b2430;--mut:#667085;--pri:#1f4e79;--bd:#d0d5dd;--ok:#c6efce;--warn:#ffeb9c;--bad:#ffc7ce;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14181f;--card:#1e2530;--tx:#e8ecf2;--mut:#98a2b3;--pri:#6fa8dc;--bd:#394150;--ok:#1e4d2b;--warn:#5c4b13;--bad:#5c2229}}
+:root[data-theme="dark"]{--bg:#14181f;--card:#1e2530;--tx:#e8ecf2;--mut:#98a2b3;--pri:#6fa8dc;--bd:#394150;--ok:#1e4d2b;--warn:#5c4b13;--bad:#5c2229}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--tx);font-family:"Segoe UI",Tahoma,Arial,sans-serif;font-size:14px}
+header{background:var(--pri);color:#fff;padding:12px 14px;font-weight:700;font-size:16px}
+nav{display:flex;gap:6px;padding:8px;overflow-x:auto;position:sticky;top:0;background:var(--bg);z-index:5}
+nav button{flex:0 0 auto;padding:8px 14px;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:8px;font:inherit;cursor:pointer}
+nav button.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+main{padding:8px;max-width:1200px;margin:auto}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px;margin-bottom:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
+label{display:flex;flex-direction:column;font-size:12px;color:var(--mut);gap:3px}
+input,select,textarea{font:inherit;padding:6px;border:1px solid var(--bd);border-radius:6px;background:var(--card);color:var(--tx);max-width:100%}
+.btn{padding:8px 14px;border:0;border-radius:8px;background:var(--pri);color:#fff;font:inherit;cursor:pointer}
+.btn.alt{background:transparent;color:var(--pri);border:1px solid var(--pri)}
+.wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border:1px solid var(--bd);padding:4px 6px;text-align:center;white-space:normal;word-break:break-word;vertical-align:middle}
+th{white-space:nowrap}
+textarea{resize:none;overflow:hidden;width:100%;min-width:150px;line-height:1.5;display:block}
+th{background:var(--pri);color:#fff;position:sticky;top:0}
+td.l{text-align:right;white-space:normal;min-width:140px}
+.s-ok{background:var(--ok)}.s-warn{background:var(--warn)}.s-bad{background:var(--bad)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.k{border:1px solid var(--bd);border-radius:10px;padding:10px;text-align:center}.k b{display:block;font-size:24px}
+.fl{background:var(--pri);color:#fff;font-weight:700}
+.msg{color:var(--mut);font-size:12px}
+#rep{--card:#fff;--tx:#000;--bd:#999;--ok:#c6efce;--warn:#ffeb9c;--bad:#ffc7ce;--pri:#1f4e79;background:#fff;color:#000}
+</style>
+</head>
+<body>
+<header>برنامج الصيانة – مستشفى الابتسامة – مصر الجديدة</header>
+<nav id="nav"></nav>
+<main id="main"></main>
+<script src="firebase-config.js"></script>
+<script>
+/* طبقة الربط مع Firebase (Firestore + تسجيل دخول) */
+(function(){
+  const B='https://www.gstatic.com/firebasejs/10.12.2/';
+  let dbP=null;
+  function loginUI(au,auth){
+    if(document.getElementById('lg'))return;
+    const d=document.createElement('div');d.id='lg';
+    d.style.cssText='position:fixed;inset:0;background:#14181f;z-index:99;display:flex;align-items:center;justify-content:center;padding:16px';
+    d.innerHTML='<div style="background:#fff;color:#000;border-radius:12px;padding:20px;width:100%;max-width:340px;display:flex;flex-direction:column;gap:10px;font-family:inherit"><b style="font-size:16px">تسجيل الدخول – برنامج الصيانة</b><input id="lge" type="email" placeholder="البريد الإلكتروني" dir="ltr" style="padding:10px;border:1px solid #999;border-radius:6px"><input id="lgp" type="password" placeholder="كلمة المرور" dir="ltr" style="padding:10px;border:1px solid #999;border-radius:6px"><button id="lgb" style="padding:10px;border:0;border-radius:8px;background:#1f4e79;color:#fff;font:inherit">دخول</button><span id="lgm" style="color:#b42318;font-size:12px"></span></div>';
+    document.body.appendChild(d);
+    const go=()=>au.signInWithEmailAndPassword(auth,document.getElementById('lge').value.trim(),document.getElementById('lgp').value).catch(()=>{document.getElementById('lgm').textContent='البريد أو كلمة المرور غير صحيحة'});
+    document.getElementById('lgb').onclick=go;
+    document.getElementById('lgp').onkeydown=e=>{if(e.key==='Enter')go()};
+  }
+  async function boot(){
+    const [a,f,au]=await Promise.all([import(B+'firebase-app.js'),import(B+'firebase-firestore.js'),import(B+'firebase-auth.js')]);
+    const app=a.initializeApp(window.FIREBASE_CONFIG);
+    const auth=au.getAuth(app);
+    const fs=f.initializeFirestore(app,{localCache:f.persistentLocalCache(),ignoreUndefinedProperties:true});
+    await new Promise(res=>au.onAuthStateChanged(auth,u=>{if(u){const l=document.getElementById('lg');if(l)l.remove();window.USER_EMAIL=u.email;window.ROLE=(u.email||'').toLowerCase()===(window.ADMIN_EMAIL||'').toLowerCase()?'admin':'entry';res()}else loginUI(au,auth)}));
+    return{collection:n=>({
+      onSnapshot:cb=>f.onSnapshot(f.collection(fs,n),s=>cb({docs:s.docs.map(d=>({id:d.id,data:()=>d.data()}))})),
+      doc:id=>({set:d=>f.setDoc(f.doc(fs,n,id),d),update:d=>f.updateDoc(f.doc(fs,n,id),d),delete:()=>f.deleteDoc(f.doc(fs,n,id))})})};
+  }
+  const DL={async save({filename,data}){const b=data instanceof Blob?data:new Blob([data]);const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=filename;document.body.appendChild(a);a.click();a.remove()}};
+  window.claude={use:async n=>n==='db'?(dbP=dbP||boot()):n==='downloads'?DL:null};
+})();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const CATS=['كهرباء','سباكة','نجارة','نقاشة','ألومنيوم','شاشة','التكييف'];
+const AREAS=[["الدور الثاني",["غرفة 201","غرفة 202","غرفة 203","غرفة 204","غرفة 205","غرفة 206","غرفة 207","غرفة 208","غرفة 209","غرفة 210","الحضانة","غرفة النفايات – الدور الثاني","الكافتيريا","العمليات","مخزن أدوية فرعي – الدور الثاني"]],
+["الدور الأول",["عيادة 1","عيادة 2","عيادة 3","عيادة 4","عيادة 5","غرفة الدعم الطبي","حمام رجالي – الدور الأول","حمام حريمي – الدور الأول","غرفة 100 (حسابات المرضى)","غرفة 101 (استراحة د. الأطفال)","غرفة 102","غرفة 103","غرفة 104 (نائب د. النساء)","غرفة 105","غرفة 106","غرفة 107 (مخزن)","غرفة 108 (مخزن الفندقة)","مكتب مديرة الفندقة","مخزن أدوية رئيسي"]],
+["الدور الأرضي",["الريسيبشن","مكتب مدير المستشفى","الخزن","غرفة طوارئ","غرفة IT","معمل التحليل","معمل الذكورة","التعقيم","الصيدلية","المطبخ","المغسلة","حمام رجالي – الأرضي","حمام حريمي – الأرضي"]]];
+const ALL=AREAS.flatMap(([f,l])=>l.map(a=>({f,a})));
+const ST=['تم الإصلاح','تم جزئياً','إصلاح مؤقت','جاري التنفيذ','لم يتم الإصلاح','غير قابل للإصلاح'];
+const PST=['لم يُطلب','جاري إعداد الطلب','تم الطلب','تم الشراء/التوريد'];
+const stCls=s=>s==='تم الإصلاح'?'s-ok':['تم جزئياً','إصلاح مؤقت','جاري التنفيذ'].includes(s)?'s-warn':s?'s-bad':'';
+let db=null,notices=[],purchases=[],rounds={},tab='round',rdate=new Date().toISOString().slice(0,10);
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const num=r=>parseInt(String(r).replace(/\D/g,''))||0;
+const ref=n=>'ع-'+String(n).padStart(2,'0');
+const fd=v=>{if(!v)return'';const d=new Date(v);return isNaN(d)?String(v):d.toLocaleDateString('en-GB')};
+const toD=v=>{if(!v)return'';if(v instanceof Date)return v;const m=String(v).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(m)return new Date(+m[3],m[2]-1,+m[1]);const d=new Date(v);return isNaN(d)?String(v):d};
+const iso=v=>{const d=toD(v);return d instanceof Date?d.toISOString().slice(0,10):d};
+
+async function init(){
+  nav();render();
+  try{db=await claude.use('db')}catch(e){db=null}
+  if(!db){$('#main').insertAdjacentHTML('afterbegin','<div class="card s-bad">تعذر الاتصال بقاعدة البيانات؛ راجع إعدادات firebase-config.js.</div>');return}
+  if(window.ROLE==='entry'){tab='e_round';nav();render();return}
+  db.collection('inbox').onSnapshot(s=>procInbox(s.docs.map(d=>({id:d.id,o:d.data()}))));
+  const t=setTimeout(()=>{},10000);
+  db.collection('notices').onSnapshot(s=>{notices=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.n-b.n);clearTimeout(t);render()});
+  db.collection('purchases').onSnapshot(s=>{purchases=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.k-b.k);render()});
+  db.collection('rounds').onSnapshot(s=>{rounds={};s.docs.forEach(d=>rounds[d.id]=d.data());render()});
+}
+function nav(){
+  const T=window.ROLE==='entry'?[['e_round','مرور يومي'],['e_notice','إخطار جديد'],['e_purch','طلب شراء']]:[['round','المرور اليومي'],['notices','الصيانة العلاجية'],['purch','طلبات الشراء'],['sum','الملخص']];
+  $('#nav').innerHTML=T.map(([k,v])=>`<button class="${tab===k?'on':''}" onclick="tab='${k}';nav();render()">${v}</button>`).join('');
+}
+function render(){
+  if(document.activeElement&&['INPUT','TEXTAREA'].includes(document.activeElement.tagName)&&document.activeElement.dataset.keep)return;
+  $('#main').innerHTML=({round:vRound,notices:vNotices,purch:vPurch,sum:vSum,e_round:vERound,e_notice:vENotice,e_purch:vEPurch})[tab]();
+  document.querySelectorAll('textarea').forEach(fit);
+}
+function fit(t){t.style.height='auto';t.style.height=t.scrollHeight+'px'}
+let lastN=0,lastK=0;
+const nextN=()=>(lastN=Math.max(lastN,...notices.map(n=>n.n))+1);
+const nextK=()=>(lastK=Math.max(lastK,...purchases.map(p=>p.k))+1);
+async function addNotice(o){
+  const n=nextN(),d={n,ref:ref(n),status:'لم يتم الإصلاح',...o};
+  notices.push({id:'n'+String(n).padStart(4,'0'),...d});
+  await db.collection('notices').doc('n'+String(n).padStart(4,'0')).set(d);
+}
+/* ---------- المرور اليومي ---------- */
+function vRound(){
+  const r=rounds[rdate]||{marks:{},notes:{}};
+  const bad=Object.values(r.marks||{}).filter(x=>x==='✗').length;
+  let h=`<div class="card"><div class="row"><label>التاريخ<input type="date" value="${rdate}" onchange="rdate=this.value;render()"></label><span><b>أعطال اليوم: ${bad}</b></span></div>
+  <div class="msg">اختر ✗ فيُسجَّل العطل تلقائياً في الصيانة العلاجية (ولا يتكرر لو فيه عطل مفتوح لنفس المكان والتخصص).</div></div>
+  <div class="card wrap"><table><tr><th>المكان</th>${CATS.map(c=>`<th>${c}</th>`).join('')}<th>ملاحظات</th><th>مفتوح بالعلاجية</th></tr>`;
+  let last='';
+  ALL.forEach((x,i)=>{
+    if(x.f!==last){h+=`<tr><td class="fl" colspan="${CATS.length+3}">${x.f}</td></tr>`;last=x.f}
+    const open=notices.filter(n=>n.status!=='تم الإصلاح'&&n.dept&&n.dept.includes(x.a)).length;
+    h+=`<tr><td class="l">${x.a}</td>`+CATS.map((c,j)=>{const m=(r.marks||{})[i+'_'+j]||'';
+      return `<td class="${m==='✗'?'s-bad':m==='✓'?'s-ok':''}"><select onchange="mark(${i},${j},this.value)">${['','✓','✗','مشغولة','لا يوجد'].map(o=>`<option ${o===m?'selected':''}>${o}</option>`).join('')}</select></td>`}).join('')
+      +`<td><textarea rows="1" data-keep="1" oninput="fit(this)" onchange="note(${i},this.value)">${esc((r.notes||{})[i])}</textarea></td><td class="${open?'s-warn':''}">${open||''}</td></tr>`;
+  });
+  return h+'</table></div>';
+}
+async function mark(i,j,v){
+  if(!db)return;const r=rounds[rdate]||{marks:{},notes:{}};r.marks=r.marks||{};r.marks[i+'_'+j]=v;rounds[rdate]=r;
+  await db.collection('rounds').doc(rdate).set(r);
+  if(v==='✗'){
+    const a=ALL[i].a,c=CATS[j];
+    if(!notices.find(n=>n.src==='مرور'&&n.dept===a&&n.cat===c&&n.status!=='تم الإصلاح'))
+      await addNotice({date:rdate,dept:a,reporter:'المرور اليومي',details:((r.notes||{})[i]||'عطل')+' – '+c,src:'مرور',cat:c});
+  }
+}
+async function note(i,v){if(!db)return;const r=rounds[rdate]||{marks:{},notes:{}};r.notes=r.notes||{};r.notes[i]=v;rounds[rdate]=r;await db.collection('rounds').doc(rdate).set(r)}
+/* ---------- الصيانة العلاجية ---------- */
+const FLD=['date','time','dept','reporter','details','action','status','fixdate','rep','needbuy','notes','cls'];
+function vNotices(){
+  let h=`<div class="card"><b>إخطار جديد</b><div class="row">
+  <label>التاريخ<input type="date" id="f_date" value="${new Date().toISOString().slice(0,10)}"></label>
+  <label>الوقت<input type="time" id="f_time"></label>
+  <label>القسم<input id="f_dept"></label><label>مسؤول الإخطار<input id="f_reporter"></label>
+  <label>تفاصيل العطل<input id="f_details" style="width:220px"></label><label>الإجراء المتخذ<input id="f_action" style="width:200px"></label>
+  <label>الحالة<select id="f_status">${ST.map(s=>`<option ${s==='لم يتم الإصلاح'?'selected':''}>${s}</option>`).join('')}</select></label>
+  <label>ممثل الصيانة<input id="f_rep"></label>
+  <label>يحتاج شراء؟<select id="f_needbuy"><option>لا</option><option>نعم</option></select></label>
+  <button class="btn" onclick="saveNotice()">حفظ</button></div></div>
+  <div class="card"><div class="row"><button class="btn" onclick="exportXlsx()">تصدير Excel</button>
+  <label class="btn alt" style="flex-direction:row">استيراد من ملف الإكسل<input type="file" accept=".xlsx" onchange="importXlsx(this.files[0])" hidden></label></div><div id="imsg" class="msg"></div></div>
+  <div class="card wrap"><table><tr>${['م','المرجع','التاريخ','الوقت','القسم','المبلّغ','العطل','الإجراء','الحالة','تاريخ الإصلاح','ممثل الصيانة','شراء؟','ملاحظات'].map(x=>`<th>${x}</th>`).join('')}</tr>`;
+  notices.slice().reverse().forEach(n=>{
+    h+=`<tr><td>${n.n}</td><td>${n.ref}</td><td>${fd(n.date)}</td><td>${esc(n.time)}</td><td class="l">${esc(n.dept)}</td><td>${esc(n.reporter)}</td><td class="l">${esc(n.details)}</td>
+    <td class="l"><textarea rows="1" data-keep="1" oninput="fit(this)" onchange="upd('${n.id}',{action:this.value})">${esc(n.action)}</textarea></td>
+    <td class="${stCls(n.status)}"><select onchange="setStatus('${n.id}',this.value)">${ST.map(s=>`<option ${s===n.status?'selected':''}>${s}</option>`).join('')}</select></td>
+    <td><input type="date" value="${iso(n.fixdate)}" onchange="upd('${n.id}',{fixdate:this.value})"></td>
+    <td><textarea rows="1" data-keep="1" oninput="fit(this)" onchange="upd('${n.id}',{rep:this.value})" style="min-width:110px">${esc(n.rep)}</textarea></td>
+    <td><select onchange="upd('${n.id}',{needbuy:this.value})">${['','نعم','لا'].map(s=>`<option ${s===(n.needbuy||'')?'selected':''}>${s}</option>`).join('')}</select></td>
+    <td class="l">${esc(n.notes)}</td></tr>`});
+  return h+'</table></div>';
+}
+const upd=(id,o)=>db.collection('notices').doc(id).update(o);
+function setStatus(id,s){const o={status:s};if(s==='تم الإصلاح')o.fixdate=new Date().toISOString().slice(0,10);upd(id,o)}
+async function saveNotice(){
+  const o={};['date','time','dept','reporter','details','action','status','rep','needbuy'].forEach(k=>o[k]=$('#f_'+k).value);
+  if(!o.dept||!o.details){alert('اكتب القسم وتفاصيل العطل');return}
+  if(o.status==='تم الإصلاح')o.fixdate=o.date;
+  await addNotice(o);
+}
+function dl(name,data){return claude.use('downloads').then(d=>d?d.save({filename:name,data}):alert('التنزيل غير متاح'))}
+async function exportXlsx(){
+  const head=['م','الرقم المرجعي','التاريخ','الوقت','القسم','مسؤول الإخطار','تفاصيل العطل','الإجراء المتخذ','الحالة','تاريخ الإصلاح','ممثل الصيانة','يحتاج شراء؟','عدد أصناف الشراء','حالة الشراء','ملاحظات','التصنيف الأصلي للعطل'];
+  const rows=notices.map(n=>{const ps=purchases.filter(p=>p.ref===n.ref);const done=ps.filter(p=>p.status==='تم الشراء/التوريد').length;
+    const bs=!ps.length?(n.needbuy==='نعم'?'لم يُسجل صنف':''):done===ps.length?'تم الشراء كاملاً':done>0?'جزئي':'معلق';
+    return [n.n,n.ref,toD(n.date),n.time||'',n.dept,n.reporter||'',n.details,n.action||'',n.status,toD(n.fixdate),n.rep||'',n.needbuy||'',ps.length,bs,n.notes||'',n.cls||'']});
+  const ws=XLSX.utils.aoa_to_sheet([['سجل الصيانة العلاجية (إخطارات الصيانة) – مستشفى الابتسامة'],[],head,...rows],{cellDates:true});
+  ws['!cols']=[5,11,12,9,22,14,40,35,15,12,16,10,11,17,30,24].map(w=>({wch:w}));ws['!views']=[{RTL:true}];
+  const wb=XLSX.utils.book_new();wb.Workbook={Views:[{RTL:true}]};XLSX.utils.book_append_sheet(wb,ws,'الصيانة العلاجية');
+  dl('الصيانة_العلاجية_'+new Date().toISOString().slice(0,10)+'.xlsx',XLSX.write(wb,{type:'array',bookType:'xlsx',cellDates:true}));
+}
+async function importXlsx(f){
+  if(!f)return;const wb=XLSX.read(await f.arrayBuffer(),{cellDates:true});
+  let c=0,p=0;
+  const ws=wb.Sheets['الصيانة العلاجية'];
+  if(ws){const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true}).slice(3);
+    for(const r of rows){if(!r[1])continue;const n=num(r[1]);if(notices.find(x=>x.n===n))continue;
+      await db.collection('notices').doc('n'+String(n).padStart(4,'0')).set({n,ref:r[1],date:iso(r[2]),time:r[3] instanceof Date?r[3].toTimeString().slice(0,5):String(r[3]),dept:String(r[4]),reporter:String(r[5]),details:String(r[6]),action:String(r[7]),status:String(r[8]),fixdate:iso(r[9]),rep:String(r[10]),needbuy:String(r[11]),notes:String(r[14]??''),cls:String(r[15]??'')});c++}}
+  const wp=wb.Sheets['طلبات الشراء'];
+  if(wp&&!purchases.length){const rows=XLSX.utils.sheet_to_json(wp,{header:1,defval:'',raw:true}).slice(4);let k=1;
+    for(const r of rows){if(!r[1]||!r[6])continue;await db.collection('purchases').doc('p'+String(k).padStart(4,'0')).set({k,ref:String(r[1]),rdate:iso(r[5]),item:String(r[6]),qty:r[7],status:String(r[8]),ddate:iso(r[9]),notes:String(r[10]??'')});k++;p++}}
+  $('#imsg').textContent=`تم استيراد ${c} إخطار و${p} صنف شراء`;
+}
+/* ---------- طلبات الشراء ---------- */
+function vPurch(){
+  let h=`<div class="card"><b>صنف شراء جديد</b><div class="row">
+  <label>الإخطار<select id="p_ref">${notices.slice().reverse().map(n=>`<option value="${n.ref}">${n.ref} – ${esc(n.dept)}</option>`).join('')}</select></label>
+  <label>تاريخ الطلب<input type="date" id="p_rdate" value="${new Date().toISOString().slice(0,10)}"></label>
+  <label>الصنف<input id="p_item"></label><label>الكمية<input id="p_qty" type="number" value="1" style="width:70px"></label>
+  <button class="btn" onclick="savePurch()">حفظ</button><button class="btn alt" onclick="pdf('طلبات_الشراء')">تصدير PDF</button></div></div>
+  <div class="card wrap" id="rep"><h3>طلبات الشراء – مستشفى الابتسامة</h3><table><tr>${['م','الإخطار','القسم','الصنف','الكمية','تاريخ الطلب','الحالة','تاريخ التوريد'].map(x=>`<th>${x}</th>`).join('')}</tr>`;
+  purchases.forEach(p=>{const n=notices.find(x=>x.ref===p.ref)||{};
+    h+=`<tr><td>${p.k}</td><td>${p.ref}</td><td class="l">${esc(n.dept||p.notes)}</td><td class="l">${esc(p.item)}</td><td>${p.qty??''}</td><td>${fd(p.rdate)}</td>
+    <td class="${p.status==='تم الشراء/التوريد'?'s-ok':p.status==='لم يُطلب'?'s-bad':'s-warn'}"><select onchange="db.collection('purchases').doc('${p.id}').update({status:this.value,ddate:this.value==='تم الشراء/التوريد'?new Date().toISOString().slice(0,10):''})">${PST.map(s=>`<option ${s===p.status?'selected':''}>${s}</option>`).join('')}</select></td><td>${fd(p.ddate)}</td></tr>`});
+  return h+'</table></div>';
+}
+async function savePurch(){
+  const item=$('#p_item').value;if(!item)return;const k=nextK();
+  await db.collection('purchases').doc('p'+String(k).padStart(4,'0')).set({k,ref:$('#p_ref').value,rdate:$('#p_rdate').value,item,qty:+$('#p_qty').value,status:'جاري إعداد الطلب',ddate:''});
+}
+/* ---------- الملخص ---------- */
+function vSum(){
+  const c=s=>notices.filter(n=>n.status===s).length,pc=s=>purchases.filter(p=>p.status===s).length;
+  const closed=notices.length?Math.round(100*c('تم الإصلاح')/notices.length):0;
+  const tmp=notices.length?Math.round(100*c('إصلاح مؤقت')/notices.length):0;
+  return `<div class="card"><button class="btn" onclick="pdf('الملخص')">تصدير PDF</button></div>
+  <div class="card" id="rep"><h3>ملخص الصيانة – مستشفى الابتسامة</h3>
+  <div class="grid"><div class="k"><b>${notices.length}</b>إجمالي الإخطارات</div><div class="k"><b>${closed}%</b>نسبة الإغلاق</div><div class="k"><b>${tmp}%</b>إصلاحات مؤقتة</div><div class="k"><b>${purchases.length}</b>أصناف الشراء</div></div>
+  <h4>الصيانة العلاجية حسب الحالة</h4><table>${ST.map(s=>`<tr><td class="l ${stCls(s)}">${s}</td><td>${c(s)}</td></tr>`).join('')}</table>
+  <h4>طلبات الشراء</h4><table>${PST.map(s=>`<tr><td class="l">${s}</td><td>${pc(s)}</td></tr>`).join('')}</table></div>`;
+}
+async function pdf(name){
+  const el=$('#rep');const cv=await html2canvas(el,{scale:2,backgroundColor:'#ffffff'});
+  const {jsPDF}=window.jspdf;const doc=new jsPDF({orientation:'l',unit:'pt',format:'a4'});
+  const W=doc.internal.pageSize.getWidth()-40,H=doc.internal.pageSize.getHeight()-40,ih=cv.height*W/cv.width;
+  let y=0;while(y<ih){doc.addImage(cv.toDataURL('image/jpeg',.92),'JPEG',20,20-y,W,ih);y+=H;if(y<ih)doc.addPage()}
+  dl(name+'_'+new Date().toISOString().slice(0,10)+'.pdf',doc.output('arraybuffer'));
+}
+
+/* ---------- صندوق الوارد (مدخل البيانات) ---------- */
+const doneI=new Set();
+async function procInbox(list){
+  list.sort((a,b)=>String(a.o.at).localeCompare(String(b.o.at)));
+  for(const x of list){
+    if(doneI.has(x.id))continue;doneI.add(x.id);const o=x.o,d=o.data||{};
+    try{
+      if(o.type==='notice')await addNotice({...d,reporter:d.reporter||'',by:o.by});
+      else if(o.type==='purchase'){const k=nextK();await db.collection('purchases').doc('p'+String(k).padStart(4,'0')).set({k,ref:'',rdate:d.rdate,item:d.item,qty:d.qty,status:'جاري إعداد الطلب',ddate:'',notes:d.related||''})}
+      else if(o.type==='mark'){
+        const r=rounds[d.date]||{marks:{},notes:{}};r.marks=r.marks||{};r.notes=r.notes||{};r.marks[d.i+'_'+d.j]=d.v;if(d.note)r.notes[d.i]=d.note;rounds[d.date]=r;
+        await db.collection('rounds').doc(d.date).set(r);
+        const a=ALL[d.i].a,c=CATS[d.j];
+        if(d.v==='✗'&&!notices.find(n=>n.src==='مرور'&&n.dept===a&&n.cat===c&&n.status!=='تم الإصلاح'))
+          await addNotice({date:d.date,dept:a,reporter:'المرور اليومي',details:(d.note||'عطل')+' – '+c,src:'مرور',cat:c,by:o.by});
+      }
+      await db.collection('inbox').doc(x.id).delete();
+    }catch(e){doneI.delete(x.id)}
+  }
+}
+/* ---------- واجهة مدخل البيانات ---------- */
+function toast(t){const e=document.createElement('div');e.textContent=t;e.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1f4e79;color:#fff;padding:10px 18px;border-radius:8px;z-index:50';document.body.appendChild(e);setTimeout(()=>e.remove(),1800)}
+async function send(o){const id='i'+Date.now()+Math.random().toString(36).slice(2,6);await db.collection('inbox').doc(id).set({...o,by:window.USER_EMAIL,at:new Date().toISOString()});toast('تم الإرسال ✓')}
+const eSt=()=>JSON.parse(localStorage.getItem('rnd_'+rdate)||'{"m":{},"n":{}}');
+function vERound(){
+  const st=eSt();
+  let h=`<div class="card"><div class="row"><label>التاريخ<input type="date" value="${rdate}" onchange="rdate=this.value;render()"></label></div><div class="msg">اختر ✓ أو ✗ لكل خانة؛ كل اختيار يُرسل فوراً للمدير. اكتب الملاحظة قبل اختيار ✗.</div></div><div class="card wrap"><table><tr><th>المكان</th>${CATS.map(c=>`<th>${c}</th>`).join('')}<th>ملاحظات</th></tr>`;
+  let last='';
+  ALL.forEach((x,i)=>{
+    if(x.f!==last){h+=`<tr><td class="fl" colspan="${CATS.length+2}">${x.f}</td></tr>`;last=x.f}
+    h+=`<tr><td class="l">${x.a}</td>`+CATS.map((c,j)=>{const m=st.m[i+'_'+j]||'';return `<td class="${m==='✗'?'s-bad':m==='✓'?'s-ok':''}"><select onchange="eMark(${i},${j},this.value)">${['','✓','✗','مشغولة','لا يوجد'].map(o=>`<option ${o===m?'selected':''}>${o}</option>`).join('')}</select></td>`}).join('')
+      +`<td><textarea rows="1" data-keep="1" oninput="fit(this)" onchange="eNote(${i},this.value)">${esc(st.n[i])}</textarea></td></tr>`;
+  });
+  return h+'</table></div>';
+}
+function eNote(i,v){const st=eSt();st.n[i]=v;localStorage.setItem('rnd_'+rdate,JSON.stringify(st))}
+async function eMark(i,j,v){const st=eSt();st.m[i+'_'+j]=v;localStorage.setItem('rnd_'+rdate,JSON.stringify(st));render();await send({type:'mark',data:{date:rdate,i,j,v,note:st.n[i]||''}})}
+function vENotice(){
+  return `<div class="card"><b>إخطار جديد</b><div class="row">
+  <label>التاريخ<input type="date" id="f_date" value="${new Date().toISOString().slice(0,10)}"></label><label>الوقت<input type="time" id="f_time"></label>
+  <label>القسم<input id="f_dept"></label><label>مسؤول الإخطار<input id="f_reporter"></label>
+  <label>تفاصيل العطل<textarea id="f_details" rows="2" style="width:240px"></textarea></label><label>الإجراء المتخذ<textarea id="f_action" rows="2" style="width:220px"></textarea></label>
+  <label>الحالة<select id="f_status">${ST.map(s=>`<option ${s==='لم يتم الإصلاح'?'selected':''}>${s}</option>`).join('')}</select></label>
+  <label>ممثل الصيانة<input id="f_rep"></label><label>يحتاج شراء؟<select id="f_needbuy"><option>لا</option><option>نعم</option></select></label>
+  <button class="btn" onclick="eSaveNotice()">إرسال</button></div></div>`;
+}
+async function eSaveNotice(){
+  const o={};['date','time','dept','reporter','details','action','status','rep','needbuy'].forEach(k=>o[k]=$('#f_'+k).value);
+  if(!o.dept||!o.details){alert('اكتب القسم وتفاصيل العطل');return}
+  if(o.status==='تم الإصلاح')o.fixdate=o.date;
+  await send({type:'notice',data:o});$('#f_details').value='';$('#f_action').value='';$('#f_dept').value='';
+}
+function vEPurch(){
+  return `<div class="card"><b>طلب شراء جديد</b><div class="row">
+  <label>تاريخ الطلب<input type="date" id="p_rdate" value="${new Date().toISOString().slice(0,10)}"></label>
+  <label>الصنف<input id="p_item"></label><label>الكمية<input id="p_qty" type="number" value="1" style="width:70px"></label>
+  <label>المرتبط بالعطل (القسم/العطل)<input id="p_rel" style="width:240px"></label><button class="btn" onclick="eSavePurch()">إرسال</button></div></div>`;
+}
+async function eSavePurch(){const item=$('#p_item').value;if(!item)return;await send({type:'purchase',data:{rdate:$('#p_rdate').value,item,qty:+$('#p_qty').value,related:$('#p_rel').value}});$('#p_item').value='';$('#p_rel').value=''}
+init();
+</script>
+</body>
+</html>
