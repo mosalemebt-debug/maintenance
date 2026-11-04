@@ -125,7 +125,7 @@ const ALL=AREAS.flatMap(([f,l])=>l.map(a=>({f,a})));
 const ST=['تم الإصلاح','تم جزئياً','إصلاح مؤقت','جاري التنفيذ','لم يتم الإصلاح','غير قابل للإصلاح'];
 const PST=['لم يُطلب','جاري إعداد الطلب','تم الطلب','تم الشراء/التوريد','تم التركيب'];
 const stCls=s=>s==='تم الإصلاح'?'s-ok':['تم جزئياً','إصلاح مؤقت','جاري التنفيذ'].includes(s)?'s-warn':s?'s-bad':'';
-let db=null,notices=[],purchases=[],rounds={},tab='round',rdate=ymd(new Date());
+let db=null,notices=[],purchases=[],rounds={},tab='daily',rdate=ymd(new Date());
 const $=s=>document.querySelector(s);
 function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 const DAYS=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
@@ -150,13 +150,13 @@ async function init(){
   db.collection('rounds').onSnapshot(s=>{rounds={};s.docs.forEach(d=>rounds[d.id]=d.data());render()});
 }
 function nav(){
-  const T=window.ROLE==='entry'?[['e_round','مرور يومي'],['e_notice','إخطار جديد'],['e_purch','طلب شراء']]:[['round','المرور اليومي'],['notices','الصيانة العلاجية'],['purch','طلبات الشراء'],['sum','الملخص'],['reports','التقارير']];
+  const T=window.ROLE==='entry'?[['e_round','مرور يومي'],['e_notice','إخطار جديد'],['e_purch','طلب شراء']]:[['daily','المتابعة اليومية'],['round','المرور اليومي'],['notices','الصيانة العلاجية'],['purch','طلبات الشراء'],['sum','الملخص'],['reports','التقارير']];
   $('#nav').innerHTML=T.map(([k,v])=>`<button class="${tab===k?'on':''}" onclick="tab='${k}';nav();render();window.scrollTo(0,0)">${v}</button>`).join('');
 }
 function render(){
   if(document.activeElement&&['INPUT','TEXTAREA'].includes(document.activeElement.tagName)&&document.activeElement.dataset.keep)return;
   const wy=window.scrollY,ws=[...document.querySelectorAll('.wrap:not(#rep)')].map(w=>[w.scrollTop,w.scrollLeft]);
-  $('#main').innerHTML=({round:vRound,notices:vNotices,purch:vPurch,sum:vSum,reports:vReports,e_round:vERound,e_notice:vENotice,e_purch:vEPurch})[tab]();
+  $('#main').innerHTML=({round:vRound,notices:vNotices,purch:vPurch,sum:vSum,reports:vReports,daily:vDaily,e_round:vERound,e_notice:vENotice,e_purch:vEPurch})[tab]();
   document.querySelectorAll('textarea').forEach(fit);
   labelize();
   document.querySelectorAll('.wrap:not(#rep)').forEach((w,i)=>{if(ws[i]){w.scrollTop=ws[i][0];w.scrollLeft=ws[i][1]}});
@@ -426,6 +426,39 @@ async function delItem(kind,id){
     await db.collection('purchases').doc(id).delete();
   }
   toast('تم الحذف');
+}
+/* ---------- تقرير متابعة الأعمال اليومي ---------- */
+function vDaily(){
+  const today=ymd(new Date());
+  const open=notices.filter(n=>n.status!=='تم الإصلاح').sort((a,b)=>a.n-b.n);
+  const age=n=>{const x=Math.round((new Date(today)-new Date(iso(n.date)))/864e5);return isNaN(x)?'':x};
+  const byS={};open.forEach(n=>{const k=n.status||'بدون حالة';byS[k]=(byS[k]||0)+1});
+  const nNew=notices.filter(n=>iso(n.date)===today).length,nCl=notices.filter(n=>n.status==='تم الإصلاح'&&iso(n.fixdate)===today).length;
+  const r=rounds[today],badList=[];
+  if(r)Object.entries(r.marks||{}).forEach(([k,v])=>{if(v==='✗'){const [i,j]=k.split('_');badList.push(ALL[i].a+' – '+CATS[j])}});
+  const PLACED=['تم الطلب','تم الشراء/التوريد','تم التركيب'];
+  const rows=[];
+  notices.filter(n=>n.needbuy==='نعم'&&n.status!=='تم الإصلاح').sort((a,b)=>a.n-b.n).forEach(n=>{
+    const its=purchases.filter(p=>p.ref===n.ref);
+    if(!its.length)rows.push({ref:n.ref,what:(n.dept||'')+' – '+(n.details||''),item:'لم يُحدد صنف',st:'—',ok:false,rd:'',dd:''});
+    else its.filter(p=>p.status!=='تم التركيب').forEach(p=>rows.push({ref:n.ref,what:(n.dept||'')+' – '+(n.details||''),item:p.item+' × '+(p.qty??''),st:p.status,ok:PLACED.includes(p.status),rd:fd(p.rdate),dd:fd(p.ddate)}));
+  });
+  purchases.filter(p=>!p.ref&&p.status!=='تم التركيب').forEach(p=>rows.push({ref:'—',what:p.notes||'',item:p.item+' × '+(p.qty??''),st:p.status,ok:PLACED.includes(p.status),rd:fd(p.rdate),dd:fd(p.ddate)}));
+  const notPlaced=rows.filter(x=>!x.ok).length,ordered=rows.filter(x=>x.st==='تم الطلب').length,delivered=rows.filter(x=>x.st==='تم الشراء/التوريد').length;
+  const day=DAYS[new Date(today+'T12:00:00').getDay()];
+  const chips=Object.entries(byS).map(([k,v])=>`<span class="${stCls(k)}" style="padding:4px 10px;border-radius:6px;display:inline-block;margin:2px"><b>${v}</b> ${esc(k)}</span>`).join('')||'لا توجد إخطارات مفتوحة';
+  return `<div class="card"><div class="row"><button class="btn" onclick="pdf('تقرير_المتابعة_اليومي_${today}')">تصدير PDF</button><button class="btn alt" onclick="render()">تحديث</button></div></div>
+  <div class="card" id="rep"><h3>تقرير متابعة الأعمال اليومي – قسم الصيانة – مستشفى الابتسامة</h3>
+  <div class="msg">${day} ${dFmt(today)}</div>
+  <div class="grid" style="margin:8px 0"><div class="k"><b>${open.length}</b>إخطارات لم يتم إصلاحها</div><div class="k"><b>${nNew}</b>إخطارات جديدة اليوم</div><div class="k"><b>${nCl}</b>تم إصلاحها اليوم</div><div class="k"><b>${notPlaced}</b>أصناف لم يتم عمل طلب لها</div><div class="k"><b>${ordered}</b>تم طلبها ولم تُورَّد</div><div class="k"><b>${delivered}</b>تم توريدها ولم تُركَّب</div></div>
+  <div style="margin:6px 0"><b>الإخطارات المفتوحة حسب الحالة:</b> ${chips}</div>
+  <div style="margin:6px 0"><b>مرور اليوم:</b> ${r?(badList.length?'محفوظ – أعطال: '+esc(badList.join('، ')):'محفوظ – لا توجد أعطال'):'لم يُحفظ بعد'}</div>
+  <h4>الإخطارات التي لم يتم إصلاحها (${open.length})</h4>
+  <div style="overflow-x:auto"><table><tr>${['الإخطار','التاريخ','العمر (يوم)','القسم','العطل','الإجراء','الحالة','ممثل الصيانة','شراء؟'].map(x=>`<th>${x}</th>`).join('')}</tr>
+  ${open.map(n=>`<tr><td>${n.ref}</td><td>${fd(n.date)}</td><td>${age(n)}</td><td class="l">${esc(n.dept)}</td><td class="l">${esc(n.details)}</td><td class="l">${esc(n.action)}</td><td class="${stCls(n.status)}">${esc(n.status)}</td><td>${esc(n.rep)}</td><td>${esc(n.needbuy)}</td></tr>`).join('')||'<tr><td colspan="9">لا توجد إخطارات مفتوحة</td></tr>'}</table></div>
+  <h4>طلبات الشراء المطلوبة (${rows.length})</h4>
+  <div style="overflow-x:auto"><table><tr>${['الإخطار','القسم / العطل','الصنف','حالة الصنف','هل تم عمل طلب؟','تاريخ الطلب','تاريخ التوريد'].map(x=>`<th>${x}</th>`).join('')}</tr>
+  ${rows.map(x=>`<tr><td>${x.ref}</td><td class="l">${esc(x.what)}</td><td class="l">${esc(x.item)}</td><td>${esc(x.st)}</td><td class="${x.ok?'s-ok':'s-bad'}">${x.ok?'تم عمل طلب':'لم يتم'}</td><td>${x.rd}</td><td>${x.dd}</td></tr>`).join('')||'<tr><td colspan="7">لا توجد طلبات شراء معلقة</td></tr>'}</table></div></div>`;
 }
 async function pdf(name){
   const el=$('#rep');document.body.classList.add('pdfing');const cv=await html2canvas(el,{scale:2,backgroundColor:'#ffffff'});document.body.classList.remove('pdfing');
