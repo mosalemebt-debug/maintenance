@@ -110,7 +110,7 @@ const AREAS=[["الدور الثاني",["غرفة 201","غرفة 202","غرفة
 ["الدور الأرضي",["الريسيبشن","مكتب مدير المستشفى","الخزن","غرفة طوارئ","غرفة IT","معمل التحليل","معمل الذكورة","التعقيم","الصيدلية","المطبخ","المغسلة","حمام رجالي – الأرضي","حمام حريمي – الأرضي"]]];
 const ALL=AREAS.flatMap(([f,l])=>l.map(a=>({f,a})));
 const ST=['تم الإصلاح','تم جزئياً','إصلاح مؤقت','جاري التنفيذ','لم يتم الإصلاح','غير قابل للإصلاح'];
-const PST=['لم يُطلب','جاري إعداد الطلب','تم الطلب','تم الشراء/التوريد'];
+const PST=['لم يُطلب','جاري إعداد الطلب','تم الطلب','تم الشراء/التوريد','تم التركيب'];
 const stCls=s=>s==='تم الإصلاح'?'s-ok':['تم جزئياً','إصلاح مؤقت','جاري التنفيذ'].includes(s)?'s-warn':s?'s-bad':'';
 let db=null,notices=[],purchases=[],rounds={},tab='round',rdate=new Date().toISOString().slice(0,10);
 const $=s=>document.querySelector(s);
@@ -158,33 +158,45 @@ async function addNotice(o){
   notices.push({id:'n'+String(n).padStart(4,'0'),...d});
   await db.collection('notices').doc('n'+String(n).padStart(4,'0')).set(d);
 }
-/* ---------- المرور اليومي ---------- */
-function vRound(){
-  const r=rounds[rdate]||{marks:{},notes:{}};
-  const bad=Object.values(r.marks||{}).filter(x=>x==='✗').length;
-  let h=`<div class="card"><div class="row"><label>التاريخ<input type="date" value="${rdate}" onchange="rdate=this.value;render()"></label><span><b>أعطال اليوم: ${bad}</b></span></div>
-  <div class="msg">اختر ✗ فيُسجَّل العطل تلقائياً في الصيانة العلاجية (ولا يتكرر لو فيه عطل مفتوح لنفس المكان والتخصص).</div></div>
-  <div class="card wrap"><table><tr><th>المكان</th>${CATS.map(c=>`<th>${c}</th>`).join('')}<th>ملاحظات</th><th>مفتوح بالعلاجية</th></tr>`;
+/* ---------- المرور اليومي (افتراضي: الكل سليم ✓) ---------- */
+let draft=null;
+function getDraft(){if(!draft||draft.date!==rdate){const r=rounds[rdate];draft={date:rdate,saved:!!r,marks:{...((r&&r.marks)||{})},notes:{...((r&&r.notes)||{})}}}return draft}
+const fullMarks=d=>{const m={};ALL.forEach((x,i)=>CATS.forEach((c,j)=>m[i+'_'+j]=d.marks[i+'_'+j]||'✓'));return m};
+function roundTable(d,withOpen){
+  const bad=Object.values(fullMarks(d)).filter(x=>x==='✗').length;
+  let h=`<div class="card"><div class="row"><label>التاريخ<input type="date" value="${rdate}" onchange="draft=null;rdate=this.value;render()"></label><span><b>الأعطال المحددة: ${bad}</b>${d.saved&&withOpen?' · (محفوظ سابقاً)':''}</span><button class="btn" onclick="saveRound()">حفظ المرور اليومي</button></div>
+  <div class="msg">كل الخانات سليمة ✓ افتراضياً؛ غيّر الخانات اللي فيها مشكلة فقط (✗) واكتب الملاحظة، ثم اضغط حفظ مرة واحدة. الأعطال بتتسجل في الصيانة العلاجية عند الحفظ.</div></div>
+  <div class="card wrap"><table><tr><th>المكان</th>${CATS.map(c=>`<th>${c}</th>`).join('')}<th>ملاحظات</th>${withOpen?'<th>مفتوح بالعلاجية</th>':''}</tr>`;
   let last='';
   ALL.forEach((x,i)=>{
-    if(x.f!==last){h+=`<tr><td class="fl" colspan="${CATS.length+3}">${x.f}</td></tr>`;last=x.f}
-    const open=notices.filter(n=>n.status!=='تم الإصلاح'&&n.dept&&n.dept.includes(x.a)).length;
-    h+=`<tr><td class="l">${x.a}</td>`+CATS.map((c,j)=>{const m=(r.marks||{})[i+'_'+j]||'';
-      return `<td class="${m==='✗'?'s-bad':m==='✓'?'s-ok':''}"><select onchange="mark(${i},${j},this.value)">${['','✓','✗','مشغولة','لا يوجد'].map(o=>`<option ${o===m?'selected':''}>${o}</option>`).join('')}</select></td>`}).join('')
-      +`<td><textarea rows="1" data-keep="1" oninput="fit(this)" onchange="note(${i},this.value)">${esc((r.notes||{})[i])}</textarea></td><td class="${open?'s-warn':''}">${open||''}</td></tr>`;
+    if(x.f!==last){h+=`<tr><td class="fl" colspan="${CATS.length+2+(withOpen?1:0)}">${x.f}</td></tr>`;last=x.f}
+    h+=`<tr><td class="l">${x.a}</td>`+CATS.map((c,j)=>{const m=d.marks[i+'_'+j]||'✓';
+      return `<td class="${m==='✗'?'s-bad':m==='✓'?'s-ok':''}"><select onchange="dSet(${i},${j},this.value)">${['✓','✗','مشغولة','لا يوجد'].map(o=>`<option ${o===m?'selected':''}>${o}</option>`).join('')}</select></td>`}).join('')
+      +`<td><textarea rows="1" data-keep="1" oninput="fit(this)" onchange="dNote(${i},this.value)">${esc(d.notes[i])}</textarea></td>`;
+    if(withOpen){const open=notices.filter(n=>n.status!=='تم الإصلاح'&&n.dept&&n.dept.includes(x.a)).length;h+=`<td class="${open?'s-warn':''}">${open||''}</td>`}
+    h+='</tr>';
   });
-  return h+'</table></div>';
+  return h+'</table></div><div class="card"><button class="btn" onclick="saveRound()">حفظ المرور اليومي</button></div>';
 }
-async function mark(i,j,v){
-  if(!db)return;const r=rounds[rdate]||{marks:{},notes:{}};r.marks=r.marks||{};r.marks[i+'_'+j]=v;rounds[rdate]=r;
-  await db.collection('rounds').doc(rdate).set(r);
-  if(v==='✗'){
+function vRound(){return roundTable(getDraft(),true)}
+function vERound(){return roundTable(getDraft(),false)}
+function dSet(i,j,v){getDraft().marks[i+'_'+j]=v;render()}
+function dNote(i,v){getDraft().notes[i]=v}
+async function applyRound(date,marks,notes,by){
+  await db.collection('rounds').doc(date).set({marks,notes});
+  rounds[date]={marks,notes};
+  for(let i=0;i<ALL.length;i++)for(let j=0;j<CATS.length;j++){
+    if(marks[i+'_'+j]!=='✗')continue;
     const a=ALL[i].a,c=CATS[j];
-    if(!notices.find(n=>n.src==='مرور'&&n.dept===a&&n.cat===c&&n.status!=='تم الإصلاح'))
-      await addNotice({date:rdate,dept:a,reporter:'المرور اليومي',details:((r.notes||{})[i]||'عطل')+' – '+c,src:'مرور',cat:c});
+    if(notices.find(n=>n.src==='مرور'&&n.dept===a&&n.cat===c&&(n.status!=='تم الإصلاح'||n.date===date)))continue;
+    await addNotice({date,dept:a,reporter:'المرور اليومي',details:(notes[i]||'عطل')+' – '+c,src:'مرور',cat:c,by:by||''});
   }
 }
-async function note(i,v){if(!db)return;const r=rounds[rdate]||{marks:{},notes:{}};r.notes=r.notes||{};r.notes[i]=v;rounds[rdate]=r;await db.collection('rounds').doc(rdate).set(r)}
+async function saveRound(){
+  const d=getDraft(),marks=fullMarks(d);
+  if(window.ROLE==='entry'){await send({type:'round',data:{date:rdate,marks,notes:d.notes}});draft=null;render();return}
+  await applyRound(rdate,marks,d.notes,'');draft=null;toast('تم حفظ المرور اليومي ✓');render();
+}
 /* ---------- الصيانة العلاجية ---------- */
 const FLD=['date','time','dept','reporter','details','action','status','fixdate','rep','needbuy','notes','cls'];
 function vNotices(){
@@ -248,11 +260,26 @@ function vPurch(){
   <label>تاريخ الطلب<input type="date" id="p_rdate" value="${new Date().toISOString().slice(0,10)}"></label>
   <label>الصنف<input id="p_item"></label><label>الكمية<input id="p_qty" type="number" value="1" style="width:70px"></label>
   <button class="btn" onclick="savePurch()">حفظ</button><button class="btn alt" onclick="pdf('طلبات_الشراء')">تصدير PDF</button></div></div>
-  <div class="card wrap" id="rep"><h3>طلبات الشراء – مستشفى الابتسامة</h3><table><tr>${['م','الإخطار','القسم','الصنف','الكمية','تاريخ الطلب','الحالة','تاريخ التوريد'].map(x=>`<th>${x}</th>`).join('')}</tr>`;
+  <div class="card wrap" id="rep"><h3>طلبات الشراء – مستشفى الابتسامة</h3><table><tr>${['م','الإخطار','القسم','الصنف','الكمية','تاريخ الطلب','الحالة','تاريخ التوريد','تاريخ التركيب'].map(x=>`<th>${x}</th>`).join('')}</tr>`;
   purchases.forEach(p=>{const n=notices.find(x=>x.ref===p.ref)||{};
-    h+=`<tr><td>${p.k}</td><td>${p.ref}</td><td class="l">${esc(n.dept||p.notes)}</td><td class="l">${esc(p.item)}</td><td>${p.qty??''}</td><td>${fd(p.rdate)}</td>
-    <td class="${p.status==='تم الشراء/التوريد'?'s-ok':p.status==='لم يُطلب'?'s-bad':'s-warn'}"><select onchange="db.collection('purchases').doc('${p.id}').update({status:this.value,ddate:this.value==='تم الشراء/التوريد'?new Date().toISOString().slice(0,10):''})">${PST.map(s=>`<option ${s===p.status?'selected':''}>${s}</option>`).join('')}</select></td><td>${fd(p.ddate)}</td></tr>`});
+    const refSel=`<select onchange="db.collection('purchases').doc('${p.id}').update({ref:this.value})"><option value=""></option>${notices.slice().reverse().map(x=>`<option ${x.ref===p.ref?'selected':''}>${x.ref}</option>`).join('')}</select>`;
+    h+=`<tr><td>${p.k}</td><td>${refSel}</td><td class="l">${esc(n.dept||p.notes)}</td><td class="l">${esc(p.item)}</td><td>${p.qty??''}</td><td>${fd(p.rdate)}</td>
+    <td class="${['تم الشراء/التوريد','تم التركيب'].includes(p.status)?'s-ok':p.status==='لم يُطلب'?'s-bad':'s-warn'}"><select onchange="setPurchStatus('${p.id}',this.value)">${PST.map(s=>`<option ${s===p.status?'selected':''}>${s}</option>`).join('')}</select></td><td>${fd(p.ddate)}</td><td>${fd(p.idate)}</td></tr>`});
   return h+'</table></div>';
+}
+async function setPurchStatus(id,v){
+  const p=purchases.find(x=>x.id===id);if(!p)return;
+  const today=new Date().toISOString().slice(0,10);
+  const o={status:v,ddate:(v==='تم الشراء/التوريد'||v==='تم التركيب')?(p.ddate||today):'',idate:v==='تم التركيب'?today:''};
+  Object.assign(p,o);await db.collection('purchases').doc(id).update(o);
+  if(v!=='تم التركيب'||!p.ref)return;
+  const group=purchases.filter(x=>x.ref===p.ref);
+  if(!group.every(x=>x.status==='تم التركيب'))return;
+  const n=notices.find(x=>x.ref===p.ref);
+  if(n&&n.status!=='تم الإصلاح'){
+    await upd(n.id,{status:'تم الإصلاح',fixdate:today,viaPurchase:true,notes:(n.notes?n.notes+' | ':'')+'تم الإصلاح تلقائياً بعد الشراء والتركيب'});
+    toast('تم تغيير حالة '+n.ref+' إلى «تم الإصلاح» تلقائياً');
+  }
 }
 async function savePurch(){
   const item=$('#p_item').value;if(!item)return;const k=nextK();
@@ -261,11 +288,12 @@ async function savePurch(){
 /* ---------- الملخص ---------- */
 function vSum(){
   const c=s=>notices.filter(n=>n.status===s).length,pc=s=>purchases.filter(p=>p.status===s).length;
+  const linked=new Set(purchases.filter(p=>p.ref).map(p=>p.ref)),viaP=notices.filter(n=>n.viaPurchase).length,linkedOpen=[...linked].filter(r=>{const n=notices.find(x=>x.ref===r);return n&&n.status!=='تم الإصلاح'}).length;
   const closed=notices.length?Math.round(100*c('تم الإصلاح')/notices.length):0;
   const tmp=notices.length?Math.round(100*c('إصلاح مؤقت')/notices.length):0;
   return `<div class="card"><button class="btn" onclick="pdf('الملخص')">تصدير PDF</button></div>
   <div class="card" id="rep"><h3>ملخص الصيانة – مستشفى الابتسامة</h3>
-  <div class="grid"><div class="k"><b>${notices.length}</b>إجمالي الإخطارات</div><div class="k"><b>${closed}%</b>نسبة الإغلاق</div><div class="k"><b>${tmp}%</b>إصلاحات مؤقتة</div><div class="k"><b>${purchases.length}</b>أصناف الشراء</div></div>
+  <div class="grid"><div class="k"><b>${notices.length}</b>إجمالي الإخطارات</div><div class="k"><b>${closed}%</b>نسبة الإغلاق</div><div class="k"><b>${tmp}%</b>إصلاحات مؤقتة</div><div class="k"><b>${purchases.length}</b>أصناف الشراء</div><div class="k"><b>${linked.size}</b>إخطارات مرتبطة بطلب شراء</div><div class="k"><b>${viaP}</b>أُغلقت بعد شراء وتركيب</div><div class="k"><b>${linkedOpen}</b>مرتبطة بشراء ولم تُغلق</div></div>
   <h4>الصيانة العلاجية حسب الحالة</h4><table>${ST.map(s=>`<tr><td class="l ${stCls(s)}">${s}</td><td>${c(s)}</td></tr>`).join('')}</table>
   <h4>طلبات الشراء</h4><table>${PST.map(s=>`<tr><td class="l">${s}</td><td>${pc(s)}</td></tr>`).join('')}</table></div>`;
 }
@@ -286,6 +314,7 @@ async function procInbox(list){
     try{
       if(o.type==='notice')await addNotice({...d,reporter:d.reporter||'',by:o.by});
       else if(o.type==='purchase'){const k=nextK();await db.collection('purchases').doc('p'+String(k).padStart(4,'0')).set({k,ref:'',rdate:d.rdate,item:d.item,qty:d.qty,status:'جاري إعداد الطلب',ddate:'',notes:d.related||''})}
+      else if(o.type==='round')await applyRound(d.date,d.marks,d.notes||{},o.by);
       else if(o.type==='mark'){
         const r=rounds[d.date]||{marks:{},notes:{}};r.marks=r.marks||{};r.notes=r.notes||{};r.marks[d.i+'_'+d.j]=d.v;if(d.note)r.notes[d.i]=d.note;rounds[d.date]=r;
         await db.collection('rounds').doc(d.date).set(r);
@@ -300,20 +329,6 @@ async function procInbox(list){
 /* ---------- واجهة مدخل البيانات ---------- */
 function toast(t){const e=document.createElement('div');e.textContent=t;e.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1f4e79;color:#fff;padding:10px 18px;border-radius:8px;z-index:50';document.body.appendChild(e);setTimeout(()=>e.remove(),1800)}
 async function send(o){const id='i'+Date.now()+Math.random().toString(36).slice(2,6);await db.collection('inbox').doc(id).set({...o,by:window.USER_EMAIL,at:new Date().toISOString()});toast('تم الإرسال ✓')}
-const eSt=()=>JSON.parse(localStorage.getItem('rnd_'+rdate)||'{"m":{},"n":{}}');
-function vERound(){
-  const st=eSt();
-  let h=`<div class="card"><div class="row"><label>التاريخ<input type="date" value="${rdate}" onchange="rdate=this.value;render()"></label></div><div class="msg">اختر ✓ أو ✗ لكل خانة؛ كل اختيار يُرسل فوراً للمدير. اكتب الملاحظة قبل اختيار ✗.</div></div><div class="card wrap"><table><tr><th>المكان</th>${CATS.map(c=>`<th>${c}</th>`).join('')}<th>ملاحظات</th></tr>`;
-  let last='';
-  ALL.forEach((x,i)=>{
-    if(x.f!==last){h+=`<tr><td class="fl" colspan="${CATS.length+2}">${x.f}</td></tr>`;last=x.f}
-    h+=`<tr><td class="l">${x.a}</td>`+CATS.map((c,j)=>{const m=st.m[i+'_'+j]||'';return `<td class="${m==='✗'?'s-bad':m==='✓'?'s-ok':''}"><select onchange="eMark(${i},${j},this.value)">${['','✓','✗','مشغولة','لا يوجد'].map(o=>`<option ${o===m?'selected':''}>${o}</option>`).join('')}</select></td>`}).join('')
-      +`<td><textarea rows="1" data-keep="1" oninput="fit(this)" onchange="eNote(${i},this.value)">${esc(st.n[i])}</textarea></td></tr>`;
-  });
-  return h+'</table></div>';
-}
-function eNote(i,v){const st=eSt();st.n[i]=v;localStorage.setItem('rnd_'+rdate,JSON.stringify(st))}
-async function eMark(i,j,v){const st=eSt();st.m[i+'_'+j]=v;localStorage.setItem('rnd_'+rdate,JSON.stringify(st));render();await send({type:'mark',data:{date:rdate,i,j,v,note:st.n[i]||''}})}
 function vENotice(){
   return `<div class="card"><b>إخطار جديد</b><div class="row">
   <label>التاريخ<input type="date" id="f_date" value="${new Date().toISOString().slice(0,10)}"></label><label>الوقت<input type="time" id="f_time"></label>
