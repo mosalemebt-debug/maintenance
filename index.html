@@ -67,7 +67,7 @@ html{-webkit-text-size-adjust:100%}
 </style>
 </head>
 <body>
-<header>برنامج الصيانة – مستشفى الابتسامة – مصر الجديدة</header>
+<header>برنامج الصيانة – مستشفى الابتسامة – مصر الجديدة <small style="opacity:.7;font-weight:400">(إصدار 4-11)</small></header>
 <nav id="nav"></nav>
 <main id="main"></main>
 <script src="firebase-config.js"></script>
@@ -112,8 +112,12 @@ const ALL=AREAS.flatMap(([f,l])=>l.map(a=>({f,a})));
 const ST=['تم الإصلاح','تم جزئياً','إصلاح مؤقت','جاري التنفيذ','لم يتم الإصلاح','غير قابل للإصلاح'];
 const PST=['لم يُطلب','جاري إعداد الطلب','تم الطلب','تم الشراء/التوريد','تم التركيب'];
 const stCls=s=>s==='تم الإصلاح'?'s-ok':['تم جزئياً','إصلاح مؤقت','جاري التنفيذ'].includes(s)?'s-warn':s?'s-bad':'';
-let db=null,notices=[],purchases=[],rounds={},tab='round',rdate=new Date().toISOString().slice(0,10);
+let db=null,notices=[],purchases=[],rounds={},tab='round',rdate=ymd(new Date());
 const $=s=>document.querySelector(s);
+function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+const DAYS=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+function goDay(v){const d=getDraft();if(d.dirty&&!confirm('فيه تعديلات غير محفوظة في المرور الحالي. تتجاهلها؟'))return render();draft=null;rdate=v;render()}
+function shiftDay(n){const d=new Date(rdate+'T12:00:00');d.setDate(d.getDate()+n);goDay(ymd(d))}
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const num=r=>parseInt(String(r).replace(/\D/g,''))||0;
 const ref=n=>'ع-'+String(n).padStart(2,'0');
@@ -160,11 +164,15 @@ async function addNotice(o){
 }
 /* ---------- المرور اليومي (افتراضي: الكل سليم ✓) ---------- */
 let draft=null;
-function getDraft(){if(!draft||draft.date!==rdate){const r=rounds[rdate];draft={date:rdate,saved:!!r,marks:{...((r&&r.marks)||{})},notes:{...((r&&r.notes)||{})}}}return draft}
+function getDraft(){if(!draft||draft.date!==rdate){const r=rounds[rdate];draft={date:rdate,dirty:false,saved:!!r,marks:{...((r&&r.marks)||{})},notes:{...((r&&r.notes)||{})}}}return draft}
 const fullMarks=d=>{const m={};ALL.forEach((x,i)=>CATS.forEach((c,j)=>m[i+'_'+j]=d.marks[i+'_'+j]||'✓'));return m};
 function roundTable(d,withOpen){
   const bad=Object.values(fullMarks(d)).filter(x=>x==='✗').length;
-  let h=`<div class="card"><div class="row"><label>التاريخ<input type="date" value="${rdate}" onchange="draft=null;rdate=this.value;render()"></label><span><b>الأعطال المحددة: ${bad}</b>${d.saved&&withOpen?' · (محفوظ سابقاً)':''}</span><button class="btn" onclick="saveRound()">حفظ المرور اليومي</button></div>
+  const stTxt=d.dirty?'⚠ تعديلات غير محفوظة':(d.saved&&withOpen)?'✔ محفوظ':'لم يُحفظ بعد – الكل ✓ افتراضياً';
+  const stCls2=d.dirty?'s-warn':(d.saved&&withOpen)?'s-ok':'';
+  let h=`<div class="card"><div class="row"><button class="btn alt" onclick="shiftDay(-1)">◀ اليوم السابق</button><button class="btn alt" onclick="goDay(ymd(new Date()))">اليوم</button><button class="btn alt" onclick="shiftDay(1)">اليوم التالي ▶</button>
+  <label>التاريخ (${DAYS[new Date(rdate+'T12:00:00').getDay()]})<input type="date" value="${rdate}" onchange="goDay(this.value)"></label></div>
+  <div class="row" style="margin-top:8px"><span class="${stCls2}" style="padding:6px 10px;border-radius:6px"><b>${stTxt}</b></span><span><b>الأعطال المحددة: ${bad}</b></span><button class="btn" onclick="saveRound()">حفظ المرور اليومي</button></div>
   <div class="msg">كل الخانات سليمة ✓ افتراضياً؛ غيّر الخانات اللي فيها مشكلة فقط (✗) واكتب الملاحظة، ثم اضغط حفظ مرة واحدة. الأعطال بتتسجل في الصيانة العلاجية عند الحفظ.</div></div>
   <div class="card wrap"><table><tr><th>المكان</th>${CATS.map(c=>`<th>${c}</th>`).join('')}<th>ملاحظات</th>${withOpen?'<th>مفتوح بالعلاجية</th>':''}</tr>`;
   let last='';
@@ -180,8 +188,8 @@ function roundTable(d,withOpen){
 }
 function vRound(){return roundTable(getDraft(),true)}
 function vERound(){return roundTable(getDraft(),false)}
-function dSet(i,j,v){getDraft().marks[i+'_'+j]=v;render()}
-function dNote(i,v){getDraft().notes[i]=v}
+function dSet(i,j,v){const d=getDraft();d.marks[i+'_'+j]=v;d.dirty=true;render()}
+function dNote(i,v){const d=getDraft();d.notes[i]=v;d.dirty=true;render()}
 async function applyRound(date,marks,notes,by){
   await db.collection('rounds').doc(date).set({marks,notes});
   rounds[date]={marks,notes};
