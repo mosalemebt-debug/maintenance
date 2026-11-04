@@ -63,6 +63,11 @@ html{-webkit-text-size-adjust:100%}
   table.rt select,table.rt input,table.rt textarea{flex:1;min-width:0!important;width:100%;max-width:62%}
   .grid{grid-template-columns:repeat(2,1fr)}
 }
+.btn.sm{width:auto!important;min-height:28px;padding:2px 10px;font-size:12px;margin-inline-start:6px}
+@media (min-width:721px){
+  .wrap:not(#rep){max-height:calc(100vh - 120px);max-height:calc(100dvh - 120px);overflow:auto}
+  table th{position:sticky;top:0;z-index:3}
+}
 @media (min-width:1400px){main{max-width:1500px}}
 </style>
 </head>
@@ -137,12 +142,12 @@ async function init(){
   db.collection('rounds').onSnapshot(s=>{rounds={};s.docs.forEach(d=>rounds[d.id]=d.data());render()});
 }
 function nav(){
-  const T=window.ROLE==='entry'?[['e_round','مرور يومي'],['e_notice','إخطار جديد'],['e_purch','طلب شراء']]:[['round','المرور اليومي'],['notices','الصيانة العلاجية'],['purch','طلبات الشراء'],['sum','الملخص']];
+  const T=window.ROLE==='entry'?[['e_round','مرور يومي'],['e_notice','إخطار جديد'],['e_purch','طلب شراء']]:[['round','المرور اليومي'],['notices','الصيانة العلاجية'],['purch','طلبات الشراء'],['sum','الملخص'],['reports','التقارير']];
   $('#nav').innerHTML=T.map(([k,v])=>`<button class="${tab===k?'on':''}" onclick="tab='${k}';nav();render()">${v}</button>`).join('');
 }
 function render(){
   if(document.activeElement&&['INPUT','TEXTAREA'].includes(document.activeElement.tagName)&&document.activeElement.dataset.keep)return;
-  $('#main').innerHTML=({round:vRound,notices:vNotices,purch:vPurch,sum:vSum,e_round:vERound,e_notice:vENotice,e_purch:vEPurch})[tab]();
+  $('#main').innerHTML=({round:vRound,notices:vNotices,purch:vPurch,sum:vSum,reports:vReports,e_round:vERound,e_notice:vENotice,e_purch:vEPurch})[tab]();
   document.querySelectorAll('textarea').forEach(fit);
   labelize();
 }
@@ -178,7 +183,8 @@ function roundTable(d,withOpen){
   let last='';
   ALL.forEach((x,i)=>{
     if(x.f!==last){h+=`<tr><td class="fl" colspan="${CATS.length+2+(withOpen?1:0)}">${x.f}</td></tr>`;last=x.f}
-    h+=`<tr><td class="l">${x.a}</td>`+CATS.map((c,j)=>{const m=d.marks[i+'_'+j]||'✓';
+    const occ=CATS.every((c,j)=>d.marks[i+'_'+j]==='مشغولة');
+    h+=`<tr><td class="l"><span>${x.a}</span> <button class="btn sm ${occ?'':'alt'}" onclick="occupy(${i})">${occ?'✔ مشغولة':'مشغولة'}</button></td>`+CATS.map((c,j)=>{const m=d.marks[i+'_'+j]||'✓';
       return `<td class="${m==='✗'?'s-bad':m==='✓'?'s-ok':''}"><select onchange="dSet(${i},${j},this.value)">${['✓','✗','مشغولة','لا يوجد'].map(o=>`<option ${o===m?'selected':''}>${o}</option>`).join('')}</select></td>`}).join('')
       +`<td><textarea rows="1" data-keep="1" oninput="fit(this)" onchange="dNote(${i},this.value)">${esc(d.notes[i])}</textarea></td>`;
     if(withOpen){const open=notices.filter(n=>n.status!=='تم الإصلاح'&&n.dept&&n.dept.includes(x.a)).length;h+=`<td class="${open?'s-warn':''}">${open||''}</td>`}
@@ -188,6 +194,7 @@ function roundTable(d,withOpen){
 }
 function vRound(){return roundTable(getDraft(),true)}
 function vERound(){return roundTable(getDraft(),false)}
+function occupy(i){const d=getDraft();const all=CATS.every((c,j)=>d.marks[i+'_'+j]==='مشغولة');CATS.forEach((c,j)=>d.marks[i+'_'+j]=all?'✓':'مشغولة');d.dirty=true;render()}
 function dSet(i,j,v){const d=getDraft();d.marks[i+'_'+j]=v;d.dirty=true;render()}
 function dNote(i,v){const d=getDraft();d.notes[i]=v;d.dirty=true;render()}
 async function applyRound(date,marks,notes,by){
@@ -304,6 +311,52 @@ function vSum(){
   <div class="grid"><div class="k"><b>${notices.length}</b>إجمالي الإخطارات</div><div class="k"><b>${closed}%</b>نسبة الإغلاق</div><div class="k"><b>${tmp}%</b>إصلاحات مؤقتة</div><div class="k"><b>${purchases.length}</b>أصناف الشراء</div><div class="k"><b>${linked.size}</b>إخطارات مرتبطة بطلب شراء</div><div class="k"><b>${viaP}</b>أُغلقت بعد شراء وتركيب</div><div class="k"><b>${linkedOpen}</b>مرتبطة بشراء ولم تُغلق</div></div>
   <h4>الصيانة العلاجية حسب الحالة</h4><table>${ST.map(s=>`<tr><td class="l ${stCls(s)}">${s}</td><td>${c(s)}</td></tr>`).join('')}</table>
   <h4>طلبات الشراء</h4><table>${PST.map(s=>`<tr><td class="l">${s}</td><td>${pc(s)}</td></tr>`).join('')}</table></div>`;
+}
+/* ---------- التقارير الأسبوعية والشهرية ---------- */
+const REP_START='2026-11-07'; // السبت: بداية العمل بالتقارير
+let repType='w',repSel='';
+const lastThu=(y,m)=>{const d=new Date(y,m+1,0);while(d.getDay()!==4)d.setDate(d.getDate()-1);return ymd(d)};
+const dFmt=v=>{const [y,m,d]=v.split('-');return d+'/'+m+'/'+y};
+function weekOptions(){const o=[],t=ymd(new Date());let d=new Date(REP_START+'T12:00:00');
+  while(ymd(d)<=t){const e=new Date(d);e.setDate(e.getDate()+6);o.push({v:ymd(d),from:ymd(d),to:ymd(e)});d.setDate(d.getDate()+7)}return o.reverse()}
+function monthOptions(){const o=[],s0=new Date(REP_START+'T12:00:00'),t=new Date();let y=s0.getFullYear(),m=s0.getMonth();
+  while(y<t.getFullYear()||(y===t.getFullYear()&&m<=t.getMonth())){const f=ymd(new Date(y,m,1));o.push({v:y+'-'+(m+1),from:f<REP_START?REP_START:f,to:lastThu(y,m)});m++;if(m>11){m=0;y++}}return o.reverse()}
+function repData(from,to){
+  const inR=v=>{const x=iso(v);return typeof x==='string'&&x>=from&&x<=to};
+  const today=ymd(new Date());
+  const nNew=notices.filter(n=>inR(n.date)),nClosed=notices.filter(n=>n.status==='تم الإصلاح'&&inR(n.fixdate));
+  const dd=nClosed.map(n=>(new Date(iso(n.fixdate))-new Date(iso(n.date)))/864e5).filter(x=>!isNaN(x)&&x>=0);
+  const avg=dd.length?dd.reduce((a,b)=>a+b,0)/dd.length:null;
+  const rs=Object.entries(rounds).filter(([d])=>d>=from&&d<=to);
+  const byA={},byC={},rec={};let bad=0;
+  rs.forEach(([d,r])=>Object.entries(r.marks||{}).forEach(([k,v])=>{if(v!=='✗')return;const [i,j]=k.split('_');const a=ALL[i].a,c=CATS[j];bad++;byA[a]=(byA[a]||0)+1;byC[c]=(byC[c]||0)+1;rec[a+' – '+c]=(rec[a+' – '+c]||0)+1}));
+  const top=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const lastDay=to<today?to:today,span=Math.max(0,Math.round((new Date(lastDay)-new Date(from))/864e5)+1);
+  const open=notices.filter(n=>n.status!=='تم الإصلاح').map(n=>({...n,age:Math.round((new Date(today)-new Date(iso(n.date)))/864e5)})).filter(n=>!isNaN(n.age)).sort((a,b)=>b.age-a.age).slice(0,5);
+  const pa=purchases.filter(p=>inR(p.rdate)).length,pd=purchases.filter(p=>p.status==='تم الشراء/التوريد'&&inR(p.ddate)||p.status==='تم التركيب'&&inR(p.ddate)).length,pi=purchases.filter(p=>inR(p.idate)).length,pp=purchases.filter(p=>p.status!=='تم التركيب').length;
+  return{nNew,nClosed,avg,days:rs.length,span,bad,byA:top(byA),byC:top(byC),rec:top(rec).filter(x=>x[1]>=2),open,pa,pd,pi,pp,openNow:notices.filter(n=>n.status!=='تم الإصلاح').length};
+}
+function vReports(){
+  const opts=repType==='w'?weekOptions():monthOptions();
+  let h=`<div class="card"><div class="row"><button class="btn ${repType==='w'?'':'alt'}" onclick="repType='w';repSel='';render()">تقرير أسبوعي (السبت – الجمعة)</button><button class="btn ${repType==='m'?'':'alt'}" onclick="repType='m';repSel='';render()">تقرير شهري (حتى آخر خميس)</button></div>`;
+  if(!opts.length)return h+`<div class="msg">التقارير تبدأ من السبت ${dFmt(REP_START)}، وستظهر هنا تلقائياً.</div></div>`;
+  const cur=opts.find(x=>x.v===repSel)||opts[0];
+  h+=`<div class="row" style="margin-top:8px"><label>الفترة<select onchange="repSel=this.value;render()">${opts.map(o=>`<option value="${o.v}" ${o.v===cur.v?'selected':''}>${dFmt(o.from)} → ${dFmt(o.to)}${o.to>ymd(new Date())?' (جارية)':''}</option>`).join('')}</select></label><button class="btn" onclick="pdf('تقرير_'+(repType==='w'?'أسبوعي':'شهري')+'_'+'${cur.from}')">تصدير PDF</button></div></div>`;
+  const d=repData(cur.from,cur.to);
+  const tbl=(hd,rows)=>`<table><tr>${hd.map(x=>`<th>${x}</th>`).join('')}</tr>${rows.length?rows.map(r=>`<tr>${r.map((c,i)=>`<td${i===0?' class="l"':''}>${esc(c)}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${hd.length}">لا يوجد</td></tr>`}</table>`;
+  h+=`<div class="card" id="rep"><h3>تقرير ${repType==='w'?'أسبوعي':'شهري'} – قسم الصيانة – مستشفى الابتسامة</h3><div class="msg">الفترة: من ${dFmt(cur.from)} إلى ${dFmt(cur.to)}</div>
+  <div class="grid" style="margin:8px 0"><div class="k"><b>${d.days}/${d.span}</b>أيام مرور محفوظة</div><div class="k"><b>${d.bad}</b>خانات ✗ في المرور</div><div class="k"><b>${d.nNew.length}</b>إخطارات جديدة</div><div class="k"><b>${d.nClosed.length}</b>إخطارات تم إصلاحها</div><div class="k"><b>${d.avg===null?'—':d.avg.toFixed(1)}</b>متوسط زمن الإصلاح (يوم)</div><div class="k"><b>${d.openNow}</b>مفتوحة حالياً</div></div>
+  <h4>أكثر الأماكن أعطالاً (من المرور)</h4>${tbl(['المكان','عدد ✗'],d.byA)}
+  <h4>أكثر التخصصات أعطالاً</h4>${tbl(['التخصص','عدد ✗'],d.byC)}
+  <h4>أعطال متكررة (نفس المكان والتخصص أكثر من مرة)</h4>${tbl(['المكان – التخصص','مرات التكرار'],d.rec)}
+  <h4>أقدم الأعطال المفتوحة</h4>${tbl(['القسم','العطل','الحالة','العمر (يوم)'],d.open.map(n=>[n.dept,n.details,n.status,n.age]))}
+  <h4>طلبات الشراء</h4>${tbl(['البند','العدد'],[['طُلبت في الفترة',d.pa],['تم توريدها',d.pd],['تم تركيبها',d.pi],['غير مكتملة حالياً',d.pp]])}`;
+  if(repType==='m'){
+    const rows=[];let x=new Date(cur.from+'T12:00:00');
+    while(ymd(x)<=cur.to){const e=new Date(x);e.setDate(e.getDate()+((5-e.getDay()+7)%7));const end=ymd(e)>cur.to?cur.to:ymd(e);const w=repData(ymd(x),end);rows.push([dFmt(ymd(x))+' → '+dFmt(end),w.nNew.length,w.nClosed.length,w.bad]);x=new Date(e);x.setDate(x.getDate()+1)}
+    h+=`<h4>التوزيع الأسبوعي</h4>${tbl(['الأسبوع','جديدة','تم إصلاحها','✗ في المرور'],rows)}`;
+  }
+  return h+'</div>';
 }
 async function pdf(name){
   const el=$('#rep');const cv=await html2canvas(el,{scale:2,backgroundColor:'#ffffff'});
