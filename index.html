@@ -76,21 +76,11 @@ html{-webkit-text-size-adjust:100%}
   td textarea{min-width:140px}
   td.l{min-width:130px}
 }
-#prv{position:fixed;inset:0;z-index:70;background:#e5e7eb;overflow:auto;padding:10px}
-#prv .prtools{background:var(--card);color:var(--tx);padding:10px;border-radius:8px;margin:0 auto 10px;max-width:794px}
-.prpage{background:#fff;color:#000;width:794px;margin:0 auto 12px;padding:16px;direction:ltr;font-family:Arial,Tahoma,sans-serif;font-size:11px;box-sizing:border-box}
-.prpage table{border-collapse:collapse;width:100%;margin:0}
-.prpage td,.prpage th{border:1px solid #000;padding:3px 5px;vertical-align:middle;text-align:center;background:#fff;color:#000;position:static;white-space:normal}
-.prpage .bi{display:flex;justify-content:space-between;gap:6px;text-align:left}
-.prpage .ar{direction:rtl;text-align:right}
-.prpage .t{font-weight:700;font-size:15px}
-.prpage .g{font-size:9px;color:#444}
-@media print{body>*:not(#prv){display:none!important}#prv{position:static;background:#fff;padding:0;overflow:visible}#prv .prtools{display:none!important}.prpage{margin:0;width:100%;padding:0;page-break-after:always;break-after:page}@page{size:A4 portrait;margin:8mm}}
 @media (min-width:1400px){main{max-width:1500px}}
 </style>
 </head>
 <body>
-<header>برنامج الصيانة – مستشفى الابتسامة – مصر الجديدة <small style="opacity:.7;font-weight:400">(إصدار 4-11 – د)</small></header>
+<header>برنامج الصيانة – مستشفى الابتسامة – مصر الجديدة <small style="opacity:.7;font-weight:400">(إصدار 4-11 – ج)</small></header>
 <nav id="nav"></nav>
 <main id="main"></main>
 <script src="firebase-config.js"></script>
@@ -302,16 +292,16 @@ function vPurch(){
   ${need.map(n=>{const its=purchases.filter(p=>p.ref===n.ref);return `<tr><td>${n.ref}</td><td class="l">${esc(n.dept)}</td><td class="l">${esc(n.details)}</td><td class="${stCls(n.status)}">${esc(n.status)}</td>
   <td class="l ${its.length?'':'s-warn'}">${its.length?its.map(p=>esc(p.item)+' × '+(p.qty??'')+' ('+esc(p.status)+')').join('<br>'):'لم يُحدد صنف'}</td>
   <td><input id="ni_${n.id}" data-keep="1" placeholder="اسم الصنف" style="min-width:150px"></td><td><input id="nq_${n.id}" data-keep="1" type="number" value="1" style="width:70px"></td>
-  <td><button class="btn sm" onclick="addItemFor('${n.ref}','${n.id}')">إضافة</button> <button class="btn sm alt" onclick="openPR('${n.ref}')">طباعة PR</button></td></tr>`}).join('')||'<tr><td colspan="8">لا توجد إخطارات تحتاج شراء</td></tr>'}</table></div></div>`;
+  <td><button class="btn sm" onclick="addItemFor('${n.ref}','${n.id}')">إضافة</button></td></tr>`}).join('')||'<tr><td colspan="8">لا توجد إخطارات تحتاج شراء</td></tr>'}</table></div></div>`;
   let h=needCard+`<div class="card"><b>صنف شراء جديد</b><div class="row">
   <label>الإخطار<select id="p_ref">${notices.slice().reverse().map(n=>`<option value="${n.ref}">${n.ref} – ${esc(n.dept)}</option>`).join('')}</select></label>
   <label>تاريخ الطلب<input type="date" id="p_rdate" value="${new Date().toISOString().slice(0,10)}"></label>
   <label>الصنف<input id="p_item"></label><label>الكمية<input id="p_qty" type="number" value="1" style="width:70px"></label>
-  <button class="btn" onclick="savePurch()">حفظ</button><button class="btn alt" onclick="pdf('طلبات_الشراء')">تصدير PDF</button><button class="btn" onclick="openPR()">طباعة طلب شراء PR (للأصناف المحددة)</button></div></div>
-  <div class="card wrap" id="rep"><h3>طلبات الشراء – مستشفى الابتسامة</h3><table><tr><th class="noprint">PR</th>${['م','الإخطار','القسم','الصنف','الكمية','سعر الوحدة','تاريخ الطلب','الحالة','تاريخ التوريد','تاريخ التركيب'].map(x=>`<th>${x}</th>`).join('')}<th class="noprint">إجراءات</th></tr>`;
+  <button class="btn" onclick="savePurch()">حفظ</button><button class="btn alt" onclick="pdf('طلبات_الشراء')">تصدير PDF</button></div></div>
+  <div class="card wrap" id="rep"><h3>طلبات الشراء – مستشفى الابتسامة</h3><table><tr>${['م','الإخطار','القسم','الصنف','الكمية','تاريخ الطلب','الحالة','تاريخ التوريد','تاريخ التركيب'].map(x=>`<th>${x}</th>`).join('')}<th class="noprint">إجراءات</th></tr>`;
   purchases.slice().sort((a,b)=>(num(a.ref)||1e9)-(num(b.ref)||1e9)||a.k-b.k).forEach(p=>{const n=notices.find(x=>x.ref===p.ref)||{};
     const refSel=`<select onchange="db.collection('purchases').doc('${p.id}').update({ref:this.value})"><option value=""></option>${notices.slice().reverse().map(x=>`<option ${x.ref===p.ref?'selected':''}>${x.ref}</option>`).join('')}</select>`;
-    h+=`<tr><td class="noprint"><input type="checkbox" ${prSel.has(p.id)?'checked':''} onchange="togglePR('${p.id}',this.checked)"></td><td>${p.k}</td><td>${refSel}</td><td class="l">${esc(n.dept||p.notes)}</td><td class="l">${esc(p.item)}</td><td>${p.qty??''}</td><td><input type="number" data-keep="1" value="${p.price??''}" style="width:90px" onchange="db.collection('purchases').doc('${p.id}').update({price:+this.value||0})"></td><td>${fd(p.rdate)}</td>
+    h+=`<tr><td>${p.k}</td><td>${refSel}</td><td class="l">${esc(n.dept||p.notes)}</td><td class="l">${esc(p.item)}</td><td>${p.qty??''}</td><td>${fd(p.rdate)}</td>
     <td class="${['تم الشراء/التوريد','تم التركيب'].includes(p.status)?'s-ok':p.status==='لم يُطلب'?'s-bad':'s-warn'}"><select onchange="setPurchStatus('${p.id}',this.value)">${PST.map(s=>`<option ${s===p.status?'selected':''}>${s}</option>`).join('')}</select></td><td>${fd(p.ddate)}</td><td>${fd(p.idate)}</td><td class="noprint"><div style="display:flex;gap:4px;justify-content:center"><button class="btn sm alt" onclick="openEdit('purchases','${p.id}')">تعديل</button><button class="btn sm" style="background:#b42318" onclick="delItem('purchases','${p.id}')">حذف</button></div></td></tr>`});
   return h+'</table></div>';
 }
@@ -405,7 +395,7 @@ let EM=null;
 const NF=[['date','التاريخ','date'],['time','الوقت','time'],['dept','القسم','text'],['reporter','مسؤول الإخطار','text'],['details','تفاصيل العطل','area'],['action','الإجراء المتخذ','area'],['status','الحالة','select',ST],['fixdate','تاريخ الإصلاح','date'],['rep','ممثل الصيانة','text'],['needbuy','يحتاج شراء؟','select',['','نعم','لا']],['prio','الأولوية (فارغ = تلقائي)','select',['',...PR]],['notes','ملاحظات','area'],['cls','التصنيف','text']];
 function openEdit(kind,id){
   const isN=kind==='notices',row=(isN?notices:purchases).find(x=>x.id===id);if(!row)return;
-  const F=isN?NF:[['ref','الإخطار','select',['',...notices.slice().sort((a,b)=>a.n-b.n).map(n=>n.ref)]],['rdate','تاريخ الطلب','date'],['item','الصنف','text'],['code','كود الصنف','text'],['qty','الكمية','number'],['price','السعر التقديري للوحدة (ج.م)','number'],['spec','مواصفات إضافية','area'],['status','الحالة','select',PST],['ddate','تاريخ التوريد','date'],['idate','تاريخ التركيب','date'],['notes','ملاحظات','area']];
+  const F=isN?NF:[['ref','الإخطار','select',['',...notices.slice().sort((a,b)=>a.n-b.n).map(n=>n.ref)]],['rdate','تاريخ الطلب','date'],['item','الصنف','text'],['qty','الكمية','number'],['status','الحالة','select',PST],['ddate','تاريخ التوريد','date'],['idate','تاريخ التركيب','date'],['notes','ملاحظات','area']];
   EM={kind,id,F};closeEdit();
   const d=document.createElement('div');d.id='md';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:60;overflow:auto;padding:12px';
   const fld=([k,l,t,o])=>{const v=t==='date'?iso(row[k]):row[k];
@@ -592,58 +582,6 @@ async function restoreJSON(f){
   for(const [id,l] of Object.entries(d.pmLogs||{})){await db.collection('pmLogs').doc(id).set(l);c++}
   for(const [id,r] of Object.entries(d.rounds||{})){await db.collection('rounds').doc(id).set(r);c++}
   if(m)m.textContent='تمت استعادة '+c+' سجل.';toast('تمت الاستعادة ✓');
-}
-/* ---------- نموذج طلب الشراء PR ---------- */
-let prSel=new Set(),PRS=null;
-function togglePR(id,on){on?prSel.add(id):prSel.delete(id)}
-function openPR(ref){
-  const items=(ref?purchases.filter(p=>p.ref===ref):[...prSel].map(i=>purchases.find(p=>p.id===i)).filter(Boolean)).sort((a,b)=>(num(a.ref)||1e9)-(num(b.ref)||1e9)||a.k-b.k);
-  if(!items.length){alert('حدّد صنفاً واحداً على الأقل من عمود PR، أو أضف أصنافاً للإخطار أولاً');return}
-  const refs=[...new Set(items.map(p=>p.ref).filter(Boolean))];
-  const spec=refs.map(r=>{const n=notices.find(x=>x.ref===r);return n?r+': '+(n.dept||'')+' – '+(n.details||''):''}).filter(Boolean).join('؛ ');
-  PRS={ids:items.map(p=>p.id),no:'',by:localStorage.getItem('pr_by')||'إدارة الهندسية والصيانة',head:localStorage.getItem('pr_head')||'م/ محمد خالد المحمدي',isNew:'لا',repl:'',budget:'',spec};
-  prShow();
-}
-function prShow(){
-  const old=document.getElementById('prv');if(old)old.remove();
-  const o=document.createElement('div');o.id='prv';
-  const f=(k,l,t)=>`<label>${l}<input value="${esc(PRS[k])}" oninput="PRS.${k}=this.value;prRender()"></label>`;
-  const sel=(k,l)=>`<label>${l}<select onchange="PRS.${k}=this.value;prRender()">${['','نعم','لا'].map(v=>`<option ${v===PRS[k]?'selected':''}>${v}</option>`).join('')}</select></label>`;
-  o.innerHTML=`<div class="prtools"><b>طلب شراء PR – معاينة قبل الطباعة</b><div class="row" style="margin-top:6px">${f('no','رقم طلب الشراء')}${f('by','الجهة الطالبة')}${f('head','اسم مدير الإدارة')}${sel('isNew','صنف جديد؟')}${sel('repl','يحل محل صنف مستخدم؟')}${sel('budget','ضمن الموازنة والخطط؟')}<label style="flex:2 1 300px">المواصفات / سبب الطلب<textarea rows="2" style="min-width:0" oninput="PRS.spec=this.value;prRender()">${esc(PRS.spec)}</textarea></label></div>
-  <div class="row" style="margin-top:8px"><button class="btn" onclick="window.print()">طباعة</button><button class="btn alt" onclick="prPdf()">تحميل PDF</button><button class="btn alt" onclick="document.getElementById('prv').remove()">إغلاق</button></div></div><div id="prpages"></div>`;
-  document.body.appendChild(o);prRender();
-}
-const ck=v=>v?'☒':'☐';
-function prRender(){
-  localStorage.setItem('pr_by',PRS.by);localStorage.setItem('pr_head',PRS.head);
-  const items=PRS.ids.map(i=>purchases.find(p=>p.id===i)).filter(Boolean);
-  const pages=[];for(let i=0;i<items.length;i+=7)pages.push(items.slice(i,i+7));
-  const bi=(en,ar)=>`<div class="bi"><span>${en}</span><span class="ar">${ar}</span></div>`;
-  const box=(en,ar,v)=>`<td style="text-align:left">${bi(en,ar)}<div style="min-height:14px;text-align:center;font-weight:700">${esc(v||'')}</div></td>`;
-  const sig=(en,ar,name)=>`<tr><td>${bi(en,ar)}</td><td>${esc(name||'')}</td><td></td><td></td></tr>`;
-  const hd=`<tr><th>${bi('Authorized By','يعتمد')}</th><th>${bi('Name','الاسم')}</th><th>${bi('Sign Name','التوقيع')}</th><th>${bi('Date','التاريخ')}</th></tr>`;
-  document.getElementById('prpages').innerHTML=pages.map((pg,pi)=>{
-    let tot=0;
-    const rows=[...Array(7)].map((_,r)=>{const p=pg[r];const n=pi*7+r+1;if(!p)return `<tr><td>${n}</td><td></td><td style="height:20px"></td><td></td><td></td><td></td></tr>`;
-      const t=(+p.price||0)*(+p.qty||0);tot+=t;
-      return `<tr><td>${n}</td><td>${esc(p.code||'')}</td><td class="ar">${esc(p.item)}${p.spec?' – '+esc(p.spec):''}</td><td>${p.qty??''}</td><td>${p.price?(+p.price).toFixed(2):''}</td><td>${t?t.toFixed(2):''}</td></tr>`}).join('');
-    return `<div class="prpage">
-    <table><tr><td style="width:22%;border:0"></td><td style="border:0"><div class="t">Purchase Requisition (PR) طلب الشراء</div></td><td style="width:26%;border:0"><b>مستشفى الابتسامة</b><br>Al Ebtesama Hospital<br>${esc(PRS.by)}</td></tr></table>
-    <table style="margin-top:4px"><tr>${box('PR No.','رقم طلب الشراء',PRS.no+(pages.length>1?' ('+(pi+1)+'/'+pages.length+')':''))}${box('Requested By','الجهة الطالبة',PRS.by)}</tr></table>
-    <table style="margin-top:4px"><tr><td style="text-align:left;height:70px;vertical-align:top">${bi('Specifications','المواصفات')}<div class="g">(Please specify the item as much as possible or /and attached details specifications or catalogues, data sheets …etc)</div><div class="ar" style="margin-top:4px">${esc(PRS.spec)}</div></td></tr></table>
-    <table style="margin-top:4px"><tr><td style="text-align:left">${bi('New Item','صنف جديد')}<div style="text-align:center">Yes ${ck(PRS.isNew==='نعم')} &nbsp; No ${ck(PRS.isNew==='لا')}</div></td><td style="text-align:left">${bi('If Yes, Does It Replace For Current Used Item','هل يحل محل صنف مستخدم')}<div style="text-align:center">Yes ${ck(PRS.repl==='نعم')} &nbsp; No ${ck(PRS.repl==='لا')}</div></td></tr></table>
-    <table style="margin-top:4px"><tr><td>${bi('Item Code','كود الصنف')}</td><td>${bi('Current Stock','الرصيد الحالي')}</td><td>${bi('Current Stock Value','قيمة الرصيد')}</td></tr></table>
-    <table style="margin-top:4px"><tr><th style="width:5%">S<br>م</th><th style="width:14%">Item Code<br>كود الصنف</th><th>Description<br>وصف الصنف</th><th style="width:14%">Quantity Per Month/Year/Single<br>الكمية</th><th style="width:12%">Estimated Unit Price<br>السعر التقديري للوحدة</th><th style="width:12%">Estimated Total Price<br>الإجمالي التقديري</th></tr>${rows}
-    <tr><td colspan="4" style="text-align:left"><b>Total PR Estimated Value</b> &nbsp; <span class="ar">إجمالي القيمة التقديرية للطلب</span></td><td colspan="2" style="text-align:right"><b>EGP ${tot.toFixed(2)}</b></td></tr></table>
-    <div style="display:flex;gap:6px;margin-top:6px"><table>${hd}${sig('Head of Department','مدير الإدارة',PRS.head)}<tr><td>${bi('Budget/Planned','الموازنة والخطط')}</td><td colspan="3">Yes ${ck(PRS.budget==='نعم')} &nbsp; No ${ck(PRS.budget==='لا')}</td></tr></table>
-    <table>${hd}${sig('In Line Manager','المدير المباشر','')}${sig('GM','المدير العام','')}</table></div>
-    <table style="margin-top:6px"><tr><td style="text-align:left;height:34px">${bi('Received Date With Required Authorization By Supply Chain','تم الاستلام بالتاريخ والاعتمادات المطلوبة في')}<div style="margin-top:6px">By: ____________ &nbsp;&nbsp; On: ____________ &nbsp;&nbsp; At: ____________</div></td></tr></table></div>`}).join('');
-}
-async function prPdf(){
-  const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:'p',unit:'pt',format:'a4'}),W=doc.internal.pageSize.getWidth()-30,Hh=doc.internal.pageSize.getHeight()-30;
-  const els=[...document.querySelectorAll('#prpages .prpage')];
-  for(let i=0;i<els.length;i++){const cv=await html2canvas(els[i],{scale:2,backgroundColor:'#ffffff'});let h=cv.height*W/cv.width,w=W;if(h>Hh){w=W*Hh/h;h=Hh}if(i)doc.addPage();doc.addImage(cv.toDataURL('image/jpeg',.95),'JPEG',15,15,w,h)}
-  dl('طلب_شراء_PR_'+ymd(new Date())+'.pdf',doc.output('arraybuffer'));
 }
 async function pdf(name){
   const el=$('#rep');document.body.classList.add('pdfing');const cv=await html2canvas(el,{scale:2,backgroundColor:'#ffffff'});document.body.classList.remove('pdfing');
