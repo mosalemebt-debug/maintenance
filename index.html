@@ -90,7 +90,7 @@ html{-webkit-text-size-adjust:100%}
 </style>
 </head>
 <body>
-<header>برنامج الصيانة – مستشفى الابتسامة – مصر الجديدة <small style="opacity:.7;font-weight:400">(إصدار 4-11 – هـ)</small></header>
+<header>برنامج الصيانة – مستشفى الابتسامة – مصر الجديدة <small style="opacity:.7;font-weight:400">(إصدار 4-11 – و)</small></header>
 <nav id="nav"></nav>
 <main id="main"></main>
 <script src="firebase-config.js"></script>
@@ -404,10 +404,10 @@ function vReports(){
 }
 /* ---------- تعديل / حذف ---------- */
 let EM=null;
-const NF=[['date','التاريخ','date'],['time','الوقت','time'],['dept','القسم','text'],['reporter','مسؤول الإخطار','text'],['details','تفاصيل العطل','area'],['action','الإجراء المتخذ','area'],['status','الحالة','select',ST],['fixdate','تاريخ الإصلاح','date'],['rep','ممثل الصيانة','text'],['needbuy','يحتاج شراء؟','select',['','نعم','لا']],['prio','الأولوية (فارغ = تلقائي)','select',['',...PR]],['notes','ملاحظات','area'],['cls','التصنيف','text']];
+const NF=()=>[['date','التاريخ','date'],['time','الوقت','time'],['dept','القسم','text'],['reporter','مسؤول الإخطار','text'],['details','تفاصيل العطل','area'],['action','الإجراء المتخذ','area'],['status','الحالة','select',ST],['fixdate','تاريخ الإصلاح','date'],['rep','ممثل الصيانة','text'],['needbuy','يحتاج شراء؟','select',['','نعم','لا']],['prio','الأولوية (فارغ = تلقائي)','select',['',...PR]],['notes','ملاحظات','area'],['cls','التصنيف','text']];
 function openEdit(kind,id){
   const isN=kind==='notices',row=(isN?notices:purchases).find(x=>x.id===id);if(!row)return;
-  const F=isN?NF:[['ref','الإخطار','select',['',...notices.slice().sort((a,b)=>a.n-b.n).map(n=>n.ref)]],['rdate','تاريخ الطلب','date'],['item','الصنف','text'],['code','كود الصنف','text'],['qty','الكمية','number'],['price','السعر التقديري للوحدة (ج.م)','number'],['spec','مواصفات إضافية','area'],['status','الحالة','select',PST],['ddate','تاريخ التوريد','date'],['idate','تاريخ التركيب','date'],['notes','ملاحظات','area']];
+  const F=isN?NF():[['ref','الإخطار','select',['',...notices.slice().sort((a,b)=>a.n-b.n).map(n=>n.ref)]],['rdate','تاريخ الطلب','date'],['item','الصنف','text'],['code','كود الصنف','text'],['qty','الكمية','number'],['price','السعر التقديري للوحدة (ج.م)','number'],['spec','مواصفات إضافية','area'],['status','الحالة','select',PST],['ddate','تاريخ التوريد','date'],['idate','تاريخ التركيب','date'],['notes','ملاحظات','area']];
   EM={kind,id,F};closeEdit();
   const d=document.createElement('div');d.id='md';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:60;overflow:auto;padding:12px';
   const fld=([k,l,t,o])=>{const v=t==='date'?iso(row[k]):row[k];
