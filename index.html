@@ -76,11 +76,21 @@ html{-webkit-text-size-adjust:100%}
   td textarea{min-width:140px}
   td.l{min-width:130px}
 }
+#prv{position:fixed;inset:0;z-index:70;background:#e5e7eb;overflow:auto;padding:10px}
+#prv .prtools{background:var(--card);color:var(--tx);padding:10px;border-radius:8px;margin:0 auto 10px;max-width:794px}
+.prpage{background:#fff;color:#000;width:794px;margin:0 auto 12px;padding:16px;direction:ltr;font-family:Arial,Tahoma,sans-serif;font-size:11px;box-sizing:border-box}
+.prpage table{border-collapse:collapse;width:100%;margin:0}
+.prpage td,.prpage th{border:1px solid #000;padding:3px 5px;vertical-align:middle;text-align:center;background:#fff;color:#000;position:static;white-space:normal}
+.prpage .bi{display:flex;justify-content:space-between;gap:6px;text-align:left}
+.prpage .ar{direction:rtl;text-align:right}
+.prpage .t{font-weight:700;font-size:15px}
+.prpage .g{font-size:9px;color:#444}
+@media print{body>*:not(#prv){display:none!important}#prv{position:static;background:#fff;padding:0;overflow:visible}#prv .prtools{display:none!important}.prpage{margin:0;width:100%;padding:0;page-break-after:always;break-after:page}@page{size:A4 portrait;margin:8mm}}
 @media (min-width:1400px){main{max-width:1500px}}
 </style>
 </head>
 <body>
-<header>برنامج الصيانة – مستشفى الابتسامة – مصر الجديدة <small style="opacity:.7;font-weight:400">(إصدار 4-11 – ج)</small></header>
+<header>برنامج الصيانة – مستشفى الابتسامة – مصر الجديدة <small style="opacity:.7;font-weight:400">(إصدار 4-11 – هـ)</small></header>
 <nav id="nav"></nav>
 <main id="main"></main>
 <script src="firebase-config.js"></script>
@@ -125,7 +135,7 @@ const ALL=AREAS.flatMap(([f,l])=>l.map(a=>({f,a})));
 const ST=['تم الإصلاح','تم جزئياً','إصلاح مؤقت','جاري التنفيذ','لم يتم الإصلاح','غير قابل للإصلاح'];
 const PST=['لم يُطلب','جاري إعداد الطلب','تم الطلب','تم الشراء/التوريد','تم التركيب'];
 const stCls=s=>s==='تم الإصلاح'?'s-ok':['تم جزئياً','إصلاح مؤقت','جاري التنفيذ'].includes(s)?'s-warn':s?'s-bad':'';
-let db=null,notices=[],purchases=[],rounds={},tab='daily',pmTasks=[],pmLogs={},rdate=ymd(new Date());
+let db=null,notices=[],purchases=[],rounds={},tab='daily',settings={},auditLog=[],pmTasks=[],pmLogs={},rdate=ymd(new Date());
 const $=s=>document.querySelector(s);
 function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 const DAYS=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
@@ -140,7 +150,7 @@ const iso=v=>{const d=toD(v);return d instanceof Date?d.toISOString().slice(0,10
 
 async function init(){
   nav();render();
-  try{db=await claude.use('db')}catch(e){db=null}
+  try{db=wrapDb(await claude.use('db'))}catch(e){db=null}
   if(!db){$('#main').insertAdjacentHTML('afterbegin','<div class="card s-bad">تعذر الاتصال بقاعدة البيانات؛ راجع إعدادات firebase-config.js.</div>');return}
   if(window.ROLE==='entry'){tab='e_round';nav();render();return}
   db.collection('inbox').onSnapshot(s=>procInbox(s.docs.map(d=>({id:d.id,o:d.data()}))));
@@ -148,17 +158,19 @@ async function init(){
   db.collection('notices').onSnapshot(s=>{notices=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.n-b.n);clearTimeout(t);render()});
   db.collection('purchases').onSnapshot(s=>{purchases=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.k-b.k);render()});
   db.collection('rounds').onSnapshot(s=>{rounds={};s.docs.forEach(d=>rounds[d.id]=d.data());render()});
+  db.collection('settings').onSnapshot(s=>{settings={};s.docs.forEach(d=>settings[d.id]=d.data());render()});
+  db.collection('auditLog').onSnapshot(s=>{auditLog=s.docs.map(d=>d.data()).sort((a,b)=>String(b.at).localeCompare(String(a.at)));render()});
   db.collection('pmTasks').onSnapshot(s=>{pmTasks=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.asset).localeCompare(String(b.asset),'ar'));render()});
   db.collection('pmLogs').onSnapshot(s=>{pmLogs={};s.docs.forEach(d=>pmLogs[d.id]=d.data());render()});
 }
 function nav(){
-  const T=window.ROLE==='entry'?[['e_round','مرور يومي'],['e_notice','إخطار جديد'],['e_purch','طلب شراء']]:[['daily','المتابعة اليومية'],['round','المرور اليومي'],['notices','الصيانة العلاجية'],['purch','طلبات الشراء'],['pm','الصيانة الوقائية'],['sum','الملخص'],['reports','التقارير'],['backup','نسخ احتياطي']];
+  const T=window.ROLE==='entry'?[['e_round','مرور يومي'],['e_notice','إخطار جديد'],['e_purch','طلب شراء']]:[['daily','المتابعة اليومية'],['round','المرور اليومي'],['notices','الصيانة العلاجية'],['purch','طلبات الشراء'],['pm','الصيانة الوقائية'],['sum','الملخص'],['reports','التقارير'],['kpi','مؤشرات KPI'],['eval','تقييم الأداء'],['audit','سجل التعديلات'],['backup','نسخ احتياطي']];
   $('#nav').innerHTML=T.map(([k,v])=>`<button class="${tab===k?'on':''}" onclick="tab='${k}';nav();render();window.scrollTo(0,0)">${v}</button>`).join('');
 }
 function render(){
   if(document.activeElement&&['INPUT','TEXTAREA'].includes(document.activeElement.tagName)&&document.activeElement.dataset.keep)return;
   const wy=window.scrollY,ws=[...document.querySelectorAll('.wrap:not(#rep)')].map(w=>[w.scrollTop,w.scrollLeft]);
-  $('#main').innerHTML=({round:vRound,notices:vNotices,purch:vPurch,sum:vSum,reports:vReports,daily:vDaily,pm:vPM,backup:vBackup,e_round:vERound,e_notice:vENotice,e_purch:vEPurch})[tab]();
+  $('#main').innerHTML=({round:vRound,notices:vNotices,purch:vPurch,sum:vSum,reports:vReports,daily:vDaily,pm:vPM,backup:vBackup,kpi:vKPI,eval:vEval,audit:vAudit,e_round:vERound,e_notice:vENotice,e_purch:vEPurch})[tab]();
   document.querySelectorAll('textarea').forEach(fit);
   labelize();
   document.querySelectorAll('.wrap:not(#rep)').forEach((w,i)=>{if(ws[i]){w.scrollTop=ws[i][0];w.scrollLeft=ws[i][1]}});
@@ -292,16 +304,16 @@ function vPurch(){
   ${need.map(n=>{const its=purchases.filter(p=>p.ref===n.ref);return `<tr><td>${n.ref}</td><td class="l">${esc(n.dept)}</td><td class="l">${esc(n.details)}</td><td class="${stCls(n.status)}">${esc(n.status)}</td>
   <td class="l ${its.length?'':'s-warn'}">${its.length?its.map(p=>esc(p.item)+' × '+(p.qty??'')+' ('+esc(p.status)+')').join('<br>'):'لم يُحدد صنف'}</td>
   <td><input id="ni_${n.id}" data-keep="1" placeholder="اسم الصنف" style="min-width:150px"></td><td><input id="nq_${n.id}" data-keep="1" type="number" value="1" style="width:70px"></td>
-  <td><button class="btn sm" onclick="addItemFor('${n.ref}','${n.id}')">إضافة</button></td></tr>`}).join('')||'<tr><td colspan="8">لا توجد إخطارات تحتاج شراء</td></tr>'}</table></div></div>`;
+  <td><button class="btn sm" onclick="addItemFor('${n.ref}','${n.id}')">إضافة</button> <button class="btn sm alt" onclick="openPR('${n.ref}')">طباعة PR</button></td></tr>`}).join('')||'<tr><td colspan="8">لا توجد إخطارات تحتاج شراء</td></tr>'}</table></div></div>`;
   let h=needCard+`<div class="card"><b>صنف شراء جديد</b><div class="row">
   <label>الإخطار<select id="p_ref">${notices.slice().reverse().map(n=>`<option value="${n.ref}">${n.ref} – ${esc(n.dept)}</option>`).join('')}</select></label>
   <label>تاريخ الطلب<input type="date" id="p_rdate" value="${new Date().toISOString().slice(0,10)}"></label>
   <label>الصنف<input id="p_item"></label><label>الكمية<input id="p_qty" type="number" value="1" style="width:70px"></label>
-  <button class="btn" onclick="savePurch()">حفظ</button><button class="btn alt" onclick="pdf('طلبات_الشراء')">تصدير PDF</button></div></div>
-  <div class="card wrap" id="rep"><h3>طلبات الشراء – مستشفى الابتسامة</h3><table><tr>${['م','الإخطار','القسم','الصنف','الكمية','تاريخ الطلب','الحالة','تاريخ التوريد','تاريخ التركيب'].map(x=>`<th>${x}</th>`).join('')}<th class="noprint">إجراءات</th></tr>`;
+  <button class="btn" onclick="savePurch()">حفظ</button><button class="btn alt" onclick="pdf('طلبات_الشراء')">تصدير PDF</button><button class="btn" onclick="openPR()">طباعة طلب شراء PR (للأصناف المحددة)</button></div></div>
+  <div class="card wrap" id="rep"><h3>طلبات الشراء – مستشفى الابتسامة</h3><table><tr><th class="noprint">PR</th>${['م','الإخطار','القسم','الصنف','الكمية','سعر الوحدة','تاريخ الطلب','الحالة','تاريخ التوريد','تاريخ التركيب'].map(x=>`<th>${x}</th>`).join('')}<th class="noprint">إجراءات</th></tr>`;
   purchases.slice().sort((a,b)=>(num(a.ref)||1e9)-(num(b.ref)||1e9)||a.k-b.k).forEach(p=>{const n=notices.find(x=>x.ref===p.ref)||{};
     const refSel=`<select onchange="db.collection('purchases').doc('${p.id}').update({ref:this.value})"><option value=""></option>${notices.slice().reverse().map(x=>`<option ${x.ref===p.ref?'selected':''}>${x.ref}</option>`).join('')}</select>`;
-    h+=`<tr><td>${p.k}</td><td>${refSel}</td><td class="l">${esc(n.dept||p.notes)}</td><td class="l">${esc(p.item)}</td><td>${p.qty??''}</td><td>${fd(p.rdate)}</td>
+    h+=`<tr><td class="noprint"><input type="checkbox" ${prSel.has(p.id)?'checked':''} onchange="togglePR('${p.id}',this.checked)"></td><td>${p.k}</td><td>${refSel}</td><td class="l">${esc(n.dept||p.notes)}</td><td class="l">${esc(p.item)}</td><td>${p.qty??''}</td><td><input type="number" data-keep="1" value="${p.price??''}" style="width:90px" onchange="db.collection('purchases').doc('${p.id}').update({price:+this.value||0})"></td><td>${fd(p.rdate)}</td>
     <td class="${['تم الشراء/التوريد','تم التركيب'].includes(p.status)?'s-ok':p.status==='لم يُطلب'?'s-bad':'s-warn'}"><select onchange="setPurchStatus('${p.id}',this.value)">${PST.map(s=>`<option ${s===p.status?'selected':''}>${s}</option>`).join('')}</select></td><td>${fd(p.ddate)}</td><td>${fd(p.idate)}</td><td class="noprint"><div style="display:flex;gap:4px;justify-content:center"><button class="btn sm alt" onclick="openEdit('purchases','${p.id}')">تعديل</button><button class="btn sm" style="background:#b42318" onclick="delItem('purchases','${p.id}')">حذف</button></div></td></tr>`});
   return h+'</table></div>';
 }
@@ -395,7 +407,7 @@ let EM=null;
 const NF=[['date','التاريخ','date'],['time','الوقت','time'],['dept','القسم','text'],['reporter','مسؤول الإخطار','text'],['details','تفاصيل العطل','area'],['action','الإجراء المتخذ','area'],['status','الحالة','select',ST],['fixdate','تاريخ الإصلاح','date'],['rep','ممثل الصيانة','text'],['needbuy','يحتاج شراء؟','select',['','نعم','لا']],['prio','الأولوية (فارغ = تلقائي)','select',['',...PR]],['notes','ملاحظات','area'],['cls','التصنيف','text']];
 function openEdit(kind,id){
   const isN=kind==='notices',row=(isN?notices:purchases).find(x=>x.id===id);if(!row)return;
-  const F=isN?NF:[['ref','الإخطار','select',['',...notices.slice().sort((a,b)=>a.n-b.n).map(n=>n.ref)]],['rdate','تاريخ الطلب','date'],['item','الصنف','text'],['qty','الكمية','number'],['status','الحالة','select',PST],['ddate','تاريخ التوريد','date'],['idate','تاريخ التركيب','date'],['notes','ملاحظات','area']];
+  const F=isN?NF:[['ref','الإخطار','select',['',...notices.slice().sort((a,b)=>a.n-b.n).map(n=>n.ref)]],['rdate','تاريخ الطلب','date'],['item','الصنف','text'],['code','كود الصنف','text'],['qty','الكمية','number'],['price','السعر التقديري للوحدة (ج.م)','number'],['spec','مواصفات إضافية','area'],['status','الحالة','select',PST],['ddate','تاريخ التوريد','date'],['idate','تاريخ التركيب','date'],['notes','ملاحظات','area']];
   EM={kind,id,F};closeEdit();
   const d=document.createElement('div');d.id='md';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:60;overflow:auto;padding:12px';
   const fld=([k,l,t,o])=>{const v=t==='date'?iso(row[k]):row[k];
@@ -562,7 +574,7 @@ function vBackup(){
   <div id="bkmsg" class="msg"></div></div>
   <div class="card"><div class="msg">ملف JSON يحتوي كل البيانات (الإخطارات وطلبات الشراء والمرور اليومي والمهام الوقائية وسجل تنفيذها) وهو الذي تُجرى منه الاستعادة. الاستعادة تضيف وتحدّث السجلات الموجودة في الملف ولا تحذف ما غيره.</div></div>`;
 }
-const bkData=()=>({app:'maintenance',v:1,at:new Date().toISOString(),notices,purchases,rounds,pmTasks,pmLogs});
+const bkData=()=>({app:'maintenance',v:1,at:new Date().toISOString(),notices,purchases,rounds,pmTasks,pmLogs,settings,audit:auditLog});
 function backupJSON(){const d=bkData();dl('نسخة_احتياطية_'+ymd(new Date())+'.json',new Blob([JSON.stringify(d)],{type:'application/json'}));localStorage.setItem('lastBackup',ymd(new Date()));render()}
 function backupXlsx(){
   const wb=XLSX.utils.book_new(),add=(n,rows)=>XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows.length?rows:[{}]),n);
@@ -571,6 +583,7 @@ function backupXlsx(){
   const rr=[];Object.entries(rounds).forEach(([d,r])=>Object.entries(r.marks||{}).forEach(([k,v])=>{const [i,j]=k.split('_');rr.push({التاريخ:d,المكان:ALL[i].a,التخصص:CATS[j],النتيجة:v})}));add('المرور اليومي',rr);
   add('المهام الوقائية',pmTasks.map(t=>({الأصل:t.asset,المهمة:t.task,التكرار:t.freq,نشطة:t.active!==false?'نعم':'لا'})));
   add('سجل الوقائية',Object.entries(pmLogs).map(([id,l])=>({المهمة:(pmTasks.find(t=>t.id===l.tid)||{}).task||l.tid,الفترة:l.key,'تاريخ التنفيذ':l.at,بواسطة:l.by})));
+  add('سجل التعديلات',auditLog.map(a=>({الوقت:a.at,المستخدم:a.by,القسم:SEC[a.col]||a.col,البند:a.label,الإجراء:a.action,التغييرات:a.ch?Object.entries(a.ch).map(([k,v])=>(FL[k]||k)+': '+v[0]+' ← '+v[1]).join(' | '):''})));
   dl('نسخة_Excel_'+ymd(new Date())+'.xlsx',XLSX.write(wb,{type:'array',bookType:'xlsx'}));localStorage.setItem('lastBackup',ymd(new Date()));render();
 }
 async function restoreJSON(f){
@@ -582,6 +595,58 @@ async function restoreJSON(f){
   for(const [id,l] of Object.entries(d.pmLogs||{})){await db.collection('pmLogs').doc(id).set(l);c++}
   for(const [id,r] of Object.entries(d.rounds||{})){await db.collection('rounds').doc(id).set(r);c++}
   if(m)m.textContent='تمت استعادة '+c+' سجل.';toast('تمت الاستعادة ✓');
+}
+/* ---------- نموذج طلب الشراء PR ---------- */
+let prSel=new Set(),PRS=null;
+function togglePR(id,on){on?prSel.add(id):prSel.delete(id)}
+function openPR(ref){
+  const items=(ref?purchases.filter(p=>p.ref===ref):[...prSel].map(i=>purchases.find(p=>p.id===i)).filter(Boolean)).sort((a,b)=>(num(a.ref)||1e9)-(num(b.ref)||1e9)||a.k-b.k);
+  if(!items.length){alert('حدّد صنفاً واحداً على الأقل من عمود PR، أو أضف أصنافاً للإخطار أولاً');return}
+  const refs=[...new Set(items.map(p=>p.ref).filter(Boolean))];
+  const spec=refs.map(r=>{const n=notices.find(x=>x.ref===r);return n?r+': '+(n.dept||'')+' – '+(n.details||''):''}).filter(Boolean).join('؛ ');
+  PRS={ids:items.map(p=>p.id),no:'',by:localStorage.getItem('pr_by')||'إدارة الهندسية والصيانة',head:localStorage.getItem('pr_head')||'م/ محمد خالد المحمدي',isNew:'لا',repl:'',budget:'',spec};
+  prShow();
+}
+function prShow(){
+  const old=document.getElementById('prv');if(old)old.remove();
+  const o=document.createElement('div');o.id='prv';
+  const f=(k,l,t)=>`<label>${l}<input value="${esc(PRS[k])}" oninput="PRS.${k}=this.value;prRender()"></label>`;
+  const sel=(k,l)=>`<label>${l}<select onchange="PRS.${k}=this.value;prRender()">${['','نعم','لا'].map(v=>`<option ${v===PRS[k]?'selected':''}>${v}</option>`).join('')}</select></label>`;
+  o.innerHTML=`<div class="prtools"><b>طلب شراء PR – معاينة قبل الطباعة</b><div class="row" style="margin-top:6px">${f('no','رقم طلب الشراء')}${f('by','الجهة الطالبة')}${f('head','اسم مدير الإدارة')}${sel('isNew','صنف جديد؟')}${sel('repl','يحل محل صنف مستخدم؟')}${sel('budget','ضمن الموازنة والخطط؟')}<label style="flex:2 1 300px">المواصفات / سبب الطلب<textarea rows="2" style="min-width:0" oninput="PRS.spec=this.value;prRender()">${esc(PRS.spec)}</textarea></label></div>
+  <div class="row" style="margin-top:8px"><button class="btn" onclick="window.print()">طباعة</button><button class="btn alt" onclick="prPdf()">تحميل PDF</button><button class="btn alt" onclick="document.getElementById('prv').remove()">إغلاق</button></div></div><div id="prpages"></div>`;
+  document.body.appendChild(o);prRender();
+}
+const ck=v=>v?'☒':'☐';
+function prRender(){
+  localStorage.setItem('pr_by',PRS.by);localStorage.setItem('pr_head',PRS.head);
+  const items=PRS.ids.map(i=>purchases.find(p=>p.id===i)).filter(Boolean);
+  const pages=[];for(let i=0;i<items.length;i+=7)pages.push(items.slice(i,i+7));
+  const bi=(en,ar)=>`<div class="bi"><span>${en}</span><span class="ar">${ar}</span></div>`;
+  const box=(en,ar,v)=>`<td style="text-align:left">${bi(en,ar)}<div style="min-height:14px;text-align:center;font-weight:700">${esc(v||'')}</div></td>`;
+  const sig=(en,ar,name)=>`<tr><td>${bi(en,ar)}</td><td>${esc(name||'')}</td><td></td><td></td></tr>`;
+  const hd=`<tr><th>${bi('Authorized By','يعتمد')}</th><th>${bi('Name','الاسم')}</th><th>${bi('Sign Name','التوقيع')}</th><th>${bi('Date','التاريخ')}</th></tr>`;
+  document.getElementById('prpages').innerHTML=pages.map((pg,pi)=>{
+    let tot=0;
+    const rows=[...Array(7)].map((_,r)=>{const p=pg[r];const n=pi*7+r+1;if(!p)return `<tr><td>${n}</td><td></td><td style="height:20px"></td><td></td><td></td><td></td></tr>`;
+      const t=(+p.price||0)*(+p.qty||0);tot+=t;
+      return `<tr><td>${n}</td><td>${esc(p.code||'')}</td><td class="ar">${esc(p.item)}${p.spec?' – '+esc(p.spec):''}</td><td>${p.qty??''}</td><td>${p.price?(+p.price).toFixed(2):''}</td><td>${t?t.toFixed(2):''}</td></tr>`}).join('');
+    return `<div class="prpage">
+    <table><tr><td style="width:22%;border:0"></td><td style="border:0"><div class="t">Purchase Requisition (PR) طلب الشراء</div></td><td style="width:26%;border:0"><b>مستشفى الابتسامة</b><br>Al Ebtesama Hospital<br>${esc(PRS.by)}</td></tr></table>
+    <table style="margin-top:4px"><tr>${box('PR No.','رقم طلب الشراء',PRS.no+(pages.length>1?' ('+(pi+1)+'/'+pages.length+')':''))}${box('Requested By','الجهة الطالبة',PRS.by)}</tr></table>
+    <table style="margin-top:4px"><tr><td style="text-align:left;height:70px;vertical-align:top">${bi('Specifications','المواصفات')}<div class="g">(Please specify the item as much as possible or /and attached details specifications or catalogues, data sheets …etc)</div><div class="ar" style="margin-top:4px">${esc(PRS.spec)}</div></td></tr></table>
+    <table style="margin-top:4px"><tr><td style="text-align:left">${bi('New Item','صنف جديد')}<div style="text-align:center">Yes ${ck(PRS.isNew==='نعم')} &nbsp; No ${ck(PRS.isNew==='لا')}</div></td><td style="text-align:left">${bi('If Yes, Does It Replace For Current Used Item','هل يحل محل صنف مستخدم')}<div style="text-align:center">Yes ${ck(PRS.repl==='نعم')} &nbsp; No ${ck(PRS.repl==='لا')}</div></td></tr></table>
+    <table style="margin-top:4px"><tr><td>${bi('Item Code','كود الصنف')}</td><td>${bi('Current Stock','الرصيد الحالي')}</td><td>${bi('Current Stock Value','قيمة الرصيد')}</td></tr></table>
+    <table style="margin-top:4px"><tr><th style="width:5%">S<br>م</th><th style="width:14%">Item Code<br>كود الصنف</th><th>Description<br>وصف الصنف</th><th style="width:14%">Quantity Per Month/Year/Single<br>الكمية</th><th style="width:12%">Estimated Unit Price<br>السعر التقديري للوحدة</th><th style="width:12%">Estimated Total Price<br>الإجمالي التقديري</th></tr>${rows}
+    <tr><td colspan="4" style="text-align:left"><b>Total PR Estimated Value</b> &nbsp; <span class="ar">إجمالي القيمة التقديرية للطلب</span></td><td colspan="2" style="text-align:right"><b>EGP ${tot.toFixed(2)}</b></td></tr></table>
+    <div style="display:flex;gap:6px;margin-top:6px"><table>${hd}${sig('Head of Department','مدير الإدارة',PRS.head)}<tr><td>${bi('Budget/Planned','الموازنة والخطط')}</td><td colspan="3">Yes ${ck(PRS.budget==='نعم')} &nbsp; No ${ck(PRS.budget==='لا')}</td></tr></table>
+    <table>${hd}${sig('In Line Manager','المدير المباشر','')}${sig('GM','المدير العام','')}</table></div>
+    <table style="margin-top:6px"><tr><td style="text-align:left;height:34px">${bi('Received Date With Required Authorization By Supply Chain','تم الاستلام بالتاريخ والاعتمادات المطلوبة في')}<div style="margin-top:6px">By: ____________ &nbsp;&nbsp; On: ____________ &nbsp;&nbsp; At: ____________</div></td></tr></table></div>`}).join('');
+}
+async function prPdf(){
+  const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:'p',unit:'pt',format:'a4'}),W=doc.internal.pageSize.getWidth()-30,Hh=doc.internal.pageSize.getHeight()-30;
+  const els=[...document.querySelectorAll('#prpages .prpage')];
+  for(let i=0;i<els.length;i++){const cv=await html2canvas(els[i],{scale:2,backgroundColor:'#ffffff'});let h=cv.height*W/cv.width,w=W;if(h>Hh){w=W*Hh/h;h=Hh}if(i)doc.addPage();doc.addImage(cv.toDataURL('image/jpeg',.95),'JPEG',15,15,w,h)}
+  dl('طلب_شراء_PR_'+ymd(new Date())+'.pdf',doc.output('arraybuffer'));
 }
 async function pdf(name){
   const el=$('#rep');document.body.classList.add('pdfing');const cv=await html2canvas(el,{scale:2,backgroundColor:'#ffffff'});document.body.classList.remove('pdfing');
@@ -638,6 +703,96 @@ function vEPurch(){
   <label>المرتبط بالعطل (القسم/العطل)<input id="p_rel" style="width:240px"></label><button class="btn" onclick="eSavePurch()">إرسال</button></div></div>`;
 }
 async function eSavePurch(){const item=$('#p_item').value;if(!item)return;await send({type:'purchase',data:{rdate:$('#p_rdate').value,item,qty:+$('#p_qty').value,related:$('#p_rel').value}});$('#p_item').value='';$('#p_rel').value=''}
+/* ---------- سجل التعديلات ---------- */
+const SEC={notices:'الصيانة العلاجية',purchases:'طلبات الشراء',pmTasks:'مهام وقائية',rounds:'المرور اليومي'};
+const FL={status:'الحالة',details:'العطل',action:'الإجراء',dept:'القسم',reporter:'المبلّغ',date:'التاريخ',time:'الوقت',fixdate:'تاريخ الإصلاح',rep:'ممثل الصيانة',needbuy:'يحتاج شراء',notes:'ملاحظات',prio:'الأولوية',cls:'التصنيف',item:'الصنف',qty:'الكمية',price:'السعر',ref:'الإخطار',rdate:'تاريخ الطلب',ddate:'تاريخ التوريد',idate:'تاريخ التركيب',code:'الكود',spec:'مواصفات',task:'المهمة',asset:'الأصل',freq:'التكرار',active:'نشطة'};
+const SKIP=['id','n','by','src','cat','viaPurchase'];
+function wrapDb(raw){
+  const T={notices:()=>notices,purchases:()=>purchases,pmTasks:()=>pmTasks};
+  const lbl=(c,o)=>c==='notices'?((o.ref||'')+' '+(o.dept||'')).trim():c==='purchases'?(o.item||''):c==='pmTasks'?(o.task||''):'';
+  const cut=v=>{v=v===undefined||v===null?'':v;v=typeof v==='object'?JSON.stringify(v):String(v);return v.length>100?v.slice(0,100)+'…':v};
+  const diff=(a,b)=>{const ch={};Object.keys(b).forEach(k=>{if(SKIP.includes(k))return;if(JSON.stringify(a[k]??'')!==JSON.stringify(b[k]??''))ch[k]=[cut(a[k]),cut(b[k])]});return ch};
+  const log=(col,id,action,o,ch,by)=>{
+    if(window.NOLOG||!(col in T||col==='rounds'))return;
+    if(action==='تعديل'&&ch&&!Object.keys(ch).length)return;
+    raw.collection('auditLog').doc('a'+Date.now()+Math.random().toString(36).slice(2,6)).set({at:new Date().toISOString(),by:by||window.USER_EMAIL||'',col,id,label:col==='rounds'?id:lbl(col,o||{}),action,ch:ch&&Object.keys(ch).length?ch:null}).catch(()=>{});
+  };
+  return{collection:name=>{const c=raw.collection(name);const find=id=>T[name]?T[name]().find(x=>x.id===id):null;return{
+    onSnapshot:cb=>c.onSnapshot(cb),
+    doc:id=>{const d=c.doc(id);return{
+      set:async v=>{const old=find(id);await d.set(v);if(name==='rounds')log(name,id,'حفظ مرور',v,null);else{const ch=old?diff(old,v):{};log(name,id,(!old||!Object.keys(ch).length)?'إضافة':'تعديل',v,old?ch:null,v&&v.by)}},
+      update:async v=>{const old=find(id)||{};await d.update(v);log(name,id,'تعديل',{...old,...v},diff(old,v))},
+      delete:async()=>{const old=find(id)||{};await d.delete();log(name,id,'حذف',old,null)}}}}}};
+}
+function vAudit(){
+  const f=auditF,rows=auditLog.filter(a=>(!f.sec||a.col===f.sec)&&(!f.q||(a.label+' '+a.by+' '+JSON.stringify(a.ch||'')).includes(f.q))).slice(0,300);
+  const tm=t=>{const d=new Date(t);return isNaN(d)?'':d.toLocaleString('en-GB',{hour12:false}).replace(',','')};
+  return `<div class="card"><div class="row"><label>القسم<select onchange="auditF.sec=this.value;render()"><option value="">الكل</option>${Object.entries(SEC).map(([k,v])=>`<option value="${k}" ${f.sec===k?'selected':''}>${v}</option>`).join('')}</select></label><label>بحث (اضغط Enter)<input data-keep="1" value="${esc(f.q)}" onchange="auditF.q=this.value;render()"></label></div><div class="msg">يُسجَّل تلقائياً كل إضافة وتعديل وحذف في الإخطارات وطلبات الشراء والمهام الوقائية وحفظ المرور. أحدث 300 عملية.</div></div>
+  <div class="card wrap"><table><tr>${['الوقت','المستخدم','القسم','البند','الإجراء','التغييرات'].map(x=>`<th>${x}</th>`).join('')}</tr>
+  ${rows.map(a=>`<tr><td>${tm(a.at)}</td><td>${esc(a.by)}</td><td>${SEC[a.col]||a.col}</td><td class="l">${esc(a.label)}</td><td class="${a.action==='حذف'?'s-bad':a.action==='إضافة'?'s-ok':''}">${a.action}</td><td class="l">${a.ch?Object.entries(a.ch).map(([k,v])=>`${FL[k]||k}: ${esc(v[0])||'—'} ← ${esc(v[1])||'—'}`).join('<br>'):''}</td></tr>`).join('')||'<tr><td colspan="6">لا توجد عمليات مسجلة بعد</td></tr>'}</table></div>`;
+}
+let auditF={sec:'',q:''};
+/* ---------- مؤشرات KPI وتقييم الأداء ---------- */
+let kRange={from:'2026-09-21',to:''};
+const pf=v=>v===null||v===undefined?'—':(Math.round(v*1000)/10)+'%';
+function kpiCalc(from,to){
+  const inR=v=>{const x=iso(v);return typeof x==='string'&&x>=from&&x<=to};
+  const ns=notices.filter(n=>inR(n.date)&&n.status),tot=ns.length,cnt=st=>ns.filter(n=>n.status===st).length,closed=ns.filter(n=>n.status==='تم الإصلاح');
+  const pr=purchases.filter(p=>inR(p.rdate)&&p.item),pt=pr.length,PL=['تم الطلب','تم الشراء/التوريد','تم التركيب'],DV=['تم الشراء/التوريد','تم التركيب'];
+  const cls=notices.filter(n=>inR(n.date)&&n.cls),today=ymd(new Date());
+  const sl=closed.filter(n=>slaInfo(n).txt),pcm=pmCompliance(today);
+  const k=[
+   {n:1,t:'نسبة إغلاق الإخطارات',h:'تم الإصلاح ÷ الإخطارات التي لها حالة',v:tot?cnt('تم الإصلاح')/tot:null,min:.85},
+   {n:2,t:'نسبة الإصلاحات المؤقتة',h:'إصلاح مؤقت ÷ الإخطارات التي لها حالة',v:tot?cnt('إصلاح مؤقت')/tot:null,max:.1},
+   {n:3,t:'نسبة الإخطارات المفتوحة',h:'(جاري التنفيذ + لم يتم + تم جزئياً) ÷ الإجمالي',v:tot?(cnt('جاري التنفيذ')+cnt('لم يتم الإصلاح')+cnt('تم جزئياً'))/tot:null,max:.15},
+   {n:4,t:'نسبة غير القابل للإصلاح',h:'التصنيف الأصلي غير قابل للإصلاح ÷ الإخطارات ذات تصنيف أصلي',v:cls.length?cls.filter(n=>n.cls==='غير قابل للإصلاح').length/cls.length:null,max:.05},
+   {n:5,t:'اكتمال بيانات الإخطارات',h:'الخانات المعبأة (التاريخ، القسم، العطل، الإجراء، ممثل الصيانة) ÷ المطلوب',v:tot?ns.reduce((a,n)=>a+['date','dept','details','action','rep'].filter(f=>n[f]).length,0)/(tot*5):null,min:.9},
+   {n:6,t:'توثيق تاريخ الإصلاح للمُغلق',h:'المُغلق وله تاريخ إصلاح ÷ إجمالي المُغلق',v:closed.length?closed.filter(n=>n.fixdate).length/closed.length:null,min:.9},
+   {n:7,t:'تقدّم طلبات الشراء',h:'(تم الطلب + التوريد + التركيب) ÷ إجمالي الأصناف',v:pt?pr.filter(p=>PL.includes(p.status)).length/pt:null,min:.8},
+   {n:8,t:'تنفيذ الشراء والتوريد',h:'(تم الشراء/التوريد + تم التركيب) ÷ إجمالي الأصناف',v:pt?pr.filter(p=>DV.includes(p.status)).length/pt:null,min:.6},
+   {n:10,t:'إخطارات تحتاج شراء بلا صنف مسجل',h:'عدد',cnt:true,v:notices.filter(n=>inR(n.date)&&n.needbuy==='نعم'&&!purchases.some(p=>p.ref===n.ref)).length,max:0},
+   {n:11,t:'الإغلاق ضمن المهلة (مضاف)',h:'المُغلق ضمن مهلة أولويته ÷ المُغلق',v:sl.length?sl.filter(n=>slaInfo(n).txt==='ضمن المهلة').length/sl.length:null,min:.8},
+   {n:12,t:'الالتزام بالصيانة الوقائية (مضاف)',h:'المهام المنفذة ÷ المطلوبة في الفترات المنتهية',v:pcm.pct===null?null:pcm.pct/100,min:.9}];
+  k.forEach(x=>{x.ok=x.v===null?null:((x.min===undefined||x.v>=x.min)&&(x.max===undefined||x.v<=x.max))});
+  return k;
+}
+function kRangeCard(){return `<div class="card"><div class="row"><label>من<input type="date" value="${kRange.from}" onchange="kRange.from=this.value;render()"></label><label>إلى (فارغ = اليوم)<input type="date" value="${kRange.to}" onchange="kRange.to=this.value;render()"></label></div></div>`}
+const kr=()=>({from:kRange.from||'2000-01-01',to:kRange.to||ymd(new Date())});
+function vKPI(){
+  const {from,to}=kr(),k=kpiCalc(from,to),ok=k.filter(x=>x.ok===true).length,bad=k.filter(x=>x.ok===false).length,nn=k.filter(x=>x.ok===null).length;
+  return kRangeCard()+`<div class="card"><button class="btn" onclick="pdf('مؤشرات_KPI_'+ymd(new Date()))">تصدير PDF</button></div>
+  <div class="card" id="rep"><h3>مؤشرات الأداء الرئيسية (KPIs) – إدارة الصيانة – مستشفى الابتسامة</h3><div class="msg">الفترة: ${dFmt(from)} → ${dFmt(to)}</div>
+  <div class="grid" style="margin:8px 0"><div class="k"><b>${ok}</b>مؤشرات محققة</div><div class="k"><b>${bad}</b>غير محققة</div><div class="k"><b>${nn}</b>لم تُدخل بعد</div><div class="k"><b>${ok+bad?pf(ok/(ok+bad)):'—'}</b>نسبة التحقق (من المُدخل)</div></div>
+  <div style="overflow-x:auto"><table><tr>${['#','المؤشر','طريقة الحساب','الحد الأدنى','الحد الأقصى','الفعلي','الحالة'].map(x=>`<th>${x}</th>`).join('')}</tr>
+  ${k.map(x=>`<tr><td>${x.n}</td><td class="l">${x.t}</td><td class="l">${x.h}</td><td>${x.min!==undefined?pf(x.min):''}</td><td>${x.max!==undefined?(x.cnt?x.max:pf(x.max)):''}</td><td><b>${x.cnt?x.v:pf(x.v)}</b></td><td class="${x.ok===true?'s-ok':x.ok===false?'s-bad':''}">${x.ok===true?'محقق':x.ok===false?'غير محقق':'—'}</td></tr>`).join('')}</table></div>
+  <div class="msg" style="margin-top:6px">المؤشران 11 و12 مضافان على نموذجك الأصلي. لا يدخلان في حساب تقييم الأداء.</div></div>`;
+}
+const EV=[{a:'الاستجابة للأعطال وإغلاقها',w:40,c:'نسبة إغلاق الإخطارات',f:k=>k[0].v},
+ {a:'جودة الإصلاح (حلول نهائية)',w:40,c:'1 − نسبة الإصلاحات المؤقتة',f:k=>k[1].v===null?null:1-k[1].v},
+ {a:'إدارة المشتريات والتكاليف',w:10,c:'تقدّم طلبات الشراء',f:k=>k[6].v},
+ {a:'التوثيق والتقارير',w:10,c:'متوسط: اكتمال البيانات، توثيق تاريخ الإصلاح',f:k=>{const a=[k[4].v,k[5].v].filter(x=>x!==null);return a.length?a.reduce((s,x)=>s+x,0)/a.length:null}}];
+function saveEv(p){const e=settings.eval=Object.assign({},settings.eval,p);return db.collection('settings').doc('eval').set(e)}
+function evAdj(i,v){const a=Object.assign({},(settings.eval||{}).adj);if(v==='')delete a[i];else a[i]=+v;saveEv({adj:a})}
+function evNote(i,v){const a=Object.assign({},(settings.eval||{}).notes);a[i]=v;saveEv({notes:a})}
+function vEval(){
+  const {from,to}=kr(),k=kpiCalc(from,to),ev=settings.eval||{},adj=ev.adj||{},nt=ev.notes||{};
+  const rows=EV.map((x,i)=>{const auto=x.f(k),ap=adj[i]!==undefined&&adj[i]!==''?adj[i]/100:auto;return{...x,auto,ap,sc:ap===null?null:x.w*ap}});
+  const totW=EV.reduce((a,x)=>a+x.w,0),evW=rows.filter(r=>r.ap!==null).reduce((a,r)=>a+r.w,0),sum=rows.reduce((a,r)=>a+(r.sc||0),0);
+  const norm=evW?sum/evW*100:null,cov=evW/totW;
+  const grade=norm===null?'لا يوجد تقييم':(norm>=90?'ممتاز':norm>=75?'جيد جداً':norm>=60?'جيد':'يحتاج خطة تحسين')+(cov<1?' (تقييم جزئي)':'');
+  const ok=k.filter(x=>x.ok===true).length,bad=k.filter(x=>x.ok===false).length;
+  return kRangeCard()+`<div class="card"><button class="btn" onclick="pdf('تقييم_الأداء_'+ymd(new Date()))">تصدير PDF</button></div>
+  <div class="card" id="rep"><h3>تقييم أداء مدير الصيانة – محسوب تلقائياً من بيانات المتابعة</h3>
+  <div class="grid" style="margin:8px 0"><div class="k"><b>${norm===null?'—':norm.toFixed(1)}</b>الدرجة المعيارية (من 100)</div><div class="k"><b style="font-size:18px">${grade}</b>التقدير العام</div><div class="k"><b>${Math.round(cov*100)}%</b>اكتمال التقييم (وزن المحاور المقيّمة)</div><div class="k"><b>${ok} من ${ok+bad}</b>مؤشرات محققة</div></div>
+  <div class="row" style="margin-bottom:8px"><label>اسم المدير<input data-keep="1" value="${esc(ev.name??'م/ محمد خالد المحمدي')}" onchange="saveEv({name:this.value})"></label><label>فترة التقييم<input data-keep="1" value="${esc(ev.period??'من 21/9/2026')}" onchange="saveEv({period:this.value})"></label><label>المقيّم<input data-keep="1" value="${esc(ev.evaluator??'')}" onchange="saveEv({evaluator:this.value})"></label></div>
+  <div style="overflow-x:auto"><table><tr>${['المحور','الدرجة','المؤشر','النسبة التلقائية','تعديل النسبة (%)','النسبة المعتمدة','الدرجة المحققة','ملاحظات'].map(x=>`<th>${x}</th>`).join('')}</tr>
+  ${rows.map((r,i)=>`<tr><td class="l">${r.a}</td><td>${r.w}</td><td class="l">${r.c}</td><td>${pf(r.auto)}</td><td><input type="number" min="0" max="100" data-keep="1" value="${adj[i]??''}" style="width:80px" onchange="evAdj(${i},this.value)"></td><td>${pf(r.ap)}</td><td><b>${r.sc===null?'—':r.sc.toFixed(1)}</b></td><td class="l"><input data-keep="1" value="${esc(nt[i]||'')}" onchange="evNote(${i},this.value)"></td></tr>`).join('')}
+  <tr><td class="l"><b>الإجمالي</b></td><td><b>${totW}</b></td><td class="l">${rows.filter(r=>r.ap!==null).length} من ${EV.length} محاور مقيّمة</td><td></td><td></td><td></td><td><b>${sum.toFixed(1)}</b></td><td></td></tr></table></div>
+  <div class="msg" style="margin-top:6px">سلّم التقدير (على الدرجة المعيارية): 90 فأكثر ممتاز · 75–89 جيد جداً · 60–74 جيد · أقل من 60 يحتاج خطة تحسين.<br>الدرجة الحالية من 100: ${sum.toFixed(1)} · الدرجة المعيارية = الدرجة المحققة ÷ وزن المحاور المقيّمة.</div>
+  <div style="display:flex;justify-content:space-between;margin-top:24px"><span>توقيع المدير: ____________</span><span>المقيّم: ${esc(ev.evaluator||'____________')}</span><span>اعتماد الإدارة العليا: ____________</span></div></div>`;
+}
+importXlsx=noLog(importXlsx);restoreJSON=noLog(restoreJSON);pmSeed=noLog(pmSeed);pmImport=noLog(pmImport);
+function noLog(fn){return async function(...a){window.NOLOG=true;try{return await fn.apply(this,a)}finally{window.NOLOG=false}}}
 init();
 </script>
 </body>
