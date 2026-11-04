@@ -143,13 +143,16 @@ async function init(){
 }
 function nav(){
   const T=window.ROLE==='entry'?[['e_round','مرور يومي'],['e_notice','إخطار جديد'],['e_purch','طلب شراء']]:[['round','المرور اليومي'],['notices','الصيانة العلاجية'],['purch','طلبات الشراء'],['sum','الملخص'],['reports','التقارير']];
-  $('#nav').innerHTML=T.map(([k,v])=>`<button class="${tab===k?'on':''}" onclick="tab='${k}';nav();render()">${v}</button>`).join('');
+  $('#nav').innerHTML=T.map(([k,v])=>`<button class="${tab===k?'on':''}" onclick="tab='${k}';nav();render();window.scrollTo(0,0)">${v}</button>`).join('');
 }
 function render(){
   if(document.activeElement&&['INPUT','TEXTAREA'].includes(document.activeElement.tagName)&&document.activeElement.dataset.keep)return;
+  const wy=window.scrollY,ws=[...document.querySelectorAll('.wrap:not(#rep)')].map(w=>[w.scrollTop,w.scrollLeft]);
   $('#main').innerHTML=({round:vRound,notices:vNotices,purch:vPurch,sum:vSum,reports:vReports,e_round:vERound,e_notice:vENotice,e_purch:vEPurch})[tab]();
   document.querySelectorAll('textarea').forEach(fit);
   labelize();
+  document.querySelectorAll('.wrap:not(#rep)').forEach((w,i)=>{if(ws[i]){w.scrollTop=ws[i][0];w.scrollLeft=ws[i][1]}});
+  window.scrollTo(0,wy);
 }
 function labelize(){
   document.querySelectorAll('main table').forEach(t=>{
