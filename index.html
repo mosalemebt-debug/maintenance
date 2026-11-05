@@ -92,7 +92,7 @@ html{-webkit-text-size-adjust:100%}
 </style>
 </head>
 <body>
-<header>برنامج الصيانة – مستشفى الابتسامة – مصر الجديدة <small style="opacity:.7;font-weight:400">(إصدار 4-11 – ح)</small></header>
+<header>برنامج الصيانة – مستشفى الابتسامة – مصر الجديدة <small style="opacity:.7;font-weight:400">(إصدار 4-11 – ط)</small></header>
 <nav id="nav"></nav>
 <main id="main"></main>
 <script src="firebase-config.js"></script>
@@ -847,8 +847,8 @@ function repCharts(from,to,type){
   return barChart('الأعطال حسب التخصص',Object.entries(bt).sort((a,b)=>b[1]-a[1]))+barChart(type==='w'?'الأعطال حسب اليوم':'الأعطال حسب الأسبوع',rows);
 }
 /* ---------- سجل الأصول ---------- */
-const ATY=['تكييف','مولد','لوحة كهرباء','موتور مياه','مصعد','محطة غازات','غسالة / مجفف / مكواة','أخرى'];
-const AF=()=>[['code','الكود','text'],['name','الاسم / الطراز','text'],['type','النوع','select',['',...ATY]],['loc','الموقع','text'],['value','قيمة الاستبدال التقريبية (ج.م)','number'],['inst','تاريخ التركيب','date'],['notes','ملاحظات','area']];
+const ATY=['تكييف','مولد','لوحة كهرباء','موتور مياه','مصعد','محطة غازات','غسالة / مجفف / مكواة','سخان مياه','نظام نداء ممرضات','نظام إنذار حريق','UPS','أخرى'],CAPU=['حصان','BTU','طن تبريد','kVA','كيلووات','كجم','لتر','أمبير'];
+const AF=()=>[['code','الكود','text'],['name','الاسم / الطراز','text'],['type','النوع','select',['',...ATY]],['cap','القدرة','number'],['capu','وحدة القدرة','select',['',...CAPU]],['loc','الموقع','text'],['value','قيمة الاستبدال التقريبية (ج.م)','number'],['inst','تاريخ التركيب','date'],['notes','ملاحظات','area']];
 function assetStats(a){
   const ns=notices.filter(n=>n.asset&&String(n.asset).trim().toLowerCase()===String(a.code).trim().toLowerCase());
   const d1=new Date();d1.setFullYear(d1.getFullYear()-1);const y1=ymd(d1);
@@ -858,17 +858,30 @@ function assetStats(a){
 }
 function vAssets(){
   const st=assets.map(a=>({a,...assetStats(a)})).sort((x,y)=>(!!y.reason-!!x.reason)||y.ns.length-x.ns.length||String(x.a.code).localeCompare(String(y.a.code),'en',{numeric:true}));
+  const acs=assets.filter(a=>a.type==='تكييف'),acHP=Math.round(acs.filter(a=>a.capu==='حصان').reduce((t,a)=>t+(+a.cap||0),0)*100)/100,acN=acs.length,acNo=acs.filter(a=>!(+a.cap>0)).length;
   const flagged=st.filter(x=>x.reason).length,totC=st.reduce((t,x)=>t+x.cost,0);
-  let h=`<div class="card"><div class="grid"><div class="k"><b>${assets.length}</b>أصل مسجّل</div><div class="k ${flagged?'s-bad':''}"><b>${flagged}</b>يُنصح بدراسة استبداله</div><div class="k"><b>${money(totC)}</b>إجمالي تكلفة الأعطال (ج.م)</div></div>
+  let h=`<div class="card"><div class="grid"><div class="k"><b>${assets.length}</b>أصل مسجّل</div><div class="k ${flagged?'s-bad':''}"><b>${flagged}</b>يُنصح بدراسة استبداله</div><div class="k"><b>${money(totC)}</b>إجمالي تكلفة الأعطال (ج.م)</div><div class="k"><b>${acHP} حصان</b>إجمالي قدرة التكييفات (${acN} وحدة${acNo?'، '+acNo+' بدون قدرة':''})</div></div>
   <div class="msg">يُنصح بدراسة الاستبدال لو تعطّل الأصل 3 مرات أو أكثر خلال 12 شهراً، أو تجاوزت تكلفة إصلاحه 50% من قيمة استبداله (لو أدخلت القيمة). اربط الأعطال بالأصل بكتابة كوده في خانة «الأصل» عند تسجيل الإخطار.</div></div>`;
-  h+=`<div class="card"><div class="row"><label>الكود<input id="as_c" data-keep="1" placeholder="AC-05"></label><label>الاسم / الطراز<input id="as_n" data-keep="1"></label><label>النوع<select id="as_t">${ATY.map(t=>`<option>${t}</option>`).join('')}</select></label><label>الموقع<input id="as_l" data-keep="1"></label><label>قيمة الاستبدال (ج.م)<input id="as_v" type="number" data-keep="1"></label><button class="btn" onclick="assetAdd()">إضافة أصل</button>${assets.length?'':'<button class="btn alt" onclick="seedAssets()">تحميل أصول المبنى (51 أصل)</button>'}</div></div>`;
-  h+=`<div class="card wrap"><table><tr>${['الكود','الاسم','النوع','الموقع','عدد الأعطال','آخر 12 شهراً','آخر عطل','التكلفة (ج.م)','التقييم','إجراءات'].map(x=>`<th>${x}</th>`).join('')}</tr>`;
-  st.forEach(x=>{h+=`<tr><td>${esc(x.a.code)}</td><td class="l">${esc(x.a.name)}</td><td>${esc(x.a.type)}</td><td class="l">${esc(x.a.loc)}</td><td>${x.ns.length}</td><td class="${x.r12>=3?'s-bad':''}">${x.r12}</td><td>${x.last?fd(x.last):''}</td><td>${money(x.cost)}</td><td class="l ${x.reason?'s-bad':''}">${x.reason?'⚠ '+x.reason:'—'}</td><td><div style="display:flex;gap:4px;justify-content:center"><button class="btn sm alt" onclick="assetDetail('${x.a.id}')">السجل</button><button class="btn sm alt" onclick="openEdit('assets','${x.a.id}')">تعديل</button><button class="btn sm" style="background:#b42318" onclick="delItem('assets','${x.a.id}')">حذف</button></div></td></tr>`});
-  return h+(st.length?'':'<tr><td colspan="10">لا توجد أصول بعد</td></tr>')+'</table></div>';
+  h+=`<div class="card"><div class="row"><label>الكود<input id="as_c" data-keep="1" placeholder="AC-05"></label><label>الاسم / الطراز<input id="as_n" data-keep="1"></label><label>النوع<select id="as_t">${ATY.map(t=>`<option>${t}</option>`).join('')}</select></label><label>القدرة<input id="as_cap" type="number" step="0.25" data-keep="1" style="width:90px"></label><label>الوحدة<select id="as_cu">${CAPU.map(u=>`<option>${u}</option>`).join('')}</select></label><label>الموقع<input id="as_l" data-keep="1"></label><label>قيمة الاستبدال (ج.م)<input id="as_v" type="number" data-keep="1"></label><button class="btn" onclick="assetAdd()">إضافة أصل</button>${assets.length?'':'<button class="btn alt" onclick="seedAssets()">تحميل أصول المبنى (51 أصل)</button>'}</div></div>`;
+  h+=`<div class="card"><b>تعيين القدرة لمجموعة أصول دفعة واحدة</b><div class="row" style="margin-top:6px"><label>من كود<input id="bk_f" data-keep="1" placeholder="AC-05"></label><label>إلى كود<input id="bk_t" data-keep="1" placeholder="AC-41"></label><label>القدرة<input id="bk_c" type="number" step="0.25" data-keep="1" style="width:90px"></label><label>الوحدة<select id="bk_u">${CAPU.map(u=>`<option>${u}</option>`).join('')}</select></label><button class="btn" onclick="assetBulkCap()">تطبيق</button></div><div class="msg">مثال: من AC-05 إلى AC-20 بقدرة 2.25 حصان. الأكواد لازم تكون بنفس البادئة.</div></div>`;
+  h+=`<div class="card wrap"><table><tr>${['الكود','الاسم','النوع','القدرة','الموقع','عدد الأعطال','آخر 12 شهراً','آخر عطل','التكلفة (ج.م)','التقييم','إجراءات'].map(x=>`<th>${x}</th>`).join('')}</tr>`;
+  st.forEach(x=>{h+=`<tr><td>${esc(x.a.code)}</td><td class="l">${esc(x.a.name)}</td><td>${esc(x.a.type)}</td><td>${+x.a.cap?x.a.cap+' '+esc(x.a.capu||''):''}</td><td class="l">${esc(x.a.loc)}</td><td>${x.ns.length}</td><td class="${x.r12>=3?'s-bad':''}">${x.r12}</td><td>${x.last?fd(x.last):''}</td><td>${money(x.cost)}</td><td class="l ${x.reason?'s-bad':''}">${x.reason?'⚠ '+x.reason:'—'}</td><td><div style="display:flex;gap:4px;justify-content:center"><button class="btn sm alt" onclick="assetDetail('${x.a.id}')">السجل</button><button class="btn sm alt" onclick="openEdit('assets','${x.a.id}')">تعديل</button><button class="btn sm" style="background:#b42318" onclick="delItem('assets','${x.a.id}')">حذف</button></div></td></tr>`});
+  return h+(st.length?'':'<tr><td colspan="11">لا توجد أصول بعد</td></tr>')+'</table></div>';
 }
 async function assetAdd(){const c=$('#as_c').value.trim(),n=$('#as_n').value.trim();if(!c||!n){alert('اكتب الكود والاسم');return}
   if(assets.some(a=>String(a.code).toLowerCase()===c.toLowerCase())){alert('الكود مستخدم من قبل');return}
-  await db.collection('assets').doc('as'+Date.now()).set({code:c,name:n,type:$('#as_t').value,loc:$('#as_l').value,value:+$('#as_v').value||0});$('#as_c').value='';$('#as_n').value='';toast('تمت الإضافة ✓')}
+  await db.collection('assets').doc('as'+Date.now()).set({code:c,name:n,type:$('#as_t').value,cap:+$('#as_cap').value||0,capu:$('#as_cu').value,loc:$('#as_l').value,value:+$('#as_v').value||0});$('#as_c').value='';$('#as_n').value='';toast('تمت الإضافة ✓')}
+async function assetBulkCap(){
+  const f=$('#bk_f').value.trim(),t=$('#bk_t').value.trim(),c=+$('#bk_c').value;
+  const m1=f.match(/^(.*?)(\d+)$/),m2=t.match(/^(.*?)(\d+)$/);
+  if(!m1||!m2||m1[1].toLowerCase()!==m2[1].toLowerCase()||!(c>0)){alert('اكتب كودين بنفس البادئة (مثل AC-05 و AC-20) وقدرة أكبر من صفر');return}
+  const lo=+m1[2],hi=+m2[2],pre=m1[1].toLowerCase();
+  const list=assets.filter(a=>{const m=String(a.code).match(/^(.*?)(\d+)$/);return m&&m[1].toLowerCase()===pre&&+m[2]>=lo&&+m[2]<=hi});
+  if(!list.length){alert('لا توجد أصول في هذا النطاق');return}
+  if(!confirm('تعيين القدرة '+c+' '+$('#bk_u').value+' لعدد '+list.length+' أصل؟'))return;
+  for(const a of list)await db.collection('assets').doc(a.id).update({cap:c,capu:$('#bk_u').value});
+  toast('تم تحديث '+list.length+' أصل');
+}
 async function seedAssets(){
   const L=[];for(let i=1;i<=41;i++)L.push(['AC-'+String(i).padStart(2,'0'),'تكييف '+(i<=2?'كونسلد':i<=4?'استاند':'سبليت')+' '+i,'تكييف']);
   L.push(['GEN-01','مولد 72 kVA','مولد'],['ATS-01','لوحة ATS','لوحة كهرباء'],['PUMP-01','موتور مياه 2 حصان (1)','موتور مياه'],['PUMP-02','موتور مياه 2 حصان (2)','موتور مياه'],['LIFT-01','مصعد 900 كجم','مصعد'],['GAS-01','محطة الغازات','محطة غازات'],['WSH-01','غسالة كبيرة (1)','غسالة / مجفف / مكواة'],['WSH-02','غسالة كبيرة (2)','غسالة / مجفف / مكواة'],['DRY-01','مجفف','غسالة / مجفف / مكواة'],['IRN-01','مكواة','غسالة / مجفف / مكواة']);
