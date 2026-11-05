@@ -86,11 +86,13 @@ html{-webkit-text-size-adjust:100%}
 .prpage .t{font-weight:700;font-size:15px}
 .prpage .g{font-size:9px;color:#444}
 @media print{body>*:not(#prv){display:none!important}#prv{position:static;background:#fff;padding:0;overflow:visible}#prv .prtools{display:none!important}.prpage{margin:0;width:100%;padding:0;page-break-after:always;break-after:page}@page{size:A4 portrait;margin:8mm}}
+.prpage.rtl{direction:rtl}
+.prpage.rtl .bi{text-align:right}
 @media (min-width:1400px){main{max-width:1500px}}
 </style>
 </head>
 <body>
-<header>برنامج الصيانة – مستشفى الابتسامة – مصر الجديدة <small style="opacity:.7;font-weight:400">(إصدار 4-11 – و)</small></header>
+<header>برنامج الصيانة – مستشفى الابتسامة – مصر الجديدة <small style="opacity:.7;font-weight:400">(إصدار 4-11 – ز)</small></header>
 <nav id="nav"></nav>
 <main id="main"></main>
 <script src="firebase-config.js"></script>
@@ -133,9 +135,9 @@ const AREAS=[["الدور الثاني",["غرفة 201","غرفة 202","غرفة
 ["الدور الأرضي",["الريسيبشن","مكتب مدير المستشفى","الخزن","غرفة طوارئ","غرفة IT","معمل التحليل","معمل الذكورة","التعقيم","الصيدلية","المطبخ","المغسلة","حمام رجالي – الأرضي","حمام حريمي – الأرضي"]]];
 const ALL=AREAS.flatMap(([f,l])=>l.map(a=>({f,a})));
 const ST=['تم الإصلاح','تم جزئياً','إصلاح مؤقت','جاري التنفيذ','لم يتم الإصلاح','غير قابل للإصلاح'];
-const PST=['لم يُطلب','جاري إعداد الطلب','تم الطلب','تم الشراء/التوريد','تم التركيب'];
+const PST=['لم يُطلب','جاري إعداد الطلب','تم الطلب','تم الشراء/التوريد','صرف من المخزن','تم التركيب'];
 const stCls=s=>s==='تم الإصلاح'?'s-ok':['تم جزئياً','إصلاح مؤقت','جاري التنفيذ'].includes(s)?'s-warn':s?'s-bad':'';
-let db=null,notices=[],purchases=[],rounds={},tab='daily',settings={},auditLog=[],pmTasks=[],pmLogs={},rdate=ymd(new Date());
+let db=null,notices=[],purchases=[],rounds={},tab='daily',assets=[],stock=[],settings={},auditLog=[],pmTasks=[],pmLogs={},rdate=ymd(new Date());
 const $=s=>document.querySelector(s);
 function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 const DAYS=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
@@ -160,19 +162,23 @@ async function init(){
   db.collection('rounds').onSnapshot(s=>{rounds={};s.docs.forEach(d=>rounds[d.id]=d.data());render()});
   db.collection('settings').onSnapshot(s=>{settings={};s.docs.forEach(d=>settings[d.id]=d.data());render()});
   db.collection('auditLog').onSnapshot(s=>{auditLog=s.docs.map(d=>d.data()).sort((a,b)=>String(b.at).localeCompare(String(a.at)));render()});
+  db.collection('assets').onSnapshot(s=>{assets=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.code).localeCompare(String(b.code),'en',{numeric:true}));render()});
+  db.collection('stock').onSnapshot(s=>{stock=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ar'));render()});
   db.collection('pmTasks').onSnapshot(s=>{pmTasks=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.asset).localeCompare(String(b.asset),'ar'));render()});
   db.collection('pmLogs').onSnapshot(s=>{pmLogs={};s.docs.forEach(d=>pmLogs[d.id]=d.data());render()});
 }
 function nav(){
-  const T=window.ROLE==='entry'?[['e_round','مرور يومي'],['e_notice','إخطار جديد'],['e_purch','طلب شراء']]:[['daily','المتابعة اليومية'],['round','المرور اليومي'],['notices','الصيانة العلاجية'],['purch','طلبات الشراء'],['pm','الصيانة الوقائية'],['sum','الملخص'],['reports','التقارير'],['kpi','مؤشرات KPI'],['eval','تقييم الأداء'],['audit','سجل التعديلات'],['backup','نسخ احتياطي']];
+  const T=window.ROLE==='entry'?[['e_round','مرور يومي'],['e_notice','إخطار جديد'],['e_purch','طلب شراء']]:[['daily','المتابعة اليومية'],['round','المرور اليومي'],['notices','الصيانة العلاجية'],['purch','طلبات الشراء'],['pm','الصيانة الوقائية'],['sum','الملخص'],['reports','التقارير'],['assets','سجل الأصول'],['stock','المخزن'],['budget','التكاليف والبادجت'],['kpi','مؤشرات KPI'],['eval','تقييم الأداء'],['audit','سجل التعديلات'],['backup','نسخ احتياطي']];
   $('#nav').innerHTML=T.map(([k,v])=>`<button class="${tab===k?'on':''}" onclick="tab='${k}';nav();render();window.scrollTo(0,0)">${v}</button>`).join('');
 }
 function render(){
   if(document.activeElement&&['INPUT','TEXTAREA'].includes(document.activeElement.tagName)&&document.activeElement.dataset.keep)return;
+  const keepV={};document.querySelectorAll('#main input[id],#main select[id],#main textarea[id]').forEach(e=>{if(/^(f|p|pm|as|st|ni|nq)_/.test(e.id)&&e.value!=='')keepV[e.id]=e.value});
   const wy=window.scrollY,ws=[...document.querySelectorAll('.wrap:not(#rep)')].map(w=>[w.scrollTop,w.scrollLeft]);
-  $('#main').innerHTML=({round:vRound,notices:vNotices,purch:vPurch,sum:vSum,reports:vReports,daily:vDaily,pm:vPM,backup:vBackup,kpi:vKPI,eval:vEval,audit:vAudit,e_round:vERound,e_notice:vENotice,e_purch:vEPurch})[tab]();
+  $('#main').innerHTML=({round:vRound,notices:vNotices,purch:vPurch,sum:vSum,reports:vReports,daily:vDaily,pm:vPM,backup:vBackup,kpi:vKPI,eval:vEval,audit:vAudit,assets:vAssets,stock:vStock,budget:vBudget,e_round:vERound,e_notice:vENotice,e_purch:vEPurch})[tab]();
   document.querySelectorAll('textarea').forEach(fit);
   labelize();
+  Object.entries(keepV).forEach(([id,v])=>{const e=document.getElementById(id);if(e&&e.tagName!=='BUTTON')e.value=v});
   document.querySelectorAll('.wrap:not(#rep)').forEach((w,i)=>{if(ws[i]){w.scrollTop=ws[i][0];w.scrollLeft=ws[i][1]}});
   window.scrollTo(0,wy);
 }
@@ -249,6 +255,7 @@ function vNotices(){
   <label>ممثل الصيانة<input id="f_rep"></label>
   <label>يحتاج شراء؟<select id="f_needbuy"><option>لا</option><option>نعم</option></select></label>
   <label>الأولوية<select id="f_prio"><option value="">تلقائي</option>${PR.map(p=>`<option>${p}</option>`).join('')}</select></label>
+  <label>التخصص<select id="f_trade"><option value="">تلقائي</option>${TRD.map(t=>`<option>${t}</option>`).join('')}</select></label><label>الأصل (الكود)<input id="f_asset" list="assetlist" placeholder="مثال: AC-05"></label><label>التكلفة (ج.م)<input id="f_cost" type="number" min="0"></label><datalist id="assetlist">${assets.map(a=>`<option value="${esc(a.code)}">${esc(a.name)}</option>`).join('')}</datalist>
   <button class="btn" onclick="saveNotice()">حفظ</button></div></div>
   <div class="card"><div class="row"><button class="btn" onclick="exportXlsx()">تصدير Excel</button>
   <label class="btn alt" style="flex-direction:row">استيراد من ملف الإكسل<input type="file" accept=".xlsx" onchange="importXlsx(this.files[0])" hidden></label></div><div id="imsg" class="msg"></div></div>
@@ -260,13 +267,14 @@ function vNotices(){
     <td><input type="date" value="${iso(n.fixdate)}" onchange="upd('${n.id}',{fixdate:this.value})"></td>
     <td><textarea rows="1" data-keep="1" oninput="fit(this)" onchange="upd('${n.id}',{rep:this.value})" style="min-width:110px">${esc(n.rep)}</textarea></td>
     <td><select onchange="upd('${n.id}',{needbuy:this.value})">${['','نعم','لا'].map(s=>`<option ${s===(n.needbuy||'')?'selected':''}>${s}</option>`).join('')}</select></td>
-    <td class="l">${esc(n.notes)}</td><td class="${prCls(si.pr)}">${si.pr}</td><td class="${si.cls}">${si.txt}</td><td><div style="display:flex;gap:4px;justify-content:center"><button class="btn sm alt" onclick="openEdit('notices','${n.id}')">تعديل</button><button class="btn sm" style="background:#b42318" onclick="delItem('notices','${n.id}')">حذف</button></div></td></tr>`});
+    <td class="l">${esc(n.notes)}</td><td class="${prCls(si.pr)}">${si.pr}</td><td class="${si.cls}">${si.txt}</td><td><div style="display:flex;gap:4px;justify-content:center"><button class="btn sm alt" onclick="openEdit('notices','${n.id}')">تعديل</button><button class="btn sm alt" onclick="openNT('${n.id}')">طباعة</button><button class="btn sm" style="background:#b42318" onclick="delItem('notices','${n.id}')">حذف</button></div></td></tr>`});
   return h+'</table></div>';
 }
 const upd=(id,o)=>db.collection('notices').doc(id).update(o);
 function setStatus(id,s){const o={status:s};if(s==='تم الإصلاح')o.fixdate=new Date().toISOString().slice(0,10);upd(id,o)}
 async function saveNotice(){
   const o={};['date','time','dept','reporter','details','action','status','rep','needbuy','prio'].forEach(k=>o[k]=$('#f_'+k).value);
+  ['trade','asset','cost'].forEach(k=>{const e=$('#f_'+k);if(e)o[k]=k==='cost'?(+e.value||0):e.value});
   if(!o.dept||!o.details){alert('اكتب القسم وتفاصيل العطل');return}
   if(o.status==='تم الإصلاح')o.fixdate=o.date;
   await addNotice(o);
@@ -314,12 +322,13 @@ function vPurch(){
   purchases.slice().sort((a,b)=>(num(a.ref)||1e9)-(num(b.ref)||1e9)||a.k-b.k).forEach(p=>{const n=notices.find(x=>x.ref===p.ref)||{};
     const refSel=`<select onchange="db.collection('purchases').doc('${p.id}').update({ref:this.value})"><option value=""></option>${notices.slice().reverse().map(x=>`<option ${x.ref===p.ref?'selected':''}>${x.ref}</option>`).join('')}</select>`;
     h+=`<tr><td class="noprint"><input type="checkbox" ${prSel.has(p.id)?'checked':''} onchange="togglePR('${p.id}',this.checked)"></td><td>${p.k}</td><td>${refSel}</td><td class="l">${esc(n.dept||p.notes)}</td><td class="l">${esc(p.item)}</td><td>${p.qty??''}</td><td><input type="number" data-keep="1" value="${p.price??''}" style="width:90px" onchange="db.collection('purchases').doc('${p.id}').update({price:+this.value||0})"></td><td>${fd(p.rdate)}</td>
-    <td class="${['تم الشراء/التوريد','تم التركيب'].includes(p.status)?'s-ok':p.status==='لم يُطلب'?'s-bad':'s-warn'}"><select onchange="setPurchStatus('${p.id}',this.value)">${PST.map(s=>`<option ${s===p.status?'selected':''}>${s}</option>`).join('')}</select></td><td>${fd(p.ddate)}</td><td>${fd(p.idate)}</td><td class="noprint"><div style="display:flex;gap:4px;justify-content:center"><button class="btn sm alt" onclick="openEdit('purchases','${p.id}')">تعديل</button><button class="btn sm" style="background:#b42318" onclick="delItem('purchases','${p.id}')">حذف</button></div></td></tr>`});
+    <td class="${['تم الشراء/التوريد','صرف من المخزن','تم التركيب'].includes(p.status)?'s-ok':p.status==='لم يُطلب'?'s-bad':'s-warn'}"><select onchange="setPurchStatus('${p.id}',this.value)">${PST.map(s=>`<option ${s===p.status?'selected':''}>${s}</option>`).join('')}</select></td><td>${fd(p.ddate)}</td><td>${fd(p.idate)}</td><td class="noprint"><div style="display:flex;gap:4px;justify-content:center"><button class="btn sm alt" onclick="openEdit('purchases','${p.id}')">تعديل</button><button class="btn sm" style="background:#b42318" onclick="delItem('purchases','${p.id}')">حذف</button></div></td></tr>`});
   return h+'</table></div>';
 }
 async function addItemFor(ref,id){
   const item=$('#ni_'+id).value.trim();if(!item){alert('اكتب اسم الصنف');return}
   const k=nextK(),o={k,ref,rdate:ymd(new Date()),item,qty:+$('#nq_'+id).value||1,status:'جاري إعداد الطلب',ddate:'',idate:''};
+  await stockCheck(o);
   purchases.push({id:'p'+String(k).padStart(4,'0'),...o});
   await db.collection('purchases').doc('p'+String(k).padStart(4,'0')).set(o);
   toast('تمت إضافة الصنف ✓');render();
@@ -327,7 +336,7 @@ async function addItemFor(ref,id){
 async function setPurchStatus(id,v){
   const p=purchases.find(x=>x.id===id);if(!p)return;
   const today=new Date().toISOString().slice(0,10);
-  const o={status:v,ddate:(v==='تم الشراء/التوريد'||v==='تم التركيب')?(p.ddate||today):'',idate:v==='تم التركيب'?today:''};
+  const o={status:v,ddate:(v==='تم الشراء/التوريد'||v==='صرف من المخزن'||v==='تم التركيب')?(p.ddate||today):'',idate:v==='تم التركيب'?today:''};
   Object.assign(p,o);await db.collection('purchases').doc(id).update(o);
   if(v!=='تم التركيب'||!p.ref)return;
   const group=purchases.filter(x=>x.ref===p.ref);
@@ -340,7 +349,9 @@ async function setPurchStatus(id,v){
 }
 async function savePurch(){
   const item=$('#p_item').value;if(!item)return;const k=nextK();
-  await db.collection('purchases').doc('p'+String(k).padStart(4,'0')).set({k,ref:$('#p_ref').value,rdate:$('#p_rdate').value,item,qty:+$('#p_qty').value,status:'جاري إعداد الطلب',ddate:''});
+  const o={k,ref:$('#p_ref').value,rdate:$('#p_rdate').value,item,qty:+$('#p_qty').value,status:'جاري إعداد الطلب',ddate:''};
+  await stockCheck(o);
+  await db.collection('purchases').doc('p'+String(k).padStart(4,'0')).set(o);
 }
 /* ---------- الملخص ---------- */
 function vSum(){
@@ -352,7 +363,7 @@ function vSum(){
   <div class="card" id="rep"><h3>ملخص الصيانة – مستشفى الابتسامة</h3>
   <div class="grid"><div class="k"><b>${notices.length}</b>إجمالي الإخطارات</div><div class="k"><b>${closed}%</b>نسبة الإغلاق</div><div class="k"><b>${tmp}%</b>إصلاحات مؤقتة</div><div class="k"><b>${purchases.length}</b>أصناف الشراء</div><div class="k"><b>${linked.size}</b>إخطارات مرتبطة بطلب شراء</div><div class="k"><b>${viaP}</b>أُغلقت بعد شراء وتركيب</div><div class="k"><b>${linkedOpen}</b>مرتبطة بشراء ولم تُغلق</div></div>
   <h4>الصيانة العلاجية حسب الحالة</h4><table>${ST.map(s=>`<tr><td class="l ${stCls(s)}">${s}</td><td>${c(s)}</td></tr>`).join('')}</table>
-  <h4>طلبات الشراء</h4><table>${PST.map(s=>`<tr><td class="l">${s}</td><td>${pc(s)}</td></tr>`).join('')}</table></div>`;
+  <h4>الرسوم البيانية</h4>${sumCharts()}<h4>طلبات الشراء</h4><table>${PST.map(s=>`<tr><td class="l">${s}</td><td>${pc(s)}</td></tr>`).join('')}</table></div>`;
 }
 /* ---------- التقارير الأسبوعية والشهرية ---------- */
 const REP_START='2026-11-07'; // السبت: بداية العمل بالتقارير
@@ -375,7 +386,7 @@ function repData(from,to){
   const top=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const lastDay=to<today?to:today,span=Math.max(0,Math.round((new Date(lastDay)-new Date(from))/864e5)+1);
   const open=notices.filter(n=>n.status!=='تم الإصلاح').map(n=>({...n,age:Math.round((new Date(today)-new Date(iso(n.date)))/864e5)})).filter(n=>!isNaN(n.age)).sort((a,b)=>b.age-a.age).slice(0,5);
-  const pa=purchases.filter(p=>inR(p.rdate)).length,pd=purchases.filter(p=>p.status==='تم الشراء/التوريد'&&inR(p.ddate)||p.status==='تم التركيب'&&inR(p.ddate)).length,pi=purchases.filter(p=>inR(p.idate)).length,pp=purchases.filter(p=>p.status!=='تم التركيب').length;
+  const pa=purchases.filter(p=>inR(p.rdate)).length,pd=purchases.filter(p=>['تم الشراء/التوريد','صرف من المخزن','تم التركيب'].includes(p.status)&&inR(p.ddate)).length,pi=purchases.filter(p=>inR(p.idate)).length,pp=purchases.filter(p=>p.status!=='تم التركيب').length;
   const slaOk=nClosed.filter(n=>slaInfo(n).txt==='ضمن المهلة').length;
   return{slaOk,nNew,nClosed,avg,days:rs.length,span,bad,byA:top(byA),byC:top(byC),rec:top(rec).filter(x=>x[1]>=2),open,pa,pd,pi,pp,openNow:notices.filter(n=>n.status!=='تم الإصلاح').length};
 }
@@ -389,6 +400,7 @@ function vReports(){
   const tbl=(hd,rows)=>`<table><tr>${hd.map(x=>`<th>${x}</th>`).join('')}</tr>${rows.length?rows.map(r=>`<tr>${r.map((c,i)=>`<td${i===0?' class="l"':''}>${esc(c)}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${hd.length}">لا يوجد</td></tr>`}</table>`;
   h+=`<div class="card" id="rep"><h3>تقرير ${repType==='w'?'أسبوعي':'شهري'} – قسم الصيانة – مستشفى الابتسامة</h3><div class="msg">الفترة: من ${dFmt(cur.from)} إلى ${dFmt(cur.to)}</div>
   <div class="grid" style="margin:8px 0"><div class="k"><b>${d.days}/${d.span}</b>أيام مرور محفوظة</div><div class="k"><b>${d.bad}</b>خانات ✗ في المرور</div><div class="k"><b>${d.nNew.length}</b>إخطارات جديدة</div><div class="k"><b>${d.nClosed.length}</b>إخطارات تم إصلاحها</div><div class="k"><b>${d.avg===null?'—':d.avg.toFixed(1)}</b>متوسط زمن الإصلاح (يوم)</div><div class="k"><b>${d.openNow}</b>مفتوحة حالياً</div><div class="k"><b>${d.nClosed.length?Math.round(100*d.slaOk/d.nClosed.length)+'%':'—'}</b>إغلاق ضمن المهلة</div></div>
+  <h4>الرسوم البيانية</h4>${repCharts(cur.from,cur.to,repType)}
   <h4>أكثر الأماكن أعطالاً (من المرور)</h4>${tbl(['المكان','عدد ✗'],d.byA)}
   <h4>أكثر التخصصات أعطالاً</h4>${tbl(['التخصص','عدد ✗'],d.byC)}
   <h4>أعطال متكررة (نفس المكان والتخصص أكثر من مرة)</h4>${tbl(['المكان – التخصص','مرات التكرار'],d.rec)}
@@ -404,15 +416,15 @@ function vReports(){
 }
 /* ---------- تعديل / حذف ---------- */
 let EM=null;
-const NF=()=>[['date','التاريخ','date'],['time','الوقت','time'],['dept','القسم','text'],['reporter','مسؤول الإخطار','text'],['details','تفاصيل العطل','area'],['action','الإجراء المتخذ','area'],['status','الحالة','select',ST],['fixdate','تاريخ الإصلاح','date'],['rep','ممثل الصيانة','text'],['needbuy','يحتاج شراء؟','select',['','نعم','لا']],['prio','الأولوية (فارغ = تلقائي)','select',['',...PR]],['notes','ملاحظات','area'],['cls','التصنيف','text']];
+const NF=()=>[['date','التاريخ','date'],['time','الوقت','time'],['dept','القسم','text'],['reporter','مسؤول الإخطار','text'],['details','تفاصيل العطل','area'],['action','الإجراء المتخذ','area'],['status','الحالة','select',ST],['fixdate','تاريخ الإصلاح','date'],['rep','ممثل الصيانة','text'],['needbuy','يحتاج شراء؟','select',['','نعم','لا']],['prio','الأولوية (فارغ = تلقائي)','select',['',...PR]],['trade','التخصص','select',['',...TRD]],['asset','الأصل (الكود)','text'],['cost','تكلفة الإصلاح / الخدمة (ج.م)','number'],['notes','ملاحظات','area'],['cls','التصنيف','text']];
 function openEdit(kind,id){
-  const isN=kind==='notices',row=(isN?notices:purchases).find(x=>x.id===id);if(!row)return;
-  const F=isN?NF():[['ref','الإخطار','select',['',...notices.slice().sort((a,b)=>a.n-b.n).map(n=>n.ref)]],['rdate','تاريخ الطلب','date'],['item','الصنف','text'],['code','كود الصنف','text'],['qty','الكمية','number'],['price','السعر التقديري للوحدة (ج.م)','number'],['spec','مواصفات إضافية','area'],['status','الحالة','select',PST],['ddate','تاريخ التوريد','date'],['idate','تاريخ التركيب','date'],['notes','ملاحظات','area']];
+  const isN=kind==='notices',row=({notices,purchases,assets,stock}[kind]).find(x=>x.id===id);if(!row)return;
+  const F=isN?NF():kind==='assets'?AF():kind==='stock'?SF():[['ref','الإخطار','select',['',...notices.slice().sort((a,b)=>a.n-b.n).map(n=>n.ref)]],['rdate','تاريخ الطلب','date'],['item','الصنف','text'],['code','كود الصنف','text'],['qty','الكمية','number'],['price','السعر التقديري للوحدة (ج.م)','number'],['spec','مواصفات إضافية','area'],['status','الحالة','select',PST],['ddate','تاريخ التوريد','date'],['idate','تاريخ التركيب','date'],['notes','ملاحظات','area']];
   EM={kind,id,F};closeEdit();
   const d=document.createElement('div');d.id='md';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:60;overflow:auto;padding:12px';
   const fld=([k,l,t,o])=>{const v=t==='date'?iso(row[k]):row[k];
     return `<label>${l}${t==='area'?`<textarea id="e_${k}" rows="2" style="min-width:0">${esc(v)}</textarea>`:t==='select'?`<select id="e_${k}">${o.map(x=>`<option ${x===(row[k]||'')?'selected':''}>${esc(x)}</option>`).join('')}</select>`:`<input id="e_${k}" type="${t}" value="${esc(v)}">`}</label>`};
-  d.innerHTML=`<div class="card" style="max-width:760px;margin:16px auto"><b>${isN?'تعديل الإخطار '+row.ref:'تعديل صنف الشراء'}</b><div class="grid" style="margin-top:8px">${F.map(fld).join('')}</div><div class="row" style="margin-top:10px"><button class="btn" onclick="saveEdit()">حفظ</button><button class="btn alt" onclick="closeEdit()">إلغاء</button></div></div>`;
+  d.innerHTML=`<div class="card" style="max-width:760px;margin:16px auto"><b>${isN?'تعديل الإخطار '+row.ref:kind==='assets'?'تعديل أصل '+row.code:kind==='stock'?'تعديل صنف مخزن':'تعديل صنف الشراء'}</b><div class="grid" style="margin-top:8px">${F.map(fld).join('')}</div><div class="row" style="margin-top:10px"><button class="btn" onclick="saveEdit()">حفظ</button><button class="btn alt" onclick="closeEdit()">إلغاء</button></div></div>`;
   document.body.appendChild(d);
 }
 function closeEdit(){const m=document.getElementById('md');if(m)m.remove()}
@@ -437,6 +449,9 @@ async function delItem(kind,id){
     if(!confirm('حذف الإخطار '+n.ref+' ('+(n.dept||'')+')؟'+(its.length?'\nمرتبط بـ '+its.length+' صنف شراء وسيُفك ارتباطها.':'')))return;
     for(const p of its)await db.collection('purchases').doc(p.id).update({ref:'',notes:((p.notes||'')+' (الإخطار '+n.ref+' محذوف)').trim()});
     await db.collection('notices').doc(id).delete();
+  }else if(kind==='assets'||kind==='stock'){
+    const x=(kind==='assets'?assets:stock).find(y=>y.id===id);if(!x||!confirm('حذف «'+(x.name||x.code)+'»؟'))return;
+    await db.collection(kind).doc(id).delete();
   }else{
     const p=purchases.find(x=>x.id===id);if(!p)return;
     if(!confirm('حذف صنف الشراء «'+p.item+'»؟'))return;
@@ -454,7 +469,7 @@ function vDaily(){
   const nNew=notices.filter(n=>iso(n.date)===today).length,nCl=notices.filter(n=>n.status==='تم الإصلاح'&&iso(n.fixdate)===today).length;
   const r=rounds[today],badList=[];
   if(r)Object.entries(r.marks||{}).forEach(([k,v])=>{if(v==='✗'){const [i,j]=k.split('_');badList.push(ALL[i].a+' – '+CATS[j])}});
-  const PLACED=['تم الطلب','تم الشراء/التوريد','تم التركيب'];
+  const PLACED=['تم الطلب','تم الشراء/التوريد','صرف من المخزن','تم التركيب'];
   const rows=[];
   notices.filter(n=>n.needbuy==='نعم'&&n.status!=='تم الإصلاح').sort((a,b)=>a.n-b.n).forEach(n=>{
     const its=purchases.filter(p=>p.ref===n.ref);
@@ -462,7 +477,7 @@ function vDaily(){
     else its.filter(p=>p.status!=='تم التركيب').forEach(p=>rows.push({ref:n.ref,what:(n.dept||'')+' – '+(n.details||''),item:p.item+' × '+(p.qty??''),st:p.status,ok:PLACED.includes(p.status),rd:fd(p.rdate),dd:fd(p.ddate)}));
   });
   purchases.filter(p=>!p.ref&&p.status!=='تم التركيب').forEach(p=>rows.push({ref:'—',what:p.notes||'',item:p.item+' × '+(p.qty??''),st:p.status,ok:PLACED.includes(p.status),rd:fd(p.rdate),dd:fd(p.ddate)}));
-  const notPlaced=rows.filter(x=>!x.ok).length,ordered=rows.filter(x=>x.st==='تم الطلب').length,delivered=rows.filter(x=>x.st==='تم الشراء/التوريد').length;
+  const notPlaced=rows.filter(x=>!x.ok).length,ordered=rows.filter(x=>x.st==='تم الطلب').length,delivered=rows.filter(x=>['تم الشراء/التوريد','صرف من المخزن'].includes(x.st)).length;
   const day=DAYS[new Date(today+'T12:00:00').getDay()];
   const chips=Object.entries(byS).map(([k,v])=>`<span class="${stCls(k)}" style="padding:4px 10px;border-radius:6px;display:inline-block;margin:2px"><b>${v}</b> ${esc(k)}</span>`).join('')||'لا توجد إخطارات مفتوحة';
   const lb=localStorage.getItem('lastBackup'),bk=(!lb||(new Date(today)-new Date(lb))/864e5>7)?`<div class="card s-warn"><b>⚠ لم تأخذ نسخة احتياطية منذ ${lb?'أكثر من أسبوع ('+dFmt(lb)+')':'البداية'}.</b> <button class="btn sm" onclick="tab='backup';nav();render()">نسخ احتياطي الآن</button></div>`:'';
@@ -574,13 +589,15 @@ function vBackup(){
   <div id="bkmsg" class="msg"></div></div>
   <div class="card"><div class="msg">ملف JSON يحتوي كل البيانات (الإخطارات وطلبات الشراء والمرور اليومي والمهام الوقائية وسجل تنفيذها) وهو الذي تُجرى منه الاستعادة. الاستعادة تضيف وتحدّث السجلات الموجودة في الملف ولا تحذف ما غيره.</div></div>`;
 }
-const bkData=()=>({app:'maintenance',v:1,at:new Date().toISOString(),notices,purchases,rounds,pmTasks,pmLogs,settings,audit:auditLog});
+const bkData=()=>({app:'maintenance',v:1,at:new Date().toISOString(),notices,purchases,rounds,pmTasks,pmLogs,settings,assets,stock,audit:auditLog});
 function backupJSON(){const d=bkData();dl('نسخة_احتياطية_'+ymd(new Date())+'.json',new Blob([JSON.stringify(d)],{type:'application/json'}));localStorage.setItem('lastBackup',ymd(new Date()));render()}
 function backupXlsx(){
   const wb=XLSX.utils.book_new(),add=(n,rows)=>XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows.length?rows:[{}]),n);
   add('الصيانة العلاجية',notices.map(n=>({م:n.n,المرجع:n.ref,التاريخ:n.date,الوقت:n.time,القسم:n.dept,المبلّغ:n.reporter,العطل:n.details,الإجراء:n.action,الحالة:n.status,'تاريخ الإصلاح':n.fixdate,'ممثل الصيانة':n.rep,'يحتاج شراء':n.needbuy,الأولوية:n.prio,ملاحظات:n.notes})));
   add('طلبات الشراء',purchases.map(p=>({م:p.k,الإخطار:p.ref,الصنف:p.item,الكمية:p.qty,الحالة:p.status,'تاريخ الطلب':p.rdate,'تاريخ التوريد':p.ddate,'تاريخ التركيب':p.idate,ملاحظات:p.notes})));
   const rr=[];Object.entries(rounds).forEach(([d,r])=>Object.entries(r.marks||{}).forEach(([k,v])=>{const [i,j]=k.split('_');rr.push({التاريخ:d,المكان:ALL[i].a,التخصص:CATS[j],النتيجة:v})}));add('المرور اليومي',rr);
+  add('الأصول',assets.map(a=>({الكود:a.code,الاسم:a.name,النوع:a.type,الموقع:a.loc,'قيمة الاستبدال':a.value})));
+  add('المخزن',stock.map(x=>({الصنف:x.name,الرصيد:x.qty,'الحد الأدنى':x.min,الوحدة:x.unit,'سعر الوحدة':x.cost})));
   add('المهام الوقائية',pmTasks.map(t=>({الأصل:t.asset,المهمة:t.task,التكرار:t.freq,نشطة:t.active!==false?'نعم':'لا'})));
   add('سجل الوقائية',Object.entries(pmLogs).map(([id,l])=>({المهمة:(pmTasks.find(t=>t.id===l.tid)||{}).task||l.tid,الفترة:l.key,'تاريخ التنفيذ':l.at,بواسطة:l.by})));
   add('سجل التعديلات',auditLog.map(a=>({الوقت:a.at,المستخدم:a.by,القسم:SEC[a.col]||a.col,البند:a.label,الإجراء:a.action,التغييرات:a.ch?Object.entries(a.ch).map(([k,v])=>(FL[k]||k)+': '+v[0]+' ← '+v[1]).join(' | '):''})));
@@ -591,7 +608,7 @@ async function restoreJSON(f){
   if(d.app!=='maintenance'||!confirm('استعادة البيانات من النسخة؟ سيتم تحديث السجلات المطابقة.'))return;
   const m=document.getElementById('bkmsg');let c=0;
   const put=async(col,arr)=>{for(const x of arr){const {id,...rest}=x;await db.collection(col).doc(id).set(rest);c++;if(m&&c%20===0)m.textContent='جاري الاستعادة... '+c}};
-  await put('notices',d.notices||[]);await put('purchases',d.purchases||[]);await put('pmTasks',d.pmTasks||[]);
+  await put('notices',d.notices||[]);await put('purchases',d.purchases||[]);await put('pmTasks',d.pmTasks||[]);await put('assets',d.assets||[]);await put('stock',d.stock||[]);
   for(const [id,l] of Object.entries(d.pmLogs||{})){await db.collection('pmLogs').doc(id).set(l);c++}
   for(const [id,r] of Object.entries(d.rounds||{})){await db.collection('rounds').doc(id).set(r);c++}
   if(m)m.textContent='تمت استعادة '+c+' سجل.';toast('تمت الاستعادة ✓');
@@ -692,6 +709,7 @@ function vENotice(){
 }
 async function eSaveNotice(){
   const o={};['date','time','dept','reporter','details','action','status','rep','needbuy','prio'].forEach(k=>o[k]=$('#f_'+k).value);
+  ['trade','asset','cost'].forEach(k=>{const e=$('#f_'+k);if(e)o[k]=k==='cost'?(+e.value||0):e.value});
   if(!o.dept||!o.details){alert('اكتب القسم وتفاصيل العطل');return}
   if(o.status==='تم الإصلاح')o.fixdate=o.date;
   await send({type:'notice',data:o});$('#f_details').value='';$('#f_action').value='';$('#f_dept').value='';
@@ -704,12 +722,12 @@ function vEPurch(){
 }
 async function eSavePurch(){const item=$('#p_item').value;if(!item)return;await send({type:'purchase',data:{rdate:$('#p_rdate').value,item,qty:+$('#p_qty').value,related:$('#p_rel').value}});$('#p_item').value='';$('#p_rel').value=''}
 /* ---------- سجل التعديلات ---------- */
-const SEC={notices:'الصيانة العلاجية',purchases:'طلبات الشراء',pmTasks:'مهام وقائية',rounds:'المرور اليومي'};
-const FL={status:'الحالة',details:'العطل',action:'الإجراء',dept:'القسم',reporter:'المبلّغ',date:'التاريخ',time:'الوقت',fixdate:'تاريخ الإصلاح',rep:'ممثل الصيانة',needbuy:'يحتاج شراء',notes:'ملاحظات',prio:'الأولوية',cls:'التصنيف',item:'الصنف',qty:'الكمية',price:'السعر',ref:'الإخطار',rdate:'تاريخ الطلب',ddate:'تاريخ التوريد',idate:'تاريخ التركيب',code:'الكود',spec:'مواصفات',task:'المهمة',asset:'الأصل',freq:'التكرار',active:'نشطة'};
+const SEC={notices:'الصيانة العلاجية',purchases:'طلبات الشراء',pmTasks:'مهام وقائية',rounds:'المرور اليومي',assets:'سجل الأصول',stock:'المخزن'};
+const FL={status:'الحالة',details:'العطل',action:'الإجراء',dept:'القسم',reporter:'المبلّغ',date:'التاريخ',time:'الوقت',fixdate:'تاريخ الإصلاح',rep:'ممثل الصيانة',needbuy:'يحتاج شراء',notes:'ملاحظات',prio:'الأولوية',cls:'التصنيف',item:'الصنف',qty:'الكمية',price:'السعر',ref:'الإخطار',rdate:'تاريخ الطلب',ddate:'تاريخ التوريد',idate:'تاريخ التركيب',code:'الكود',spec:'مواصفات',task:'المهمة',asset:'الأصل',freq:'التكرار',active:'نشطة',trade:'التخصص',asset:'الأصل',cost:'التكلفة',code:'الكود',name:'الاسم',type:'النوع',loc:'الموقع',value:'قيمة الاستبدال',min:'الحد الأدنى',unit:'الوحدة'};
 const SKIP=['id','n','by','src','cat','viaPurchase'];
 function wrapDb(raw){
-  const T={notices:()=>notices,purchases:()=>purchases,pmTasks:()=>pmTasks};
-  const lbl=(c,o)=>c==='notices'?((o.ref||'')+' '+(o.dept||'')).trim():c==='purchases'?(o.item||''):c==='pmTasks'?(o.task||''):'';
+  const T={notices:()=>notices,purchases:()=>purchases,pmTasks:()=>pmTasks,assets:()=>assets,stock:()=>stock};
+  const lbl=(c,o)=>c==='notices'?((o.ref||'')+' '+(o.dept||'')).trim():c==='purchases'?(o.item||''):c==='pmTasks'?(o.task||''):c==='assets'?((o.code||'')+' '+(o.name||'')):c==='stock'?(o.name||''):'';
   const cut=v=>{v=v===undefined||v===null?'':v;v=typeof v==='object'?JSON.stringify(v):String(v);return v.length>100?v.slice(0,100)+'…':v};
   const diff=(a,b)=>{const ch={};Object.keys(b).forEach(k=>{if(SKIP.includes(k))return;if(JSON.stringify(a[k]??'')!==JSON.stringify(b[k]??''))ch[k]=[cut(a[k]),cut(b[k])]});return ch};
   const log=(col,id,action,o,ch,by)=>{
@@ -738,7 +756,7 @@ const pf=v=>v===null||v===undefined?'—':(Math.round(v*1000)/10)+'%';
 function kpiCalc(from,to){
   const inR=v=>{const x=iso(v);return typeof x==='string'&&x>=from&&x<=to};
   const ns=notices.filter(n=>inR(n.date)&&n.status),tot=ns.length,cnt=st=>ns.filter(n=>n.status===st).length,closed=ns.filter(n=>n.status==='تم الإصلاح');
-  const pr=purchases.filter(p=>inR(p.rdate)&&p.item),pt=pr.length,PL=['تم الطلب','تم الشراء/التوريد','تم التركيب'],DV=['تم الشراء/التوريد','تم التركيب'];
+  const pr=purchases.filter(p=>inR(p.rdate)&&p.item),pt=pr.length,PL=['تم الطلب','تم الشراء/التوريد','صرف من المخزن','تم التركيب'],DV=['تم الشراء/التوريد','صرف من المخزن','تم التركيب'];
   const cls=notices.filter(n=>inR(n.date)&&n.cls),today=ymd(new Date());
   const sl=closed.filter(n=>slaInfo(n).txt),pcm=pmCompliance(today);
   const k=[
@@ -790,6 +808,148 @@ function vEval(){
   <tr><td class="l"><b>الإجمالي</b></td><td><b>${totW}</b></td><td class="l">${rows.filter(r=>r.ap!==null).length} من ${EV.length} محاور مقيّمة</td><td></td><td></td><td></td><td><b>${sum.toFixed(1)}</b></td><td></td></tr></table></div>
   <div class="msg" style="margin-top:6px">سلّم التقدير (على الدرجة المعيارية): 90 فأكثر ممتاز · 75–89 جيد جداً · 60–74 جيد · أقل من 60 يحتاج خطة تحسين.<br>الدرجة الحالية من 100: ${sum.toFixed(1)} · الدرجة المعيارية = الدرجة المحققة ÷ وزن المحاور المقيّمة.</div>
   <div style="display:flex;justify-content:space-between;margin-top:24px"><span>توقيع المدير: ____________</span><span>المقيّم: ${esc(ev.evaluator||'____________')}</span><span>اعتماد الإدارة العليا: ____________</span></div></div>`;
+}
+/* ---------- التخصصات والتكاليف ---------- */
+const TRD=['كهرباء','سباكة','تكييف','نجارة','نقاشة','ألومنيوم','مدني','أخرى'],TRALL=[...TRD,'غير مصنف'];
+const TRMAP={'كهرباء':'كهرباء','سباكة':'سباكة','نجارة':'نجارة','نقاشة':'نقاشة','ألومنيوم':'ألومنيوم','شاشة':'أخرى','التكييف':'تكييف'};
+const TRRX=[['تكييف',/تكييف|تكيف|فريون|كمبروسر/],['كهرباء',/كهرب|كشاف|لمب|قاطع|فيشة|مفتاح|ترانس|جرس|تيار|ماس/],['سباكة',/سباك|مياه|سيفون|صرف|دش|حنفي|تسريب|غسال/],['نجارة',/باب|كالون|مفصل|نجار|دولاب|سرير/],['نقاشة',/دهان|نقاش|بوية|طلاء/],['ألومنيوم',/ألومنيوم|المونيوم|ألمونيوم/],['مدني',/فينيل|أرضي|بلاط|سيراميك|حائط|سقف|مدني/]];
+function tradeOf(n){if(n.trade)return n.trade;if(TRMAP[n.cat])return TRMAP[n.cat];const t=(n.dept||'')+' '+(n.details||'');for(const [k,r] of TRRX)if(r.test(t))return k;return 'غير مصنف'}
+const partsCost=ref=>purchases.filter(p=>p.ref===ref&&p.status!=='صرف من المخزن').reduce((a,p)=>a+(+p.price||0)*(+p.qty||0),0);
+const noticeCost=n=>(+n.cost||0)+partsCost(n.ref);
+const money=v=>(Math.round((+v||0)*100)/100).toLocaleString('en-US');
+/* ---------- رسوم بيانية (SVG) ---------- */
+function barChart(title,rows,unit){
+  unit=unit||'';
+  if(!rows.length||rows.every(r=>!r[1]))return `<div class="msg">${title}: لا توجد بيانات</div>`;
+  const max=Math.max(...rows.map(r=>r[1]),1),W=520,rh=24,H=rows.length*rh+34,lw=140;
+  let b=`<div style="background:#fff;border-radius:8px;padding:6px;margin:6px 0;overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:580px;height:auto" xmlns="http://www.w3.org/2000/svg"><text x="${W}" y="16" text-anchor="end" font-size="13" font-weight="700" fill="#1f4e79">${esc(title)}</text>`;
+  rows.forEach((r,i)=>{const y=28+i*rh,w=(W-lw-70)*r[1]/max;b+=`<text x="${W}" y="${y+14}" text-anchor="end" font-size="11" fill="#222">${esc(r[0])}</text><rect x="${W-lw-w}" y="${y+2}" width="${Math.max(w,1)}" height="${rh-8}" fill="#1f4e79" rx="3"/><text x="${W-lw-w-4}" y="${y+14}" text-anchor="end" font-size="11" fill="#222">${money(r[1])}${unit}</text>`});
+  return b+'</svg></div>';
+}
+function sumCharts(){
+  const bt={};notices.forEach(n=>{const t=tradeOf(n);bt[t]=(bt[t]||0)+1});
+  const rows=[];for(let i=5;i>=0;i--){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');rows.push([k,notices.filter(n=>String(iso(n.date)).startsWith(k)).length])}
+  return barChart('الأعطال حسب التخصص',Object.entries(bt).sort((a,b)=>b[1]-a[1]))+barChart('الأعطال حسب الشهر (آخر 6 شهور)',rows);
+}
+function repCharts(from,to,type){
+  const ns=notices.filter(n=>{const x=iso(n.date);return typeof x==='string'&&x>=from&&x<=to});
+  const bt={};ns.forEach(n=>{const t=tradeOf(n);bt[t]=(bt[t]||0)+1});
+  const rows=[];let x=new Date(from+'T12:00:00');
+  if(type==='w'){for(let i=0;i<7;i++){const d=ymd(x);rows.push([DAYS[x.getDay()]+' '+d.slice(8)+'/'+d.slice(5,7),ns.filter(n=>iso(n.date)===d).length]);x.setDate(x.getDate()+1)}}
+  else{while(ymd(x)<=to){const e=new Date(x);e.setDate(e.getDate()+((5-e.getDay()+7)%7));const end=ymd(e)>to?to:ymd(e),st=ymd(x);rows.push([dFmt(st).slice(0,5)+' → '+dFmt(end).slice(0,5),ns.filter(n=>{const d=iso(n.date);return d>=st&&d<=end}).length]);x=new Date(e);x.setDate(x.getDate()+1)}}
+  return barChart('الأعطال حسب التخصص',Object.entries(bt).sort((a,b)=>b[1]-a[1]))+barChart(type==='w'?'الأعطال حسب اليوم':'الأعطال حسب الأسبوع',rows);
+}
+/* ---------- سجل الأصول ---------- */
+const ATY=['تكييف','مولد','لوحة كهرباء','موتور مياه','مصعد','محطة غازات','غسالة / مجفف / مكواة','أخرى'];
+const AF=()=>[['code','الكود','text'],['name','الاسم / الطراز','text'],['type','النوع','select',['',...ATY]],['loc','الموقع','text'],['value','قيمة الاستبدال التقريبية (ج.م)','number'],['inst','تاريخ التركيب','date'],['notes','ملاحظات','area']];
+function assetStats(a){
+  const ns=notices.filter(n=>n.asset&&String(n.asset).trim().toLowerCase()===String(a.code).trim().toLowerCase());
+  const d1=new Date();d1.setFullYear(d1.getFullYear()-1);const y1=ymd(d1);
+  const cost=ns.reduce((t,n)=>t+noticeCost(n),0),r12=ns.filter(n=>String(iso(n.date))>=y1).length,last=ns.map(n=>String(iso(n.date))).sort().pop()||'';
+  const reason=r12>=3?'تعطّل '+r12+' مرات خلال 12 شهراً':(a.value&&cost>=0.5*a.value?'تكلفة الإصلاح ≥ 50% من قيمة الاستبدال':'');
+  return{ns,cost,r12,last,reason};
+}
+function vAssets(){
+  const st=assets.map(a=>({a,...assetStats(a)})).sort((x,y)=>(!!y.reason-!!x.reason)||y.ns.length-x.ns.length||String(x.a.code).localeCompare(String(y.a.code),'en',{numeric:true}));
+  const flagged=st.filter(x=>x.reason).length,totC=st.reduce((t,x)=>t+x.cost,0);
+  let h=`<div class="card"><div class="grid"><div class="k"><b>${assets.length}</b>أصل مسجّل</div><div class="k ${flagged?'s-bad':''}"><b>${flagged}</b>يُنصح بدراسة استبداله</div><div class="k"><b>${money(totC)}</b>إجمالي تكلفة الأعطال (ج.م)</div></div>
+  <div class="msg">يُنصح بدراسة الاستبدال لو تعطّل الأصل 3 مرات أو أكثر خلال 12 شهراً، أو تجاوزت تكلفة إصلاحه 50% من قيمة استبداله (لو أدخلت القيمة). اربط الأعطال بالأصل بكتابة كوده في خانة «الأصل» عند تسجيل الإخطار.</div></div>`;
+  h+=`<div class="card"><div class="row"><label>الكود<input id="as_c" data-keep="1" placeholder="AC-05"></label><label>الاسم / الطراز<input id="as_n" data-keep="1"></label><label>النوع<select id="as_t">${ATY.map(t=>`<option>${t}</option>`).join('')}</select></label><label>الموقع<input id="as_l" data-keep="1"></label><label>قيمة الاستبدال (ج.م)<input id="as_v" type="number" data-keep="1"></label><button class="btn" onclick="assetAdd()">إضافة أصل</button>${assets.length?'':'<button class="btn alt" onclick="seedAssets()">تحميل أصول المبنى (51 أصل)</button>'}</div></div>`;
+  h+=`<div class="card wrap"><table><tr>${['الكود','الاسم','النوع','الموقع','عدد الأعطال','آخر 12 شهراً','آخر عطل','التكلفة (ج.م)','التقييم','إجراءات'].map(x=>`<th>${x}</th>`).join('')}</tr>`;
+  st.forEach(x=>{h+=`<tr><td>${esc(x.a.code)}</td><td class="l">${esc(x.a.name)}</td><td>${esc(x.a.type)}</td><td class="l">${esc(x.a.loc)}</td><td>${x.ns.length}</td><td class="${x.r12>=3?'s-bad':''}">${x.r12}</td><td>${x.last?fd(x.last):''}</td><td>${money(x.cost)}</td><td class="l ${x.reason?'s-bad':''}">${x.reason?'⚠ '+x.reason:'—'}</td><td><div style="display:flex;gap:4px;justify-content:center"><button class="btn sm alt" onclick="assetDetail('${x.a.id}')">السجل</button><button class="btn sm alt" onclick="openEdit('assets','${x.a.id}')">تعديل</button><button class="btn sm" style="background:#b42318" onclick="delItem('assets','${x.a.id}')">حذف</button></div></td></tr>`});
+  return h+(st.length?'':'<tr><td colspan="10">لا توجد أصول بعد</td></tr>')+'</table></div>';
+}
+async function assetAdd(){const c=$('#as_c').value.trim(),n=$('#as_n').value.trim();if(!c||!n){alert('اكتب الكود والاسم');return}
+  if(assets.some(a=>String(a.code).toLowerCase()===c.toLowerCase())){alert('الكود مستخدم من قبل');return}
+  await db.collection('assets').doc('as'+Date.now()).set({code:c,name:n,type:$('#as_t').value,loc:$('#as_l').value,value:+$('#as_v').value||0});$('#as_c').value='';$('#as_n').value='';toast('تمت الإضافة ✓')}
+async function seedAssets(){
+  const L=[];for(let i=1;i<=41;i++)L.push(['AC-'+String(i).padStart(2,'0'),'تكييف '+(i<=2?'كونسلد':i<=4?'استاند':'سبليت')+' '+i,'تكييف']);
+  L.push(['GEN-01','مولد 72 kVA','مولد'],['ATS-01','لوحة ATS','لوحة كهرباء'],['PUMP-01','موتور مياه 2 حصان (1)','موتور مياه'],['PUMP-02','موتور مياه 2 حصان (2)','موتور مياه'],['LIFT-01','مصعد 900 كجم','مصعد'],['GAS-01','محطة الغازات','محطة غازات'],['WSH-01','غسالة كبيرة (1)','غسالة / مجفف / مكواة'],['WSH-02','غسالة كبيرة (2)','غسالة / مجفف / مكواة'],['DRY-01','مجفف','غسالة / مجفف / مكواة'],['IRN-01','مكواة','غسالة / مجفف / مكواة']);
+  for(const [c,n,t] of L)await db.collection('assets').doc('as_'+c).set({code:c,name:n,type:t,loc:'',value:0});
+  toast('تم تحميل '+L.length+' أصل');
+}
+seedAssets=noLog(seedAssets);
+function assetDetail(id){
+  const a=assets.find(x=>x.id===id);if(!a)return;const x=assetStats(a);closeEdit();
+  const d=document.createElement('div');d.id='md';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:60;overflow:auto;padding:12px';
+  d.innerHTML=`<div class="card" style="max-width:860px;margin:16px auto"><b>سجل أعطال ${esc(a.code)} – ${esc(a.name)}</b><div class="msg">عدد الأعطال ${x.ns.length} · التكلفة ${money(x.cost)} ج.م ${x.reason?'· ⚠ '+x.reason:''}</div><div class="wrap" style="margin-top:8px"><table><tr>${['الإخطار','التاريخ','العطل','الحالة','التكلفة'].map(t=>`<th>${t}</th>`).join('')}</tr>${x.ns.sort((p,q)=>String(iso(q.date)).localeCompare(String(iso(p.date)))).map(n=>`<tr><td>${n.ref}</td><td>${fd(n.date)}</td><td class="l">${esc(n.details)}</td><td class="${stCls(n.status)}">${esc(n.status)}</td><td>${money(noticeCost(n))}</td></tr>`).join('')||'<tr><td colspan="5">لا توجد أعطال مسجلة</td></tr>'}</table></div><div class="row" style="margin-top:10px"><button class="btn alt" onclick="closeEdit()">إغلاق</button></div></div>`;
+  document.body.appendChild(d);
+}
+/* ---------- المخزن وقطع الغيار ---------- */
+const SF=()=>[['name','الصنف','text'],['qty','الرصيد','number'],['min','الحد الأدنى','number'],['unit','الوحدة','text'],['cost','سعر الوحدة (ج.م)','number'],['loc','مكان التخزين','text'],['notes','ملاحظات','area']];
+function findStock(name){const b=String(name||'').trim().toLowerCase();if(!b)return null;return stock.find(x=>{const a=String(x.name||'').trim().toLowerCase();return a&&(a.includes(b)||b.includes(a))})||null}
+async function stockCheck(o){
+  const st=findStock(o.item);if(!st||!(+st.qty>0))return;
+  if(+st.qty>=o.qty){
+    if(confirm('الصنف «'+st.name+'» موجود بالمخزن (الرصيد '+st.qty+' '+(st.unit||'')+').\nهل تريد صرفه من المخزن بدلاً من الشراء؟')){
+      o.status='صرف من المخزن';o.ddate=ymd(new Date());o.notes='صرف من المخزن';
+      await db.collection('stock').doc(st.id).update({qty:st.qty-o.qty});st.qty-=o.qty;toast('تم الصرف من المخزن');
+    }
+  }else alert('الصنف «'+st.name+'» موجود بالمخزن لكن الرصيد ('+st.qty+') أقل من المطلوب ('+o.qty+'). سيُسجَّل طلب شراء.');
+}
+function vStock(){
+  const low=stock.filter(x=>+x.qty<=+x.min);
+  let h=`<div class="card"><div class="grid"><div class="k"><b>${stock.length}</b>صنف في المخزن</div><div class="k ${low.length?'s-bad':''}"><b>${low.length}</b>عند أو تحت الحد الأدنى</div></div><div class="msg">عند إضافة صنف لطلب شراء بنفس اسم صنف موجود هنا، يسألك البرنامج هل تصرفه من المخزن بدلاً من الشراء، ويخصم الرصيد تلقائياً.</div></div>
+  <div class="card"><div class="row"><label>الصنف<input id="st_n" data-keep="1"></label><label>الرصيد<input id="st_q" type="number" value="0" data-keep="1" style="width:90px"></label><label>الحد الأدنى<input id="st_m" type="number" value="1" data-keep="1" style="width:90px"></label><label>الوحدة<input id="st_u" data-keep="1" value="قطعة"></label><label>سعر الوحدة<input id="st_c" type="number" data-keep="1"></label><button class="btn" onclick="stockAdd()">إضافة</button></div></div>
+  <div class="card wrap"><table><tr>${['الصنف','الرصيد','الحد الأدنى','الوحدة','سعر الوحدة','الحالة','إجراءات'].map(x=>`<th>${x}</th>`).join('')}</tr>`;
+  stock.forEach(x=>{const st=+x.qty<=0?'نفد':+x.qty<=+x.min?'منخفض':'متوفر';
+    h+=`<tr><td class="l">${esc(x.name)}</td><td><input type="number" data-keep="1" value="${x.qty??0}" style="width:80px" onchange="db.collection('stock').doc('${x.id}').update({qty:+this.value||0})"></td><td>${x.min??''}</td><td>${esc(x.unit)}</td><td>${x.cost?money(x.cost):''}</td><td class="${st==='متوفر'?'s-ok':'s-bad'}">${st}</td>
+    <td><div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap"><button class="btn sm alt" onclick="stockAdj('${x.id}',1)">+1</button><button class="btn sm alt" onclick="stockAdj('${x.id}',-1)">−1</button><button class="btn sm alt" onclick="openEdit('stock','${x.id}')">تعديل</button>${st!=='متوفر'?`<button class="btn sm" onclick="stockReorder('${x.id}')">طلب شراء</button>`:''}<button class="btn sm" style="background:#b42318" onclick="delItem('stock','${x.id}')">حذف</button></div></td></tr>`});
+  return h+(stock.length?'':'<tr><td colspan="7">المخزن فارغ</td></tr>')+'</table></div>';
+}
+async function stockAdd(){const n=$('#st_n').value.trim();if(!n){alert('اكتب اسم الصنف');return}
+  await db.collection('stock').doc('st'+Date.now()).set({name:n,qty:+$('#st_q').value||0,min:+$('#st_m').value||0,unit:$('#st_u').value,cost:+$('#st_c').value||0});$('#st_n').value='';toast('تمت الإضافة ✓')}
+async function stockAdj(id,d){const x=stock.find(s=>s.id===id);if(!x)return;await db.collection('stock').doc(id).update({qty:Math.max(0,(+x.qty||0)+d)})}
+async function stockReorder(id){const x=stock.find(s=>s.id===id);if(!x)return;const k=nextK(),q=Math.max((+x.min||1)*2-(+x.qty||0),1);
+  const o={k,ref:'',rdate:ymd(new Date()),item:x.name,qty:q,price:+x.cost||0,status:'جاري إعداد الطلب',ddate:'',idate:'',notes:'تجديد مخزون'};
+  purchases.push({id:'p'+String(k).padStart(4,'0'),...o});await db.collection('purchases').doc('p'+String(k).padStart(4,'0')).set(o);toast('أُضيف لطلبات الشراء (الكمية '+q+')')}
+/* ---------- التكاليف والبادجت ---------- */
+let bYear='2027';
+function saveSet(id,patch){const e=settings[id]=Object.assign({},settings[id],patch);return db.collection('settings').doc(id).set(e)}
+function bSet(t,v){const cur=Object.assign({},(settings.budget||{})[bYear]);cur[t]=+v||0;saveSet('budget',{[bYear]:cur})}
+function spendBy(year){
+  const by={},mo=Array(12).fill(0),y=String(year);
+  const add=(t,v,m)=>{by[t]=(by[t]||0)+v;if(m>=0)mo[m]+=v};
+  notices.filter(n=>String(iso(n.date)).startsWith(y)).forEach(n=>add(tradeOf(n),+n.cost||0,+String(iso(n.date)).slice(5,7)-1));
+  purchases.filter(p=>String(iso(p.rdate)).startsWith(y)&&p.status!=='صرف من المخزن').forEach(p=>{const n=notices.find(x=>x.ref===p.ref);add(n?tradeOf(n):'غير مصنف',(+p.price||0)*(+p.qty||0),+String(iso(p.rdate)).slice(5,7)-1)});
+  return{by,mo};
+}
+function vBudget(){
+  const sp=spendBy(bYear),bd=(settings.budget||{})[bYear]||{};
+  const totB=TRALL.reduce((a,t)=>a+(+bd[t]||0),0),totS=TRALL.reduce((a,t)=>a+(sp.by[t]||0),0);
+  const yrs=['2026','2027','2028'];
+  let h=`<div class="card"><div class="row"><label>السنة<select onchange="bYear=this.value;render()">${yrs.map(y=>`<option ${y===bYear?'selected':''}>${y}</option>`).join('')}</select></label><button class="btn" onclick="pdf('التكاليف_والبادجت_'+bYear)">تصدير PDF</button></div>
+  <div class="msg">المصروف = تكلفة الإصلاح/الخدمة المسجلة في الإخطارات + (السعر × الكمية) لأصناف الشراء (بدون المصروف من المخزن). أدخل البادجت لكل تخصص. تُسجَّل التكلفة في خانة «التكلفة» بالإخطار وسعر الوحدة في طلب الشراء.</div></div>
+  <div class="card" id="rep"><h3>التكاليف مقابل البادجت – ${bYear} – قسم الصيانة</h3>
+  <div class="grid" style="margin:8px 0"><div class="k"><b>${money(totB)}</b>إجمالي البادجت (ج.م)</div><div class="k"><b>${money(totS)}</b>المصروف (ج.م)</div><div class="k ${totB&&totS>totB?'s-bad':''}"><b>${money(totB-totS)}</b>المتبقي (ج.م)</div><div class="k"><b>${totB?Math.round(100*totS/totB)+'%':'—'}</b>نسبة الاستهلاك</div></div>
+  <div style="overflow-x:auto"><table><tr>${['التخصص','البادجت (ج.م)','المصروف','المتبقي','نسبة الاستهلاك'].map(x=>`<th>${x}</th>`).join('')}</tr>
+  ${TRALL.map(t=>{const b=+bd[t]||0,s=sp.by[t]||0,p=b?s/b:null;return `<tr><td class="l">${t}</td><td>${t==='غير مصنف'?'—':`<input type="number" min="0" data-keep="1" value="${b||''}" style="width:110px" onchange="bSet('${t}',this.value)">`}</td><td>${money(s)}</td><td class="${b&&s>b?'s-bad':''}">${t==='غير مصنف'?'—':money(b-s)}</td><td class="${p===null?'':p>1?'s-bad':p>.8?'s-warn':'s-ok'}">${p===null?'—':Math.round(p*100)+'%'}</td></tr>`}).join('')}
+  <tr><td class="l"><b>الإجمالي</b></td><td><b>${money(totB)}</b></td><td><b>${money(totS)}</b></td><td><b>${money(totB-totS)}</b></td><td></td></tr></table></div>
+  ${barChart('المصروف حسب التخصص (ج.م)',TRALL.map(t=>[t,Math.round(sp.by[t]||0)]).filter(r=>r[1]).sort((a,b)=>b[1]-a[1]))}
+  ${barChart('المصروف حسب الشهر (ج.م)',sp.mo.map((v,i)=>[String(i+1).padStart(2,'0')+'/'+bYear,Math.round(v)]).filter(r=>r[1]))}</div>`;
+  return h;
+}
+/* ---------- طباعة إخطار صيانة ---------- */
+function openNT(id){
+  const n=notices.find(x=>x.id===id);if(!n)return;
+  const its=purchases.filter(p=>p.ref===n.ref),si=slaInfo(n),old=document.getElementById('prv');if(old)old.remove();
+  const o=document.createElement('div');o.id='prv';
+  const ckb=(v)=>v?'☒':'☐',cell=(l,v,cs)=>`<td${cs?` colspan="${cs}"`:''} class="l"><div class="g">${l}</div><div style="min-height:18px;font-weight:700">${esc(v||'')}</div></td>`;
+  const sts=['تم الإصلاح','إصلاح مؤقت','جاري التنفيذ','تم جزئياً','لم يتم الإصلاح','غير قابل للإصلاح'];
+  o.innerHTML=`<div class="prtools"><b>إخطار صيانة ${n.ref} – معاينة قبل الطباعة</b><div class="row" style="margin-top:8px"><button class="btn" onclick="window.print()">طباعة</button><button class="btn alt" onclick="prPdf()">تحميل PDF</button><button class="btn alt" onclick="document.getElementById('prv').remove()">إغلاق</button></div></div>
+  <div id="prpages"><div class="prpage rtl">
+  <table><tr><td style="width:22%;border:0"></td><td style="border:0"><div class="t">إخطار صيانة</div><div>Maintenance Notice</div></td><td style="width:26%;border:0"><b>مستشفى الابتسامة</b><br>Al Ebtesama Hospital<br>قسم الصيانة</td></tr></table>
+  <table style="margin-top:4px"><tr>${cell('رقم الإخطار',n.ref)}${cell('التاريخ',fd(n.date))}${cell('الوقت',n.time)}${cell('الأولوية',si.pr)}</tr>
+  <tr>${cell('القسم / المكان',n.dept,2)}${cell('مسؤول الإخطار',n.reporter)}${cell('توقيع مسؤول الإخطار','')}</tr>
+  <tr>${cell('التخصص',tradeOf(n))}${cell('الأصل / الجهاز',n.asset,1)}${cell('المهلة المستهدفة',SLA_H[si.pr]+' ساعة',2)}</tr></table>
+  <table style="margin-top:4px"><tr><td class="l" style="height:90px;vertical-align:top"><div class="g">وصف العطل</div><div style="font-weight:700">${esc(n.details)}</div></td></tr></table>
+  <div style="margin:6px 0;font-weight:700;text-align:right">يُستكمل بمعرفة قسم الصيانة</div>
+  <table><tr><td class="l" style="height:70px;vertical-align:top"><div class="g">الإجراء المتخذ</div><div>${esc(n.action)}</div></td></tr>
+  <tr><td class="l" style="height:50px;vertical-align:top"><div class="g">القطع / المواد المستخدمة</div><div>${its.map(p=>esc(p.item)+' × '+(p.qty??'')+(p.status==='صرف من المخزن'?' (من المخزن)':'')).join('، ')}</div></td></tr></table>
+  <table style="margin-top:4px"><tr>${cell('ممثل الصيانة',n.rep)}${cell('تاريخ الإصلاح',fd(n.fixdate))}${cell('وقت البدء / الانتهاء','')}${cell('التكلفة (ج.م)',noticeCost(n)?money(noticeCost(n)):'')}</tr>
+  <tr><td colspan="4" class="l"><div class="g">الحالة</div><div>${sts.map(s=>ckb(n.status===s)+' '+s).join(' &nbsp;&nbsp; ')} &nbsp;&nbsp; ${ckb(n.needbuy==='نعم')} يحتاج شراء</div></td></tr></table>
+  <table style="margin-top:8px"><tr><td class="l" style="height:60px;width:33%"><div class="g">توقيع ممثل الصيانة</div></td><td class="l" style="width:33%"><div class="g">اعتماد مدير الصيانة</div></td><td class="l"><div class="g">استلام القسم بعد الإصلاح (الاسم / التوقيع / التاريخ)</div></td></tr></table></div></div>`;
+  document.body.appendChild(o);
 }
 importXlsx=noLog(importXlsx);restoreJSON=noLog(restoreJSON);pmSeed=noLog(pmSeed);pmImport=noLog(pmImport);
 function noLog(fn){return async function(...a){window.NOLOG=true;try{return await fn.apply(this,a)}finally{window.NOLOG=false}}}
