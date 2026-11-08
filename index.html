@@ -109,7 +109,7 @@ table.compact th:nth-child(1),table.compact td:nth-child(1),table.compact th:nth
 </style>
 </head>
 <body>
-<header><span id="hdate" style="float:left;font-weight:400;font-size:12px;opacity:.85"></span>برنامج الصيانة – مستشفى الابتسامة – مصر الجديدة <small style="opacity:.7;font-weight:400">(إصدار 4-11 – م)</small></header>
+<header><span id="hdate" style="float:left;font-weight:400;font-size:12px;opacity:.85"></span>برنامج الصيانة – مستشفى الابتسامة – مصر الجديدة <small style="opacity:.7;font-weight:400">(إصدار 4-11 – س)</small></header>
 <nav id="nav"></nav>
 <main id="main"></main>
 <button id="fab" title="إضافة جديد" onclick="toggleForm()">＋</button>
@@ -575,7 +575,7 @@ function backupXlsx(){
   add('الصيانة العلاجية',notices.map(n=>({م:n.n,المرجع:n.ref,التاريخ:n.date,الوقت:n.time,القسم:n.dept,المبلّغ:n.reporter,العطل:n.details,الإجراء:n.action,الحالة:n.status,'تاريخ الإصلاح':n.fixdate,'ممثل الصيانة':n.rep,'يحتاج شراء':n.needbuy,الأولوية:n.prio,ملاحظات:n.notes})));
   add('طلبات الشراء',purchases.map(p=>({م:p.k,الإخطار:p.ref,الصنف:p.item,الكمية:p.qty,الحالة:p.status,'تاريخ الطلب':p.rdate,'تاريخ التوريد':p.ddate,'تاريخ التركيب':p.idate,ملاحظات:p.notes})));
   const rr=[];Object.entries(rounds).forEach(([d,r])=>Object.entries(r.marks||{}).forEach(([k,v])=>{const [i,j]=k.split('_');rr.push({التاريخ:d,المكان:ALL[i].a,التخصص:CATS[j],النتيجة:v})}));add('المرور اليومي',rr);
-  add('JobSheet',jobsheets.map(j=>({الرقم:j.no,الشركة:j.contractor,التاريخ:j.date,الإخطارات:j.refs,الموقع:j.dept,'نطاق العمل':j.scope,الحالة:j.status,'التكلفة الفعلية':j.cost,'التكلفة التقديرية':j.est})));
+  add('JobSheet',jobsheets.map(j=>({الرقم:j.no,الشركة:j.contractor,التاريخ:j.date,الإخطارات:j.refs,الموقع:j.dept,'نطاق العمل':j.scope,الحالة:j.status,'التكلفة النهائية':j.cost})));
   add('الأصول',assets.map(a=>({الكود:a.code,الاسم:a.name,النوع:a.type,الموقع:a.loc,'قيمة الاستبدال':a.value})));
   add('المخزن',stock.map(x=>({الصنف:x.name,الرصيد:x.qty,'الحد الأدنى':x.min,الوحدة:x.unit,'سعر الوحدة':x.cost})));
   add('سجل التعديلات',auditLog.map(a=>({الوقت:a.at,المستخدم:a.by,القسم:SEC[a.col]||a.col,البند:a.label,الإجراء:a.action,التغييرات:a.ch?Object.entries(a.ch).map(([k,v])=>(FL[k]||k)+': '+v[0]+' ← '+v[1]).join(' | '):''})));
@@ -700,7 +700,7 @@ function vEPurch(){
 async function eSavePurch(){const item=$('#p_item').value;if(!item)return;await send({type:'purchase',data:{rdate:$('#p_rdate').value,item,qty:+$('#p_qty').value,related:$('#p_rel').value}});$('#p_item').value='';$('#p_rel').value=''}
 /* ---------- سجل التعديلات ---------- */
 const SEC={notices:'الصيانة العلاجية',purchases:'طلبات الشراء',rounds:'المرور اليومي',assets:'سجل الأصول',stock:'المخزن',jobsheets:'JobSheet'};
-const FL={status:'الحالة',details:'العطل',action:'الإجراء',dept:'القسم',reporter:'المبلّغ',date:'التاريخ',time:'الوقت',fixdate:'تاريخ الإصلاح',rep:'ممثل الصيانة',needbuy:'يحتاج شراء',notes:'ملاحظات',prio:'الأولوية',cls:'التصنيف',item:'الصنف',qty:'الكمية',price:'السعر',ref:'الإخطار',rdate:'تاريخ الطلب',ddate:'تاريخ التوريد',idate:'تاريخ التركيب',code:'الكود',spec:'مواصفات',task:'المهمة',asset:'الأصل',freq:'التكرار',active:'نشطة',trade:'التخصص',asset:'الأصل',cost:'التكلفة',code:'الكود',name:'الاسم',type:'النوع',loc:'الموقع',value:'قيمة الاستبدال',min:'الحد الأدنى',unit:'الوحدة',title:'المطلوب',req:'الجهة الطالبة',due:'الموعد',pct:'نسبة التنفيذ',doneNote:'المنفذ',no:'الرقم',contractor:'الشركة',refs:'الإخطارات',scope:'نطاق العمل',materials:'المواد',est:'التكلفة التقديرية',start:'البدء',end:'الانتهاء',tech:'الفني'};
+const FL={status:'الحالة',details:'العطل',action:'الإجراء',dept:'القسم',reporter:'المبلّغ',date:'التاريخ',time:'الوقت',fixdate:'تاريخ الإصلاح',rep:'ممثل الصيانة',needbuy:'يحتاج شراء',notes:'ملاحظات',prio:'الأولوية',cls:'التصنيف',item:'الصنف',qty:'الكمية',price:'السعر',ref:'الإخطار',rdate:'تاريخ الطلب',ddate:'تاريخ التوريد',idate:'تاريخ التركيب',code:'الكود',spec:'مواصفات',task:'المهمة',asset:'الأصل',freq:'التكرار',active:'نشطة',trade:'التخصص',asset:'الأصل',cost:'التكلفة',code:'الكود',name:'الاسم',type:'النوع',loc:'الموقع',value:'قيمة الاستبدال',min:'الحد الأدنى',unit:'الوحدة',title:'المطلوب',req:'الجهة الطالبة',due:'الموعد',pct:'نسبة التنفيذ',doneNote:'المنفذ',no:'الرقم',contractor:'الشركة',refs:'الإخطارات',scope:'نطاق العمل',materials:'المواد',end:'تاريخ التنفيذ',tech:'الفني'};
 const SKIP=['id','n','by','src','cat','viaPurchase'];
 function wrapDb(raw){
   const T={notices:()=>notices,purchases:()=>purchases,assets:()=>assets,stock:()=>stock,jobsheets:()=>jobsheets};
@@ -973,30 +973,29 @@ function openNT(id){
 }
 /* ---------- JobSheet ---------- */
 const JSTAT=['مسودة','صادر','قيد التنفيذ','تم التنفيذ','مغلق'];
-const JF=()=>[['no','الرقم','text'],['contractor','الشركة المنفذة','text'],['date','التاريخ','date'],['refs','الإخطارات المرتبطة (ع-..)','text'],['dept','الموقع / القسم','text'],['asset','الأصل (الكود)','text'],['scope','نطاق العمل','area'],['materials','وصف ما تم ','area'],['est','التكلفة التقديرية (ج.م)','number'],['cost','التكلفة الفعلية (ج.م)','number'],['status','الحالة','select',JSTAT],['start','تاريخ البدء','date'],['end','تاريخ الانتهاء','date'],['tech','فني الشركة','text'],['rep','مشرف الصيانة','text'],['notes','ملاحظات','area']];
+const JF=()=>[['no','الرقم','text'],['contractor','الشركة المنفذة','text'],['date','التاريخ','date'],['refs','الإخطارات المرتبطة (ع-..)','text'],['dept','الموقع / القسم','text'],['asset','الأصل (الكود)','text'],['scope','نطاق العمل','area'],['materials','وصف ما تم ','area'],['cost','التكلفة النهائية (ج.م)','number'],['status','الحالة','select',JSTAT],['end','تاريخ التنفيذ','date'],['tech','فني الشركة','text'],['rep','مشرف الصيانة','text'],['notes','ملاحظات','area']];
 let lastJ=0;const nextJ=()=>(lastJ=Math.max(lastJ,...jobsheets.map(j=>num(j.no)))+1),jno=n=>'JS-'+String(n).padStart(3,'0');
 const lastContractor=()=>localStorage.getItem('js_contractor')||'GHD';
 function vJobs(){
   let h=`<div class="card addf"><b>إصدار JobSheet جديد</b><div class="msg">يمكنك أيضاً إنشاءه من زر «JobSheet» بجانب أي إخطار في الصيانة العلاجية فيتعبّى منه تلقائياً.</div><div class="row" style="margin-top:6px"><label>الشركة المنفذة<input id="j_c" value="${esc(lastContractor())}" data-keep="1"></label><label>التاريخ<input id="j_d" type="date" value="${ymd(new Date())}"></label>
   <label>الإخطارات (ع-..، افصل بفاصلة)<input id="j_r" list="jnlist" data-keep="1"></label><datalist id="jnlist">${notices.filter(n=>n.status!=='تم الإصلاح').map(n=>`<option value="${n.ref}">${esc(n.dept)}</option>`).join('')}</datalist>
   <label>الموقع / القسم<input id="j_p" data-keep="1"></label><label>الأصل (الكود)<input id="j_a" list="assetlist" data-keep="1"></label><datalist id="assetlist">${assets.map(a=>`<option value="${esc(a.code)}">${esc(a.name)}</option>`).join('')}</datalist>
-  <label style="flex:2 1 260px">نطاق العمل<textarea id="j_s" rows="2" data-keep="1" style="min-width:0"></textarea></label><label>التكلفة التقديرية<input id="j_e" type="number" data-keep="1"></label><button class="btn" onclick="jsAdd()">إصدار</button></div></div>
+  <label style="flex:2 1 260px">نطاق العمل<textarea id="j_s" rows="2" data-keep="1" style="min-width:0"></textarea></label><label>التكلفة النهائية<input id="j_e" type="number" data-keep="1"></label><button class="btn" onclick="jsAdd()">إصدار</button></div></div>
   <div class="card wrap"><table><tr>${['الرقم','الشركة','التاريخ','الإخطارات','الموقع','نطاق العمل','الحالة','التكلفة (ج.م)','إجراءات'].map(x=>`<th>${x}</th>`).join('')}</tr>`;
   jobsheets.slice().reverse().forEach(j=>{h+=`<tr><td>${esc(j.no)}</td><td>${esc(j.contractor)}</td><td>${fd(j.date)}</td><td>${esc(j.refs)}</td><td class="l">${esc(j.dept)}</td><td class="l">${esc(j.scope)}</td>
-  <td class="${j.status==='تم التنفيذ'||j.status==='مغلق'?'s-ok':j.status==='قيد التنفيذ'?'s-warn':''}"><select onchange="setJSStatus('${j.id}',this.value)">${JSTAT.map(s=>`<option ${s===j.status?'selected':''}>${s}</option>`).join('')}</select></td><td>${+j.cost?money(j.cost):(+j.est?'~'+money(j.est):'')}</td>
+  <td class="${j.status==='تم التنفيذ'||j.status==='مغلق'?'s-ok':j.status==='قيد التنفيذ'?'s-warn':''}"><select onchange="setJSStatus('${j.id}',this.value)">${JSTAT.map(s=>`<option ${s===j.status?'selected':''}>${s}</option>`).join('')}</select></td><td>${+j.cost?money(j.cost):''}</td>
   <td><div style="display:flex;gap:4px;justify-content:center"><button class="btn sm" onclick="openJS('${j.id}')">طباعة</button><button class="btn sm alt" onclick="openEdit('jobsheets','${j.id}')">تعديل</button><button class="btn sm" style="background:#b42318" onclick="delItem('jobsheets','${j.id}')">حذف</button></div></td></tr>`});
   return h+(jobsheets.length?'':'<tr><td colspan="9">لا توجد JobSheets بعد</td></tr>')+'</table></div>';
 }
-async function jsCreate(o){const n=nextJ(),id='js'+String(n).padStart(4,'0'),d={no:jno(n),contractor:lastContractor(),date:ymd(new Date()),refs:'',dept:'',asset:'',scope:'',materials:'',est:0,cost:0,status:'مسودة',start:'',end:'',tech:'',rep:'',notes:'',...o};
+async function jsCreate(o){const n=nextJ(),id='js'+String(n).padStart(4,'0'),d={no:jno(n),contractor:lastContractor(),date:ymd(new Date()),refs:'',dept:'',asset:'',scope:'',materials:'',cost:0,status:'مسودة',end:'',tech:'',rep:'',notes:'',...o};
   jobsheets.push({id,...d});localStorage.setItem('js_contractor',d.contractor);await db.collection('jobsheets').doc(id).set(d);return id}
 async function jsAdd(){const sc=$('#j_s').value.trim();if(!sc){alert('اكتب نطاق العمل');return}
-  await jsCreate({contractor:$('#j_c').value.trim()||'GHD',date:$('#j_d').value,refs:$('#j_r').value.trim(),dept:$('#j_p').value,asset:$('#j_a').value.trim(),scope:sc,est:+$('#j_e').value||0});
+  await jsCreate({contractor:$('#j_c').value.trim()||'GHD',date:$('#j_d').value,refs:$('#j_r').value.trim(),dept:$('#j_p').value,asset:$('#j_a').value.trim(),scope:sc,cost:+$('#j_e').value||0});
   $('#j_s').value='';$('#j_r').value='';toast('تم إصدار JobSheet ✓')}
 async function createJS(nid){const n=notices.find(x=>x.id===nid);if(!n)return;
   const id=await jsCreate({refs:n.ref,dept:n.dept||'',asset:n.asset||'',scope:(n.details||'')+(n.action?' – '+n.action:'')});toast('تم إنشاء JobSheet من '+n.ref);openJS(id)}
 async function setJSStatus(id,v){
   const j=jobsheets.find(x=>x.id===id);if(!j)return;const o={status:v};
-  if(v==='قيد التنفيذ'&&!j.start)o.start=ymd(new Date());
   if(v==='تم التنفيذ'&&!j.end)o.end=ymd(new Date());
   Object.assign(j,o);await db.collection('jobsheets').doc(id).update(o);
   if(v==='تم التنفيذ'){
@@ -1017,10 +1016,9 @@ function openJS(id){
   <tr>${cell('القسم',j.dept,2)}${cell('الأصل / الجهاز',j.asset)}${cell('الإخطارات المرتبطة',j.refs)}</tr></table>
   <table style="margin-top:4px"><tr><td class="l" style="height:100px;vertical-align:top"><div class="g">نطاق العمل المطلوب</div><div style="font-weight:700">${esc(j.scope)}</div>${ns.length?`<div class="g" style="margin-top:6px">تفاصيل الأعطال المرتبطة: ${ns.map(n=>esc(n.ref)+' – '+esc(n.details)).join('؛ ')}</div>`:''}</td></tr>
   <tr><td class="l" style="height:60px;vertical-align:top"><div class="g">وصف ما تم </div><div>${esc(j.materials)}</div></td></tr></table>
-  <table style="margin-top:4px"><tr>${cell('تاريخ البدء',fd(j.start))}${cell('تاريخ الانتهاء',fd(j.end))}${cell('التكلفة التقديرية (ج.م)',+j.est?money(j.est):'')}${cell('التكلفة الفعلية (ج.م)',+j.cost?money(j.cost):'')}</tr>
-  <tr>${cell('فني الشركة',j.tech,2)}${cell('مشرف الصيانة',j.rep,2)}</tr></table>
+  <table style="margin-top:4px"><tr>${cell('تاريخ التنفيذ',fd(j.end))}${cell('التكلفة النهائية (ج.م)',+j.cost?money(j.cost):'')}${cell('فني الشركة',j.tech)}${cell('مشرف الصيانة',j.rep)}</tr></table>
     <div style="margin:8px 0 4px;font-weight:700;text-align:right">الاعتمادات</div>
-  <table><tr><td class="l" style="height:70px;width:25%"><div class="g">الفني (الاسم / التوقيع)</div></td><td class="l" style="width:25%"><div class="g">مدير الصيانة (الاسم / التوقيع)</div></td><td class="l" style="width:25%"><div class="g">مدير المستشفى (الاسم / التوقيع)</div></td><td class="l" style="width:25%"><div class="g">الإدارة المالية (الاسم / التوقيع)</div></td></tr></table>
+  <table style="margin-top:6px"><tr><td class="l" style="height:130px;width:25%;vertical-align:top"><div class="g">الفني (الاسم / التوقيع)</div></td><td class="l" style="width:25%;vertical-align:top"><div class="g">مدير الصيانة (الاسم / التوقيع)</div></td><td class="l" style="width:25%;vertical-align:top"><div class="g">مدير المستشفى (الاسم / التوقيع)</div></td><td class="l" style="width:25%;vertical-align:top"><div class="g">الإدارة المالية (الاسم / التوقيع)</div></td></tr></table>
   </div></div>`;
    document.body.appendChild(o);
 }
