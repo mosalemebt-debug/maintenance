@@ -1014,11 +1014,11 @@ function openJS(id){
   <div id="prpages"><div class="prpage rtl">
   <table><tr><td style="width:24%;border:0"><b>${esc(j.contractor)}</b></td><td style="border:0"><div class="t">أمر عمل / JobSheet</div><div>Job Sheet – External Maintenance Works</div></td><td style="width:26%;border:0"><b>مستشفى الابتسامة</b><br>Al Ebtesama Hospital<br>قسم الصيانة</td></tr></table>
   <table style="margin-top:4px"><tr>${cell('رقم JobSheet',j.no)}${cell('التاريخ',fd(j.date))}${cell('الشركة المنفذة',j.contractor)}${cell('الحالة',j.status)}</tr>
-  <tr>${cell('الموقع / القسم',j.dept,2)}${cell('الأصل / الجهاز',j.asset)}${cell('الإخطارات المرتبطة',j.refs)}</tr></table>
+  <tr>${cell('القسم',j.dept,2)}${cell('الأصل / الجهاز',j.asset)}${cell('الإخطارات المرتبطة',j.refs)}</tr></table>
   <table style="margin-top:4px"><tr><td class="l" style="height:100px;vertical-align:top"><div class="g">نطاق العمل المطلوب</div><div style="font-weight:700">${esc(j.scope)}</div>${ns.length?`<div class="g" style="margin-top:6px">تفاصيل الأعطال المرتبطة: ${ns.map(n=>esc(n.ref)+' – '+esc(n.details)).join('؛ ')}</div>`:''}</td></tr>
-  <tr><td class="l" style="height:60px;vertical-align:top"><div class="g">المواد / القطع المطلوبة أو المستخدمة</div><div>${esc(j.materials)}</div></td></tr></table>
+  <tr><td class="l" style="height:60px;vertical-align:top"><div class="g">وصف ما تم </div><div>${esc(j.materials)}</div></td></tr></table>
   <table style="margin-top:4px"><tr>${cell('تاريخ البدء',fd(j.start))}${cell('تاريخ الانتهاء',fd(j.end))}${cell('التكلفة التقديرية (ج.م)',+j.est?money(j.est):'')}${cell('التكلفة الفعلية (ج.م)',+j.cost?money(j.cost):'')}</tr>
-  <tr>${cell('فني الشركة',j.tech,2)}${cell('ممثل المستشفى',j.rep,2)}</tr></table>
+  <tr>${cell('فني الشركة',j.tech,2)}${cell('مشرف الصيانة',j.rep,2)}</tr></table>
     <div style="margin:8px 0 4px;font-weight:700;text-align:right">الاعتمادات</div>
   <table><tr><td class="l" style="height:64px;width:25%"><div class="g">توقيع فني الشركة</div></td><td class="l" style="width:25%"><div class="g">مدير الصيانة (الاسم / التوقيع)</div></td><td class="l" style="width:25%"><div class="g">مدير المستشفى (الاسم / التوقيع)</div></td><td class="l" style="width:25%">
   </div></div>`;
