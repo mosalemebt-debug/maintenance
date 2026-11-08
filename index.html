@@ -973,7 +973,7 @@ function openNT(id){
 }
 /* ---------- JobSheet ---------- */
 const JSTAT=['مسودة','صادر','قيد التنفيذ','تم التنفيذ','مغلق'];
-const JF=()=>[['no','الرقم','text'],['contractor','الشركة المنفذة','text'],['date','التاريخ','date'],['refs','الإخطارات المرتبطة (ع-..)','text'],['dept','الموقع / القسم','text'],['asset','الأصل (الكود)','text'],['scope','نطاق العمل','area'],['materials','المواد / القطع','area'],['est','التكلفة التقديرية (ج.م)','number'],['cost','التكلفة الفعلية (ج.م)','number'],['status','الحالة','select',JSTAT],['start','تاريخ البدء','date'],['end','تاريخ الانتهاء','date'],['tech','فني الشركة','text'],['rep','ممثل المستشفى','text'],['notes','ملاحظات','area']];
+const JF=()=>[['no','الرقم','text'],['contractor','الشركة المنفذة','text'],['date','التاريخ','date'],['refs','الإخطارات المرتبطة (ع-..)','text'],['dept','الموقع / القسم','text'],['asset','الأصل (الكود)','text'],['scope','نطاق العمل','area'],['materials','وصف ما تم ','area'],['est','التكلفة التقديرية (ج.م)','number'],['cost','التكلفة الفعلية (ج.م)','number'],['status','الحالة','select',JSTAT],['start','تاريخ البدء','date'],['end','تاريخ الانتهاء','date'],['tech','فني الشركة','text'],['rep','مشرف الصيانة','text'],['notes','ملاحظات','area']];
 let lastJ=0;const nextJ=()=>(lastJ=Math.max(lastJ,...jobsheets.map(j=>num(j.no)))+1),jno=n=>'JS-'+String(n).padStart(3,'0');
 const lastContractor=()=>localStorage.getItem('js_contractor')||'GHD';
 function vJobs(){
