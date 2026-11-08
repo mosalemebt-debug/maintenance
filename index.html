@@ -90,14 +90,14 @@ html{-webkit-text-size-adjust:100%}
 }
 #prv{position:fixed;inset:0;z-index:70;background:#e5e7eb;overflow:auto;padding:10px}
 #prv .prtools{background:var(--card);color:var(--tx);padding:10px;border-radius:8px;margin:0 auto 10px;max-width:794px}
-.prpage{background:#fff;color:#000;width:794px;margin:0 auto 12px;padding:16px;direction:ltr;font-family:Arial,Tahoma,sans-serif;font-size:11px;box-sizing:border-box}
+.prpage{background:#fff;color:#000;width:794px;min-height:1122px;margin:0 auto 12px;padding:18px 22px;direction:ltr;font-family:Arial,Tahoma,sans-serif;font-size:11px;box-sizing:border-box}
 .prpage table{border-collapse:collapse;width:100%;margin:0}
 .prpage td,.prpage th{border:1px solid #000;padding:3px 5px;vertical-align:middle;text-align:center;background:#fff;color:#000;position:static;white-space:normal}
 .prpage .bi{display:flex;justify-content:space-between;gap:6px;text-align:left}
 .prpage .ar{direction:rtl;text-align:right}
 .prpage .t{font-weight:700;font-size:15px}
 .prpage .g{font-size:9px;color:#444}
-@media print{body>*:not(#prv){display:none!important}#prv{position:static;background:#fff;padding:0;overflow:visible}#prv .prtools{display:none!important}.prpage{margin:0;width:100%;padding:0;page-break-after:always;break-after:page}@page{size:A4 portrait;margin:8mm}}
+@media print{body>*:not(#prv){display:none!important}#prv{position:static;background:#fff;padding:0;overflow:visible}#prv .prtools{display:none!important}.prpage{margin:0;width:100%;min-height:281mm;padding:6mm 8mm;page-break-after:always;break-after:page}@page{size:A4 portrait;margin:8mm}}
 .prpage.rtl{direction:rtl}
 .prpage.rtl .bi{text-align:right}
 .addf{display:none}
@@ -1014,16 +1014,20 @@ function openJS(id){
   <table><tr><td style="width:24%;border:0"><b>${esc(j.contractor)}</b></td><td style="border:0"><div class="t">أمر عمل / JobSheet</div><div>Job Sheet – External Maintenance Works</div></td><td style="width:26%;border:0"><b>مستشفى الابتسامة</b><br>Al Ebtesama Hospital<br>قسم الصيانة</td></tr></table>
   <table style="margin-top:4px"><tr>${cell('رقم JobSheet',j.no)}${cell('الشركة المنفذة',j.contractor)}${cell('الحالة',j.status)}${cell('تاريخ التنفيذ',fd(j.end))}</tr>
   <tr>${cell('القسم',j.dept,2)}${cell('الأصل / الجهاز',j.asset)}${cell('الإخطارات المرتبطة',j.refs)}</tr></table>
-  <table style="margin-top:4px"><tr><td class="l" style="height:100px;vertical-align:top"><div class="g">وصف الأعمال المطلوبة</div><div style="font-weight:700">${esc(j.scope)}</div>${ns.length?`<div class="g" style="margin-top:6px">تفاصيل الأعطال المرتبطة: ${ns.map(n=>esc(n.ref)+' – '+esc(n.details)).join('؛ ')}</div>`:''}</td></tr>
-  <tr><td class="l" style="height:60px;vertical-align:top"><div class="g">الأعمال التي تم تنفيذها </div><div>${esc(j.materials)}</div></td></tr></table>
+  <table style="margin-top:4px"><tr><td class="l" style="height:100px;vertical-align:top"><div class="g">نطاق العمل المطلوب</div><div style="font-weight:700">${esc(j.scope)}</div>${ns.length?`<div class="g" style="margin-top:6px">تفاصيل الأعطال المرتبطة: ${ns.map(n=>esc(n.ref)+' – '+esc(n.details)).join('؛ ')}</div>`:''}</td></tr>
+  <tr><td class="l" style="height:60px;vertical-align:top"><div class="g">وصف ما تم </div><div>${esc(j.materials)}</div></td></tr></table>
   <table style="margin-top:4px"><tr>${cell('التكلفة النهائية (ج.م)',+j.cost?money(j.cost):'')}${cell('فني الشركة',j.tech)}${cell('مشرف الصيانة',j.rep)}</tr></table>
-    <div style="margin:8px 0 4px;font-weight:700;text-align:right">الاعتمادات</div>
-  <table style="margin-top:6px"><tr>
-   <td class="l" style="height:145px;width:25%;vertical-align:top"><b>الفني المنفذ</b><div class="g" style="margin-top:12px">الاسم:</div><div style="border-bottom:1px solid #777;height:22px"></div><div class="g" style="margin-top:8px">التوقيع:</div><div style="border-bottom:1px solid #777;height:22px">
-   <td class="l" style="width:25%;vertical-align:top"><b>مدير الصيانة</b></div><div class="g" style="margin-top:8px">التوقيع:</div><div style="border-bottom:1px solid #777;height:22px">
-   <td class="l" style="width:25%;vertical-align:top"><b>مدير المستشفى</b></div><div class="g" style="margin-top:8px">التوقيع:</div><div style="border-bottom:1px solid #777;height:22px">
-   <td class="l" style="width:25%;vertical-align:top"><b>الإدارة المالية</b></div><div class="g" style="margin-top:8px">التوقيع:</div><div style="border-bottom:1px solid #777;height:22px">
-   </tr></table>
+    <div style="margin:10px 0 5px;font-weight:700;text-align:right">الاعتمادات</div>
+  <table class="js-approvals" style="margin-top:4px">
+   <tr>
+    <td class="l" style="width:50%;height:76px;vertical-align:middle"><b>الفني المنفذ</b><div style="margin:13px 12px 0;border-bottom:1px solid #555;height:22px"></div></td>
+    <td class="l" style="width:50%;height:76px;vertical-align:middle"><b>مدير الصيانة</b><div style="margin:13px 12px 0;border-bottom:1px solid #555;height:22px"></div></td>
+   </tr>
+   <tr>
+    <td class="l" style="width:50%;height:76px;vertical-align:middle"><b>مدير المستشفى</b><div style="margin:13px 12px 0;border-bottom:1px solid #555;height:22px"></div></td>
+    <td class="l" style="width:50%;height:76px;vertical-align:middle"><b>الإدارة المالية</b><div style="margin:13px 12px 0;border-bottom:1px solid #555;height:22px"></div></td>
+   </tr>
+  </table>
   </div></div>`;
    document.body.appendChild(o);
 }
