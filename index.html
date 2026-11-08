@@ -90,14 +90,14 @@ html{-webkit-text-size-adjust:100%}
 }
 #prv{position:fixed;inset:0;z-index:70;background:#e5e7eb;overflow:auto;padding:10px}
 #prv .prtools{background:var(--card);color:var(--tx);padding:10px;border-radius:8px;margin:0 auto 10px;max-width:794px}
-.prpage{background:#fff;color:#000;width:794px;min-height:1122px;margin:0 auto 12px;padding:18px 22px;direction:ltr;font-family:Arial,Tahoma,sans-serif;font-size:11px;box-sizing:border-box}
+.prpage{background:#fff;color:#000;width:794px;margin:0 auto 12px;padding:16px;direction:ltr;font-family:Arial,Tahoma,sans-serif;font-size:11px;box-sizing:border-box}
 .prpage table{border-collapse:collapse;width:100%;margin:0}
 .prpage td,.prpage th{border:1px solid #000;padding:3px 5px;vertical-align:middle;text-align:center;background:#fff;color:#000;position:static;white-space:normal}
 .prpage .bi{display:flex;justify-content:space-between;gap:6px;text-align:left}
 .prpage .ar{direction:rtl;text-align:right}
 .prpage .t{font-weight:700;font-size:15px}
 .prpage .g{font-size:9px;color:#444}
-@media print{body>*:not(#prv){display:none!important}#prv{position:static;background:#fff;padding:0;overflow:visible}#prv .prtools{display:none!important}.prpage{margin:0;width:100%;min-height:281mm;padding:6mm 8mm;page-break-after:always;break-after:page}@page{size:A4 portrait;margin:8mm}}
+@media print{body>*:not(#prv){display:none!important}#prv{position:static;background:#fff;padding:0;overflow:visible}#prv .prtools{display:none!important}.prpage{margin:0;width:100%;padding:0;page-break-after:always;break-after:page}@page{size:A4 portrait;margin:8mm}}
 .prpage.rtl{direction:rtl}
 .prpage.rtl .bi{text-align:right}
 .addf{display:none}
@@ -105,11 +105,42 @@ body.showf .addf{display:block}
 #fab{position:fixed;bottom:18px;left:18px;width:56px;height:56px;border-radius:50%;background:var(--pri);color:#fff;border:0;font-size:30px;line-height:1;box-shadow:0 3px 12px rgba(0,0,0,.35);z-index:30;display:none;align-items:center;justify-content:center;cursor:pointer}
 body.showf #fab{background:#b42318;transform:rotate(45deg)}
 table.compact th:nth-child(1),table.compact td:nth-child(1),table.compact th:nth-child(4),table.compact td:nth-child(4),table.compact th:nth-child(6),table.compact td:nth-child(6),table.compact th:nth-child(10),table.compact td:nth-child(10),table.compact th:nth-child(11),table.compact td:nth-child(11),table.compact th:nth-child(12),table.compact td:nth-child(12),table.compact th:nth-child(13),table.compact td:nth-child(13){display:none!important}
+/* ---- نموذج أمر العمل ---- */
+.prpage.jsp{padding:0;direction:rtl;font-family:"Segoe UI",Tahoma,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.jsin{border:3px solid #1b3a57;padding:12px;min-height:1030px;display:flex;flex-direction:column;box-sizing:border-box}
+.jhead{border:2px solid #1b3a57;background:#f7f9fc;display:flex;justify-content:space-between;align-items:center;padding:14px 22px;text-align:center}
+.jt{font-size:34px;font-weight:800;color:#1b3a57;line-height:1.2}
+.jsub{font-size:16px;font-weight:700;color:#1b3a57;margin-top:6px}
+.jen{font-size:12px;font-weight:700;color:#5b6775;margin-top:4px;direction:ltr}
+.jhos{font-size:22px;font-weight:800;color:#1b3a57}
+.jdep{font-size:16px;font-weight:700;color:#1b3a57;margin-top:6px}
+.jr{display:grid;margin-top:16px;border:1.5px solid #33475b}
+.jr.nomt{margin-top:0;border-top:0}
+.jr.c4{grid-template-columns:repeat(4,1fr)}.jr.c2{grid-template-columns:1fr 1fr}.jr.c211{grid-template-columns:2fr 1fr 1fr}
+.jc{border-inline-start:1.5px solid #33475b;min-width:0}
+.jc:first-child{border-inline-start:0}
+.jl{background:#eaf1f8;color:#1b3a57;font-weight:700;font-size:12.5px;padding:7px 6px;text-align:center}
+.jv{padding:12px 8px;text-align:center;font-weight:800;font-size:16px;min-height:34px;word-break:break-word}
+.jv.big{font-size:22px}
+.jbox{border:1.5px solid #33475b;margin-top:16px}
+.jtitle{font-size:16px;padding:9px}
+.jscope,.jdone{padding:14px 18px;text-align:center;font-weight:800;font-size:18px;min-height:56px;line-height:1.7;word-break:break-word}
+.jnote{font-size:11.5px;font-weight:400;color:#5b6775;margin-top:6px}
+.jdiv{border-top:1px solid #b9c0c8;margin:0 16px}
+.jsubt{text-align:center;font-weight:800;color:#1b3a57;font-size:15px;margin-top:10px}
+.jdone{min-height:90px}
+.jap{margin-top:16px}
+.japt{background:#1b3a57;color:#fff;text-align:center;font-weight:800;font-size:17px;padding:8px}
+.ja .jb{padding:12px 14px 8px}
+.jline{border-bottom:1.5px solid #333;color:#555;font-size:13px;padding:14px 2px 6px;min-height:46px}
+.jline.sig{min-height:120px;padding-top:10px}
+.jfoot{margin-top:auto;text-align:center;font-weight:700;color:#5b6775;font-size:13px;padding-top:30px}
+@media print{.prpage.jsp{margin:0}.jsin{min-height:272mm}}
 @media (min-width:1400px){main{max-width:1500px}}
 </style>
 </head>
 <body>
-<header><span id="hdate" style="float:left;font-weight:400;font-size:12px;opacity:.85"></span>برنامج الصيانة – مستشفى الابتسامة – مصر الجديدة <small style="opacity:.7;font-weight:400">(إصدار 4-11 – س)</small></header>
+<header><span id="hdate" style="float:left;font-weight:400;font-size:12px;opacity:.85"></span>برنامج الصيانة – مستشفى الابتسامة – مصر الجديدة <small style="opacity:.7;font-weight:400">(إصدار 4-11 – غ)</small></header>
 <nav id="nav"></nav>
 <main id="main"></main>
 <button id="fab" title="إضافة جديد" onclick="toggleForm()">＋</button>
@@ -973,16 +1004,16 @@ function openNT(id){
 }
 /* ---------- JobSheet ---------- */
 const JSTAT=['مسودة','صادر','قيد التنفيذ','تم التنفيذ','مغلق'];
-const JF=()=>[['no','الرقم','text'],['contractor','الشركة المنفذة','text'],['refs','الإخطارات المرتبطة (ع-..)','text'],['dept','الموقع / القسم','text'],['asset','الأصل (الكود)','text'],['scope','نطاق العمل المطلوب','area'],['materials','وصف ما تم تنفيذه','area'],['cost','التكلفة النهائية (ج.م)','number'],['status','الحالة','select',JSTAT],['end','تاريخ التنفيذ','date'],['tech','فني الشركة','text'],['rep','مشرف الصيانة','text'],['notes','ملاحظات','area']];
+const JF=()=>[['no','الرقم','text'],['contractor','الشركة المنفذة','text'],['date','التاريخ','date'],['refs','الإخطارات المرتبطة (ع-..)','text'],['dept','الموقع / القسم','text'],['asset','الأصل (الكود)','text'],['scope','نطاق العمل','area'],['materials','وصف ما تم ','area'],['cost','التكلفة النهائية (ج.م)','number'],['status','الحالة','select',JSTAT],['end','تاريخ التنفيذ','date'],['tech','فني الشركة','text'],['rep','مشرف الصيانة','text'],['notes','ملاحظات','area']];
 let lastJ=0;const nextJ=()=>(lastJ=Math.max(lastJ,...jobsheets.map(j=>num(j.no)))+1),jno=n=>'JS-'+String(n).padStart(3,'0');
 const lastContractor=()=>localStorage.getItem('js_contractor')||'GHD';
 function vJobs(){
-  let h=`<div class="card addf"><b>إصدار JobSheet جديد</b><div class="msg">يمكنك أيضاً إنشاءه من زر «JobSheet» بجانب أي إخطار في الصيانة العلاجية فيتعبّى منه تلقائياً.</div><div class="row" style="margin-top:6px"><label>الشركة المنفذة<input id="j_c" value="${esc(lastContractor())}" data-keep="1"></label><label>تاريخ التنفيذ<input id="j_end" type="date" value="${ymd(new Date())}"></label>
+  let h=`<div class="card addf"><b>إصدار JobSheet جديد</b><div class="msg">يمكنك أيضاً إنشاءه من زر «JobSheet» بجانب أي إخطار في الصيانة العلاجية فيتعبّى منه تلقائياً.</div><div class="row" style="margin-top:6px"><label>الشركة المنفذة<input id="j_c" value="${esc(lastContractor())}" data-keep="1"></label><label>التاريخ<input id="j_d" type="date" value="${ymd(new Date())}"></label>
   <label>الإخطارات (ع-..، افصل بفاصلة)<input id="j_r" list="jnlist" data-keep="1"></label><datalist id="jnlist">${notices.filter(n=>n.status!=='تم الإصلاح').map(n=>`<option value="${n.ref}">${esc(n.dept)}</option>`).join('')}</datalist>
   <label>الموقع / القسم<input id="j_p" data-keep="1"></label><label>الأصل (الكود)<input id="j_a" list="assetlist" data-keep="1"></label><datalist id="assetlist">${assets.map(a=>`<option value="${esc(a.code)}">${esc(a.name)}</option>`).join('')}</datalist>
-  <label style="flex:2 1 260px">نطاق العمل المطلوب<textarea id="j_s" rows="2" data-keep="1" style="min-width:0"></textarea></label><label style="flex:2 1 260px">وصف ما تم تنفيذه<textarea id="j_m" rows="2" data-keep="1" style="min-width:0"></textarea></label><label>التكلفة النهائية (ج.م)<input id="j_e" type="number" min="0" data-keep="1"></label><button class="btn" onclick="jsAdd()">إصدار</button></div></div>
-  <div class="card wrap"><table><tr>${['الرقم','الشركة','تاريخ التنفيذ','الإخطارات','الموقع','نطاق العمل','الحالة','التكلفة النهائية (ج.م)','إجراءات'].map(x=>`<th>${x}</th>`).join('')}</tr>`;
-  jobsheets.slice().reverse().forEach(j=>{h+=`<tr><td>${esc(j.no)}</td><td>${esc(j.contractor)}</td><td>${fd(j.end)}</td><td>${esc(j.refs)}</td><td class="l">${esc(j.dept)}</td><td class="l">${esc(j.scope)}</td>
+  <label style="flex:2 1 260px">نطاق العمل<textarea id="j_s" rows="2" data-keep="1" style="min-width:0"></textarea></label><label>التكلفة النهائية<input id="j_e" type="number" data-keep="1"></label><button class="btn" onclick="jsAdd()">إصدار</button></div></div>
+  <div class="card wrap"><table><tr>${['الرقم','الشركة','التاريخ','الإخطارات','الموقع','نطاق العمل','الحالة','التكلفة (ج.م)','إجراءات'].map(x=>`<th>${x}</th>`).join('')}</tr>`;
+  jobsheets.slice().reverse().forEach(j=>{h+=`<tr><td>${esc(j.no)}</td><td>${esc(j.contractor)}</td><td>${fd(j.date)}</td><td>${esc(j.refs)}</td><td class="l">${esc(j.dept)}</td><td class="l">${esc(j.scope)}</td>
   <td class="${j.status==='تم التنفيذ'||j.status==='مغلق'?'s-ok':j.status==='قيد التنفيذ'?'s-warn':''}"><select onchange="setJSStatus('${j.id}',this.value)">${JSTAT.map(s=>`<option ${s===j.status?'selected':''}>${s}</option>`).join('')}</select></td><td>${+j.cost?money(j.cost):''}</td>
   <td><div style="display:flex;gap:4px;justify-content:center"><button class="btn sm" onclick="openJS('${j.id}')">طباعة</button><button class="btn sm alt" onclick="openEdit('jobsheets','${j.id}')">تعديل</button><button class="btn sm" style="background:#b42318" onclick="delItem('jobsheets','${j.id}')">حذف</button></div></td></tr>`});
   return h+(jobsheets.length?'':'<tr><td colspan="9">لا توجد JobSheets بعد</td></tr>')+'</table></div>';
@@ -990,7 +1021,7 @@ function vJobs(){
 async function jsCreate(o){const n=nextJ(),id='js'+String(n).padStart(4,'0'),d={no:jno(n),contractor:lastContractor(),date:ymd(new Date()),refs:'',dept:'',asset:'',scope:'',materials:'',cost:0,status:'مسودة',end:'',tech:'',rep:'',notes:'',...o};
   jobsheets.push({id,...d});localStorage.setItem('js_contractor',d.contractor);await db.collection('jobsheets').doc(id).set(d);return id}
 async function jsAdd(){const sc=$('#j_s').value.trim();if(!sc){alert('اكتب نطاق العمل');return}
-  await jsCreate({contractor:$('#j_c').value.trim()||'GHD',end:$('#j_end').value,refs:$('#j_r').value.trim(),dept:$('#j_p').value,asset:$('#j_a').value.trim(),scope:sc,materials:$('#j_m').value.trim(),cost:+$('#j_e').value||0});
+  await jsCreate({contractor:$('#j_c').value.trim()||'GHD',date:$('#j_d').value,refs:$('#j_r').value.trim(),dept:$('#j_p').value,asset:$('#j_a').value.trim(),scope:sc,cost:+$('#j_e').value||0});
   $('#j_s').value='';$('#j_r').value='';toast('تم إصدار JobSheet ✓')}
 async function createJS(nid){const n=notices.find(x=>x.id===nid);if(!n)return;
   const id=await jsCreate({refs:n.ref,dept:n.dept||'',asset:n.asset||'',scope:(n.details||'')+(n.action?' – '+n.action:'')});toast('تم إنشاء JobSheet من '+n.ref);openJS(id)}
@@ -1007,29 +1038,23 @@ async function setJSStatus(id,v){
 function openJS(id){
   const j=jobsheets.find(x=>x.id===id);if(!j)return;const old=document.getElementById('prv');if(old)old.remove();
   const ns=(String(j.refs||'').match(/ع-\d+/g)||[]).map(r=>notices.find(n=>n.ref===r)).filter(Boolean);
+  const as=assets.find(a=>String(a.code).toLowerCase()===String(j.asset||'').trim().toLowerCase());
+  const assetTxt=as?as.code+' – '+as.name:(j.asset||'');
   const o=document.createElement('div');o.id='prv';
-  const cell=(l,v,cs)=>`<td${cs?` colspan="${cs}"`:''} class="l"><div class="g">${l}</div><div style="min-height:18px;font-weight:700">${esc(v||'')}</div></td>`;
-  o.innerHTML=`<div class="prtools"><b>JobSheet ${esc(j.no)} – معاينة قبل الطباعة</b><div class="row" style="margin-top:8px"><button class="btn" onclick="window.print()">طباعة</button><button class="btn alt" onclick="prPdf()">تحميل PDF</button><button class="btn alt" onclick="document.getElementById('prv').remove()">إغلاق</button></div></div>
-  <div id="prpages"><div class="prpage rtl">
-  <table><tr><td style="width:24%;border:0"><b>${esc(j.contractor)}</b></td><td style="border:0"><div class="t">أمر عمل / JobSheet</div><div>Job Sheet – External Maintenance Works</div></td><td style="width:26%;border:0"><b>مستشفى الابتسامة</b><br>Al Ebtesama Hospital<br>قسم الصيانة</td></tr></table>
-  <table style="margin-top:4px"><tr>${cell('رقم JobSheet',j.no)}${cell('الشركة المنفذة',j.contractor)}${cell('الحالة',j.status)}${cell('تاريخ التنفيذ',fd(j.end))}</tr>
-  <tr>${cell('القسم',j.dept,2)}${cell('الأصل / الجهاز',j.asset)}${cell('الإخطارات المرتبطة',j.refs)}</tr></table>
-  <table style="margin-top:4px"><tr><td class="l" style="height:100px;vertical-align:top"><div class="g">نطاق العمل المطلوب</div><div style="font-weight:700">${esc(j.scope)}</div>${ns.length?`<div class="g" style="margin-top:6px">تفاصيل الأعطال المرتبطة: ${ns.map(n=>esc(n.ref)+' – '+esc(n.details)).join('؛ ')}</div>`:''}</td></tr>
-  <tr><td class="l" style="height:60px;vertical-align:top"><div class="g">وصف ما تم </div><div>${esc(j.materials)}</div></td></tr></table>
-  <table style="margin-top:4px"><tr>${cell('التكلفة النهائية (ج.م)',+j.cost?money(j.cost):'')}${cell('فني الشركة',j.tech)}${cell('مشرف الصيانة',j.rep)}</tr></table>
-    <div style="margin:10px 0 5px;font-weight:700;text-align:right">الاعتمادات</div>
-  <table class="js-approvals" style="margin-top:4px">
-   <tr>
-    <td class="l" style="width:50%;height:76px;vertical-align:middle"><b>الفني المنفذ</b><div style="margin:13px 12px 0;border-bottom:1px solid #555;height:22px"></div></td>
-    <td class="l" style="width:50%;height:76px;vertical-align:middle"><b>مدير الصيانة</b><div style="margin:13px 12px 0;border-bottom:1px solid #555;height:22px"></div></td>
-   </tr>
-   <tr>
-    <td class="l" style="width:50%;height:76px;vertical-align:middle"><b>مدير المستشفى</b><div style="margin:13px 12px 0;border-bottom:1px solid #555;height:22px"></div></td>
-    <td class="l" style="width:50%;height:76px;vertical-align:middle"><b>الإدارة المالية</b><div style="margin:13px 12px 0;border-bottom:1px solid #555;height:22px"></div></td>
-   </tr>
-  </table>
-  </div></div>`;
-   document.body.appendChild(o);
+  const cell=(l,v,big)=>`<div class="jc"><div class="jl">${l}</div><div class="jv${big?' big':''}">${esc(v||'')||'&nbsp;'}</div></div>`;
+  const ap=(t,name)=>`<div class="jc ja"><div class="jl">${t}</div><div class="jb"><div class="jline sig">التوقيع:</div></div></div>`;
+  o.innerHTML=`<div class="prtools"><b>أمر عمل ${esc(j.no)} – معاينة قبل الطباعة</b><div class="row" style="margin-top:8px"><button class="btn" onclick="window.print()">طباعة</button><button class="btn alt" onclick="prPdf()">تحميل PDF</button><button class="btn alt" onclick="document.getElementById('prv').remove()">إغلاق</button></div></div>
+  <div id="prpages"><div class="prpage jsp"><div class="jsin">
+  <div class="jhead"><div class="jh-r"><div class="jt">أمر عمل</div><div class="jen">Job Sheet - External Maintenance Works</div><div class="jsub">نموذج تنفيذ أعمال الصيانة الخارجية</div></div><div class="jh-l"><div class="jhos">مستشفى الابتسامة</div><div class="jen">Al Ebtesama Hospital</div><div class="jdep">قسم الصيانة</div></div></div>
+  <div class="jr c4">${cell('حالة التنفيذ',j.status)}${cell('الشركة / الفني الخارجي',j.contractor)}${cell('تاريخ التنفيذ',j.end?fd(j.end):'____ / ____ / ____')}${cell('رقم أمر العمل',j.no)}</div>
+  <div class="jr c211">${cell('القسم',j.dept)}${cell('الأصل والجهاز',assetTxt)}${cell('رقم الإخطار المرتبط',j.refs)}</div>
+  <div class="jbox"><div class="jl jtitle">نطاق العمل المطلوب</div><div class="jscope">${esc(j.scope)}${ns.length?`<div class="jnote">الأعطال المرتبطة: ${ns.map(n=>esc(n.ref)+' – '+esc(n.details)).join('؛ ')}</div>`:''}</div><div class="jdiv"></div><div class="jsubt">وصف ما تم تنفيذه</div><div class="jdone">${esc(j.materials)}</div></div>
+  <div class="jr c2">${cell('ملاحظات',j.notes)}${cell('التكلفة النهائية بالجنيه المصري',+j.cost?money(j.cost):'',true)}</div>
+  <div class="jr c2">${cell('فني الشركة',j.tech)}${cell('مشرف الصيانة',j.rep)}</div>
+  <div class="jap"><div class="japt">الاعتمادات والتوقيعات</div><div class="jr c4 nomt">${ap('الإدارة المالية')}${ap('مدير المستشفى')}${ap('مدير الصيانة')}${ap('الفني المنفذ')}</div></div>
+  <div class="jfoot">مستشفى الابتسامة | قسم الصيانة${j.date?' &nbsp;·&nbsp; تاريخ الإصدار: '+fd(j.date):''}</div>
+  </div></div></div>`;
+  document.body.appendChild(o);
 }
 importXlsx=noLog(importXlsx);restoreJSON=noLog(restoreJSON);
 function noLog(fn){return async function(...a){window.NOLOG=true;try{return await fn.apply(this,a)}finally{window.NOLOG=false}}}
