@@ -140,7 +140,7 @@ table.compact th:nth-child(1),table.compact td:nth-child(1),table.compact th:nth
 </style>
 </head>
 <body>
-<header><span id="hdate" style="float:left;font-weight:400;font-size:12px;opacity:.85"></span>برنامج الصيانة – مستشفى الابتسامة – مصر الجديدة <small style="opacity:.7;font-weight:400">(إصدار 4-11 – غ)</small></header>
+<header><span id="hdate" style="float:left;font-weight:400;font-size:12px;opacity:.85"></span><button id="digtog" style="float:left;margin-inline-end:10px;background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.5);border-radius:6px;padding:0 8px;font-size:12px;cursor:pointer"></button>برنامج الصيانة – مستشفى الابتسامة – مصر الجديدة <small style="opacity:.7;font-weight:400">(إصدار 4-11 – ف)</small></header>
 <nav id="nav"></nav>
 <main id="main"></main>
 <button id="fab" title="إضافة جديد" onclick="toggleForm()">＋</button>
@@ -1049,7 +1049,7 @@ function openJS(id){
   <div class="jr c4">${cell('حالة التنفيذ',j.status)}${cell('الشركة / الفني الخارجي',j.contractor)}${cell('تاريخ التنفيذ',j.end?fd(j.end):'____ / ____ / ____')}${cell('رقم أمر العمل',j.no)}</div>
   <div class="jr c211">${cell('القسم',j.dept)}${cell('الأصل والجهاز',assetTxt)}${cell('رقم الإخطار المرتبط',j.refs)}</div>
   <div class="jbox"><div class="jl jtitle">نطاق العمل المطلوب</div><div class="jscope">${esc(j.scope)}${ns.length?`<div class="jnote">الأعطال المرتبطة: ${ns.map(n=>esc(n.ref)+' – '+esc(n.details)).join('؛ ')}</div>`:''}</div><div class="jdiv"></div><div class="jsubt">وصف ما تم تنفيذه</div><div class="jdone">${esc(j.materials)}</div></div>
-  <div class="jr c2">${cell('ملاحظات',j.notes)}${cell('االسعر النهائي',+j.cost?money(j.cost):'',true)}</div>
+  <div class="jr c2">${cell('ملاحظات',j.notes)}${cell('السعر النهائي',+j.cost?money(j.cost):'',true)}</div>
   <div class="jr c2">${cell('فني الشركة',j.tech)}${cell('مشرف الصيانة',j.rep)}</div>
   <div class="jap"><div class="japt">الاعتمادات والتوقيعات</div><div class="jr c4 nomt">${ap('الإدارة المالية')}${ap('مدير المستشفى')}${ap('مدير الصيانة')}${ap('الفني المنفذ')}</div></div>
   <div class="jfoot">مستشفى الابتسامة | قسم الصيانة${j.date?' &nbsp;·&nbsp; تاريخ الإصدار: '+fd(j.date):''}</div>
@@ -1058,6 +1058,24 @@ function openJS(id){
 }
 importXlsx=noLog(importXlsx);restoreJSON=noLog(restoreJSON);
 function noLog(fn){return async function(...a){window.NOLOG=true;try{return await fn.apply(this,a)}finally{window.NOLOG=false}}}
+/* ---------- الأرقام العربية ---------- */
+(function(){
+  const AR=['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
+  const cv=t=>String(t).split(/([A-Za-z][A-Za-z0-9_.\-]*)/).map((p,i)=>i%2?p:p.replace(/(\d),(?=\d)/g,'$1٬').replace(/(\d)\.(?=\d)/g,'$1٫').replace(/\d/g,d=>AR[d])).join('');
+  window.arDigits=cv;
+  const on=localStorage.getItem('arDigits')!=='0';
+  const tg=document.getElementById('digtog');
+  if(tg){tg.textContent=on?'١٢٣':'123';tg.title=on?'الأرقام عربية – اضغط للأرقام الإنجليزية':'الأرقام إنجليزية – اضغط للأرقام العربية';tg.onclick=()=>{localStorage.setItem('arDigits',on?'0':'1');location.reload()}}
+  if(!on)return;
+  function walk(n){
+    if(n.nodeType===3){const p=n.parentNode;if(p&&/^(SCRIPT|STYLE|TEXTAREA)$/.test(p.tagName))return;const v=n.nodeValue;if(/\d/.test(v)){const c=cv(v);if(c!==v)n.nodeValue=c}}
+    else if(n.nodeType===1&&!/^(SCRIPT|STYLE|TEXTAREA)$/.test(n.tagName)){n.childNodes.forEach(walk)}
+  }
+  const mo=new MutationObserver(ms=>{for(const m of ms){if(m.type==='characterData')walk(m.target);else m.addedNodes.forEach(walk)}});
+  walk(document.body);mo.observe(document.body,{childList:true,subtree:true,characterData:true});
+  const _al=window.alert.bind(window),_cf=window.confirm.bind(window);
+  window.alert=m=>_al(cv(m));window.confirm=m=>_cf(cv(m));
+})();
 init();
 </script>
 </body>
