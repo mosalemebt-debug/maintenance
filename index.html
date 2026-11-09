@@ -1049,7 +1049,7 @@ function openJS(id){
   <div class="jr c4">${cell('حالة التنفيذ',j.status)}${cell('الشركة / الفني الخارجي',j.contractor)}${cell('تاريخ التنفيذ',j.end?fd(j.end):'____ / ____ / ____')}${cell('رقم أمر العمل',j.no)}</div>
   <div class="jr c211">${cell('القسم',j.dept)}${cell('الأصل والجهاز',assetTxt)}${cell('رقم الإخطار المرتبط',j.refs)}</div>
   <div class="jbox"><div class="jl jtitle">نطاق العمل المطلوب</div><div class="jscope">${esc(j.scope)}${ns.length?`<div class="jnote">الأعطال المرتبطة: ${ns.map(n=>esc(n.ref)+' – '+esc(n.details)).join('؛ ')}</div>`:''}</div><div class="jdiv"></div><div class="jsubt">وصف ما تم تنفيذه</div><div class="jdone">${esc(j.materials)}</div></div>
-  <div class="jr c2">${cell('ملاحظات',j.notes)}${cell('التكلفة النهائية بالجنيه المصري',+j.cost?money(j.cost):'',true)}</div>
+  <div class="jr c2">${cell('ملاحظات',j.notes)}${cell('االسعر النهائي',+j.cost?money(j.cost):'',true)}</div>
   <div class="jr c2">${cell('فني الشركة',j.tech)}${cell('مشرف الصيانة',j.rep)}</div>
   <div class="jap"><div class="japt">الاعتمادات والتوقيعات</div><div class="jr c4 nomt">${ap('الإدارة المالية')}${ap('مدير المستشفى')}${ap('مدير الصيانة')}${ap('الفني المنفذ')}</div></div>
   <div class="jfoot">مستشفى الابتسامة | قسم الصيانة${j.date?' &nbsp;·&nbsp; تاريخ الإصدار: '+fd(j.date):''}</div>
