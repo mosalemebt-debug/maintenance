@@ -107,7 +107,7 @@ html{-webkit-text-size-adjust:100%}
 body.showf .addf{display:block}
 #fab{position:fixed;bottom:18px;left:18px;width:56px;height:56px;border-radius:50%;background:var(--pri);color:#fff;border:0;font-size:30px;line-height:1;box-shadow:0 3px 12px rgba(0,0,0,.35);z-index:30;display:none;align-items:center;justify-content:center;cursor:pointer}
 body.showf #fab{background:#b42318;transform:rotate(45deg)}
-table.compact th:nth-child(1),table.compact td:nth-child(1),table.compact th:nth-child(4),table.compact td:nth-child(4),table.compact th:nth-child(6),table.compact td:nth-child(6),table.compact th:nth-child(10),table.compact td:nth-child(10),table.compact th:nth-child(11),table.compact td:nth-child(11),table.compact th:nth-child(12),table.compact td:nth-child(12),table.compact th:nth-child(13),table.compact td:nth-child(13){display:none!important}
+table.compact th:nth-child(1),table.compact td:nth-child(1),table.compact th:nth-child(4),table.compact td:nth-child(4),table.compact th:nth-child(7),table.compact td:nth-child(7),table.compact th:nth-child(11),table.compact td:nth-child(11),table.compact th:nth-child(12),table.compact td:nth-child(12),table.compact th:nth-child(13),table.compact td:nth-child(13),table.compact th:nth-child(14),table.compact td:nth-child(14){display:none!important}
 /* ---- نموذج أمر العمل ---- */
 .prpage.jsp{padding:0;direction:rtl;font-family:"Segoe UI",Tahoma,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .jsin{border:3px solid #1b3a57;padding:12px;min-height:1030px;display:flex;flex-direction:column;box-sizing:border-box}
@@ -143,7 +143,7 @@ table.compact th:nth-child(1),table.compact td:nth-child(1),table.compact th:nth
 </style>
 </head>
 <body>
-<header><span id="hdate" style="float:left;font-weight:400;font-size:12px;opacity:.85"></span><span id="net" style="float:left;margin-inline-end:10px;font-weight:400;font-size:12px;background:rgba(255,255,255,.18);border-radius:6px;padding:1px 8px"></span><button id="digtog" style="float:left;margin-inline-end:10px;background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.5);border-radius:6px;padding:0 8px;font-size:12px;cursor:pointer"></button>برنامج الصيانة – مستشفى الابتسامة – مصر الجديدة <small style="opacity:.7;font-weight:400">(إصدار 4-11 – م)</small></header>
+<header><span id="hdate" style="float:left;font-weight:400;font-size:12px;opacity:.85"></span><span id="net" style="float:left;margin-inline-end:10px;font-weight:400;font-size:12px;background:rgba(255,255,255,.18);border-radius:6px;padding:1px 8px"></span><button id="digtog" style="float:left;margin-inline-end:10px;background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.5);border-radius:6px;padding:0 8px;font-size:12px;cursor:pointer"></button>برنامج الصيانة – مستشفى الابتسامة – مصر الجديدة <small style="opacity:.7;font-weight:400">(إصدار 4-11 – ن)</small></header>
 <nav id="nav"></nav>
 <main id="main"></main>
 <button id="fab" title="إضافة جديد" onclick="toggleForm()">＋</button>
@@ -193,7 +193,7 @@ const ALL=AREAS.flatMap(([f,l])=>l.map(a=>({f,a})));
 const ST=['تم الإصلاح','تم جزئياً','إصلاح مؤقت','جاري التنفيذ','لم يتم الإصلاح','غير قابل للإصلاح'];
 const PST=['لم يُطلب','جاري إعداد الطلب','تم الطلب','تم الشراء/التوريد','صرف من المخزن','تم التركيب'];
 const stCls=s=>s==='تم الإصلاح'?'s-ok':['تم جزئياً','إصلاح مؤقت','جاري التنفيذ'].includes(s)?'s-warn':s?'s-bad':'';
-let db=null,notices=[],purchases=[],rounds={},tab='daily',ivr=[],invItems=[],invLocs=[],jobsheets=[],assets=[],stock=[],settings={},auditLog=[],rdate=ymd(new Date());
+let db=null,notices=[],purchases=[],rounds={},tab='daily',assetLog=[],jobsheets=[],assets=[],stock=[],settings={},auditLog=[],rdate=ymd(new Date());
 const $=s=>document.querySelector(s);
 function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 const DAYS=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
@@ -219,16 +219,14 @@ async function init(){
   db.collection('settings').onSnapshot(s=>{settings={};s.docs.forEach(d=>settings[d.id]=d.data());render()});
   db.collection('auditLog').onSnapshot(s=>{auditLog=s.docs.map(d=>d.data()).sort((a,b)=>String(b.at).localeCompare(String(a.at)));render()});
   db.collection('jobsheets').onSnapshot(s=>{jobsheets=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>num(a.no)-num(b.no));render()});
-  db.collection('inv').onSnapshot(s=>{ivr=s.docs.map(d=>({id:d.id,...d.data()}));render()});
-  db.collection('invItems').onSnapshot(s=>{invItems=s.docs.map(d=>({id:d.id,...d.data()}));render()});
-  db.collection('invLocs').onSnapshot(s=>{invLocs=s.docs.map(d=>({id:d.id,...d.data()}));render()});
+  db.collection('assetLog').onSnapshot(s=>{assetLog=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(b.at).localeCompare(String(a.at)));render()});
   db.collection('assets').onSnapshot(s=>{assets=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.code).localeCompare(String(b.code),'en',{numeric:true}));render()});
   db.collection('stock').onSnapshot(s=>{stock=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ar'));render()});
 }
-const NAVG=[['الرئيسية',[['daily','المتابعة اليومية']]],['التشغيل',[['round','المرور اليومي'],['notices','الصيانة العلاجية'],['jobsheets','JobSheet']]],['الأصول والمشتريات',[['purch','طلبات الشراء'],['assets','سجل الأصول'],['inv','حصر المحتويات'],['stock','المخزن'],['budget','التكاليف والبادجت']]],['التقارير والأداء',[['sum','الملخص'],['reports','التقارير'],['kpi','مؤشرات KPI'],['eval','تقييم الأداء']]],['النظام',[['audit','سجل التعديلات'],['backup','نسخ احتياطي']]]];
+const NAVG=[['الرئيسية',[['daily','المتابعة اليومية']]],['التشغيل',[['round','المرور اليومي'],['notices','الصيانة العلاجية'],['jobsheets','JobSheet']]],['الأصول والمشتريات',[['purch','طلبات الشراء'],['assets','سجل الأصول'],['stock','المخزن'],['budget','التكاليف والبادجت']]],['التقارير والأداء',[['sum','الملخص'],['reports','التقارير'],['kpi','مؤشرات KPI'],['eval','تقييم الأداء']]],['النظام',[['audit','سجل التعديلات'],['backup','نسخ احتياطي']]]];
 const lastTab={};
 function badges(){
-  const o={};try{o.notices=notices.filter(n=>n.status!=='تم الإصلاح').length;o.stock=stock.filter(x=>+x.qty<=+x.min).length;o.purch=purchases.filter(p=>p.status!=='تم التركيب').length;o.jobsheets=jobsheets.filter(j=>['صادر','قيد التنفيذ'].includes(j.status)).length;o.inv=ivr.filter(r=>r.cond==='تالف').reduce((a,r)=>a+(+r.qty||0),0)}catch(e){}
+  const o={};try{o.notices=notices.filter(n=>n.status!=='تم الإصلاح').length;o.stock=stock.filter(x=>+x.qty<=+x.min).length;o.purch=purchases.filter(p=>p.status!=='تم التركيب').length;o.jobsheets=jobsheets.filter(j=>['صادر','قيد التنفيذ'].includes(j.status)).length}catch(e){}
   return o;
 }
 function nav(){
@@ -242,7 +240,7 @@ function goGroup(i){tab=lastTab[i]||NAVG[i][1][0][0];nav();render();window.scrol
 function go(t){tab=t;nav();render();window.scrollTo(0,0)}
 function toggleForm(){const on=document.body.classList.toggle('showf');if(on){const f=document.querySelector('.addf');if(f)f.scrollIntoView({behavior:'smooth',block:'start'})}}
 function goForm(t){go(t);document.body.classList.add('showf');const f=document.querySelector('.addf');if(f)f.scrollIntoView()}
-let nAll=false,nf={q:'',st:'',pr:'',late:false},af={q:'',t:''},pf2={q:'',st:''};
+let nAll=false,nf={q:'',st:'',pr:'',late:false},af={q:'',t:'',st:'',lv:'',dc:''},pf2={q:'',st:''};
 function liveFilter(el,obj,key){obj[key]=el.type==='checkbox'?el.checked:el.value;const id=el.id,pos=el.selectionStart;window.forceR=true;render();window.forceR=false;const e=document.getElementById(id);if(e){e.focus();try{e.setSelectionRange(pos,pos)}catch(_){}}}
 const norm=v=>String(v??'').toLowerCase();
 function nFilterBar(){
@@ -254,8 +252,6 @@ function nfOK(n){
   const si=slaInfo(n);if(nf.pr&&si.pr!==nf.pr)return false;if(nf.late&&!si.over)return false;
   if(nf.q){const t=norm([n.ref,n.dept,n.details,n.action,n.rep,n.reporter,n.asset,n.notes].join(' '));if(!t.includes(norm(nf.q)))return false}return true;
 }
-function aFilterBar(){return `<div class="card"><div class="fbar"><label style="flex:2 1 200px">بحث (كود، اسم، موقع)<input id="q_a" data-keep="1" value="${esc(af.q)}" oninput="liveFilter(this,af,'q')"></label><label>النوع<select id="t_a" onchange="liveFilter(this,af,'t')"><option value="">الكل</option>${ATY.map(x=>`<option ${af.t===x?'selected':''}>${x}</option>`).join('')}</select></label></div></div>`}
-const afOK=x=>{const a=x.a;if(af.t&&a.type!==af.t)return false;return !af.q||norm([a.code,a.name,a.loc,a.type].join(' ')).includes(norm(af.q))};
 function pFilterBar(){return `<div class="card"><div class="fbar"><label style="flex:2 1 200px">بحث (صنف، إخطار...)<input id="q_p" data-keep="1" value="${esc(pf2.q)}" oninput="liveFilter(this,pf2,'q')"></label><label>الحالة<select id="s_p" onchange="liveFilter(this,pf2,'st')"><option value="">الكل</option>${PST.map(x=>`<option ${pf2.st===x?'selected':''}>${x}</option>`).join('')}</select></label></div></div>`}
 const pfOK=p=>{if(pf2.st&&p.status!==pf2.st)return false;return !pf2.q||norm([p.item,p.ref,p.notes,p.code].join(' ')).includes(norm(pf2.q))};
 function dupBanner(){
@@ -268,7 +264,7 @@ function render(){
   if(window._lt!==tab){document.body.classList.remove('showf');window._lt=tab}
   const keepV={};document.querySelectorAll('#main input[id],#main select[id],#main textarea[id]').forEach(e=>{if(/^(f|p|pm|as|st|ni|nq)_/.test(e.id)&&e.value!=='')keepV[e.id]=e.value});
   const wy=window.scrollY,ws=[...document.querySelectorAll('.wrap:not(#rep)')].map(w=>[w.scrollTop,w.scrollLeft]);
-  $('#main').innerHTML=({round:vRound,notices:vNotices,purch:vPurch,sum:vSum,reports:vReports,daily:vDaily,backup:vBackup,kpi:vKPI,eval:vEval,audit:vAudit,assets:vAssets,inv:vInv,stock:vStock,jobsheets:vJobs,budget:vBudget,e_round:vERound,e_notice:vENotice,e_purch:vEPurch})[tab]();
+  $('#main').innerHTML=({round:vRound,notices:vNotices,purch:vPurch,sum:vSum,reports:vReports,daily:vDaily,backup:vBackup,kpi:vKPI,eval:vEval,audit:vAudit,assets:vAssets,stock:vStock,jobsheets:vJobs,budget:vBudget,e_round:vERound,e_notice:vENotice,e_purch:vEPurch})[tab]();
   document.querySelectorAll('textarea').forEach(fit);
   labelize();
   Object.entries(keepV).forEach(([id,v])=>{const e=document.getElementById(id);if(e&&e.tagName!=='BUTTON')e.value=v});
@@ -356,9 +352,9 @@ function vNotices(){
   <button class="btn" onclick="saveNotice()">حفظ</button></div></div>
   <div class="card"><div class="row"><button class="btn" onclick="exportXlsx()">تصدير Excel</button>
   <label class="btn alt" style="flex-direction:row">استيراد من ملف الإكسل<input type="file" accept=".xlsx" onchange="importXlsx(this.files[0])" hidden></label></div><div id="imsg" class="msg"></div></div>
-  ${nFilterBar()}<div class="card wrap"><table class="ntbl ${nAll?'':'compact'}"><tr>${['م','المرجع','التاريخ','الوقت','القسم','المبلّغ','العطل','الإجراء','الحالة','تاريخ الإصلاح','ممثل الصيانة','شراء؟','ملاحظات','الأولوية','المهلة','إجراءات'].map(x=>`<th>${x}</th>`).join('')}</tr>`;
+  ${nFilterBar()}<div class="card wrap"><table class="ntbl ${nAll?'':'compact'}"><tr>${['م','المرجع','التاريخ','الوقت','القسم','الأصل','المبلّغ','العطل','الإجراء','الحالة','تاريخ الإصلاح','ممثل الصيانة','شراء؟','ملاحظات','الأولوية','المهلة','إجراءات'].map(x=>`<th>${x}</th>`).join('')}</tr>`;
   notices.slice().reverse().filter(nfOK).forEach(n=>{const si=slaInfo(n);
-    h+=`<tr><td>${n.n}</td><td>${n.ref}</td><td>${fd(n.date)}</td><td>${esc(n.time)}</td><td class="l">${esc(n.dept)}</td><td>${esc(n.reporter)}</td><td class="l">${esc(n.details)}</td>
+    h+=`<tr><td>${n.n}</td><td>${n.ref}</td><td>${fd(n.date)}</td><td>${esc(n.time)}</td><td class="l">${esc(n.dept)}</td><td>${n.asset?`<a href="#" onclick="assetDetailByCode('${esc(n.asset)}');return false">${esc(n.asset)}</a>`:''}</td><td>${esc(n.reporter)}</td><td class="l">${esc(n.details)}</td>
     <td class="l"><textarea rows="1" data-keep="1" oninput="fit(this)" onchange="upd('${n.id}',{action:this.value})">${esc(n.action)}</textarea></td>
     <td class="${stCls(n.status)}"><select onchange="setStatus('${n.id}',this.value)">${ST.map(s=>`<option ${s===n.status?'selected':''}>${s}</option>`).join('')}</select></td>
     <td><input type="date" value="${iso(n.fixdate)}" onchange="upd('${n.id}',{fixdate:this.value})"></td>
@@ -372,6 +368,7 @@ function setStatus(id,s){const o={status:s};if(s==='تم الإصلاح')o.fixda
 async function saveNotice(){
   const o={};['date','time','dept','reporter','details','action','status','rep','needbuy','prio'].forEach(k=>o[k]=$('#f_'+k).value);
   ['trade','asset','cost'].forEach(k=>{const e=$('#f_'+k);if(e)o[k]=k==='cost'?(+e.value||0):e.value});
+  if(o.asset){o.asset=o.asset.trim();const _a=assetByCode(o.asset);if(!_a&&!confirm('الكود «'+o.asset+'» غير موجود في سجل الأصول. تكمل التسجيل بدون ربط؟'))return;if(_a&&_a.stat==='مُكهّن'&&!confirm('الأصل «'+_a.code+'» مُكهّن (خارج الخدمة). تكمل؟'))return}
   if(!o.dept||!o.details){alert('اكتب القسم وتفاصيل العطل');return}
   if(o.status==='تم الإصلاح')o.fixdate=o.date;
   await addNotice(o);
@@ -562,6 +559,7 @@ function vDaily(){
   const today=ymd(new Date());
   const open=notices.filter(n=>n.status!=='تم الإصلاح').sort((a,b)=>PR.indexOf(slaInfo(a).pr)-PR.indexOf(slaInfo(b).pr)||a.n-b.n);
   const overdue=open.filter(n=>slaInfo(n).over).length,critOpen=open.filter(n=>slaInfo(n).pr==='حرج').length;
+  const aAct=assets.filter(a=>a.stat!=='مُكهّن').map(a=>assetStats(a)),aBroken=aAct.filter(x=>x.st!=='شغال').length,aRec=aAct.filter(x=>x.lv===2).length;
   const age=n=>{const x=Math.round((new Date(today)-new Date(iso(n.date)))/864e5);return isNaN(x)?'':x};
   const byS={};open.forEach(n=>{const k=n.status||'بدون حالة';byS[k]=(byS[k]||0)+1});
   const nNew=notices.filter(n=>iso(n.date)===today).length,nCl=notices.filter(n=>n.status==='تم الإصلاح'&&iso(n.fixdate)===today).length;
@@ -582,7 +580,7 @@ function vDaily(){
   return bk+dupBanner()+qa()+`<div class="card"><div class="row"><button class="btn" onclick="pdf('تقرير_المتابعة_اليومي_${today}')">تصدير PDF</button><button class="btn alt" onclick="render()">تحديث</button></div></div>
   <div class="card" id="rep"><h3>تقرير متابعة الأعمال اليومي – قسم الصيانة – مستشفى الابتسامة</h3>
   <div class="msg">${day} ${dFmt(today)}</div>
-  <div class="grid" style="margin:8px 0"><div class="k"><b>${open.length}</b>إخطارات لم يتم إصلاحها</div><div class="k"><b>${nNew}</b>إخطارات جديدة اليوم</div><div class="k"><b>${nCl}</b>تم إصلاحها اليوم</div><div class="k"><b>${notPlaced}</b>أصناف لم يتم عمل طلب لها</div><div class="k"><b>${ordered}</b>تم طلبها ولم تُورَّد</div><div class="k"><b>${delivered}</b>تم توريدها ولم تُركَّب</div><div class="k ${overdue?'s-bad':''}"><b>${overdue}</b>متأخرة عن مهلتها</div><div class="k ${critOpen?'s-bad':''}"><b>${critOpen}</b>أعطال حرجة مفتوحة</div></div>
+  <div class="grid" style="margin:8px 0"><div class="k"><b>${open.length}</b>إخطارات لم يتم إصلاحها</div><div class="k"><b>${nNew}</b>إخطارات جديدة اليوم</div><div class="k"><b>${nCl}</b>تم إصلاحها اليوم</div><div class="k"><b>${notPlaced}</b>أصناف لم يتم عمل طلب لها</div><div class="k"><b>${ordered}</b>تم طلبها ولم تُورَّد</div><div class="k"><b>${delivered}</b>تم توريدها ولم تُركَّب</div><div class="k ${overdue?'s-bad':''}"><b>${overdue}</b>متأخرة عن مهلتها</div><div class="k ${critOpen?'s-bad':''}"><b>${critOpen}</b>أعطال حرجة مفتوحة</div><div class="k ${aBroken?'s-warn':''}"><b>${aBroken}</b>أصول معطلة الآن</div><div class="k ${aRec?'s-bad':''}"><b>${aRec}</b>أصول يُنصح باستبدالها</div></div>
   <div style="margin:6px 0"><b>الإخطارات المفتوحة حسب الحالة:</b> ${chips}</div>
   <div style="margin:6px 0"><b>مرور اليوم:</b> ${r?(badList.length?'محفوظ – أعطال: '+esc(badList.join('، ')):'محفوظ – لا توجد أعطال'):'لم يُحفظ بعد'}</div>
   <h4>الإخطارات التي لم يتم إصلاحها (${open.length})</h4>
@@ -615,7 +613,7 @@ function vBackup(){
   <div id="bkmsg" class="msg"></div></div>
   <div class="card"><div class="msg">ملف JSON يحتوي كل البيانات (الإخطارات وطلبات الشراء والمرور اليومي والمهام الوقائية وسجل تنفيذها) وهو الذي تُجرى منه الاستعادة. الاستعادة تضيف وتحدّث السجلات الموجودة في الملف ولا تحذف ما غيره.</div></div>`;
 }
-const bkData=()=>({app:'maintenance',v:1,at:new Date().toISOString(),notices,purchases,rounds,settings,assets,stock,jobsheets,inv:ivr,invItems,invLocs,audit:auditLog});
+const bkData=()=>({app:'maintenance',v:1,at:new Date().toISOString(),notices,purchases,rounds,settings,assets,stock,jobsheets,assetLog,audit:auditLog});
 function backupJSON(){const d=bkData();dl('نسخة_احتياطية_'+ymd(new Date())+'.json',new Blob([JSON.stringify(d)],{type:'application/json'}));localStorage.setItem('lastBackup',ymd(new Date()));render()}
 function backupXlsx(){
   const wb=XLSX.utils.book_new(),add=(n,rows)=>XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows.length?rows:[{}]),n);
@@ -633,7 +631,7 @@ async function restoreJSON(f){
   if(d.app!=='maintenance'||!confirm('استعادة البيانات من النسخة؟ سيتم تحديث السجلات المطابقة.'))return;
   const m=document.getElementById('bkmsg');let c=0;
   const put=async(col,arr)=>{for(const x of arr){const {id,...rest}=x;await db.collection(col).doc(id).set(rest);c++;if(m&&c%20===0)m.textContent='جاري الاستعادة... '+c}};
-  await put('notices',d.notices||[]);await put('purchases',d.purchases||[]);await put('assets',d.assets||[]);await put('inv',d.inv||[]);await put('invItems',d.invItems||[]);await put('invLocs',d.invLocs||[]);await put('jobsheets',d.jobsheets||[]);await put('stock',d.stock||[]);
+  await put('notices',d.notices||[]);await put('purchases',d.purchases||[]);await put('assets',d.assets||[]);await put('assetLog',d.assetLog||[]);await put('jobsheets',d.jobsheets||[]);await put('stock',d.stock||[]);
   for(const [id,r] of Object.entries(d.rounds||{})){await db.collection('rounds').doc(id).set(r);c++}
   if(m)m.textContent='تمت استعادة '+c+' سجل.';toast('تمت الاستعادة ✓');
 }
@@ -734,6 +732,7 @@ function vENotice(){
 async function eSaveNotice(){
   const o={};['date','time','dept','reporter','details','action','status','rep','needbuy','prio'].forEach(k=>o[k]=$('#f_'+k).value);
   ['trade','asset','cost'].forEach(k=>{const e=$('#f_'+k);if(e)o[k]=k==='cost'?(+e.value||0):e.value});
+  if(o.asset){o.asset=o.asset.trim();const _a=assetByCode(o.asset);if(!_a&&!confirm('الكود «'+o.asset+'» غير موجود في سجل الأصول. تكمل التسجيل بدون ربط؟'))return;if(_a&&_a.stat==='مُكهّن'&&!confirm('الأصل «'+_a.code+'» مُكهّن (خارج الخدمة). تكمل؟'))return}
   if(!o.dept||!o.details){alert('اكتب القسم وتفاصيل العطل');return}
   if(o.status==='تم الإصلاح')o.fixdate=o.date;
   await send({type:'notice',data:o});$('#f_details').value='';$('#f_action').value='';$('#f_dept').value='';
@@ -863,44 +862,181 @@ function repCharts(from,to,type){
   return barChart('الأعطال حسب التخصص',Object.entries(bt).sort((a,b)=>b[1]-a[1]))+barChart(type==='w'?'الأعطال حسب اليوم':'الأعطال حسب الأسبوع',rows);
 }
 /* ---------- سجل الأصول ---------- */
-const ATY=['تكييف','مولد','لوحة كهرباء','موتور مياه','مصعد','محطة غازات','غسالة / مجفف / مكواة','سخان مياه','نظام نداء ممرضات','نظام إنذار حريق','UPS','ثلاجة','تلفزيون','شفاط','مخرج غاز طبي','حضانة أطفال','أخرى'],CAPU=['حصان','BTU','طن تبريد','kVA','كيلووات','كجم','لتر','أمبير'];
-const AF=()=>[['code','الكود','text'],['name','الاسم / الطراز','text'],['type','النوع','select',['',...ATY]],['cap','القدرة','number'],['capu','وحدة القدرة','select',['',...CAPU]],['loc','الموقع','text'],['value','قيمة الاستبدال التقريبية (ج.م)','number'],['brand','الماركة','text'],['model','الموديل / الشكل','text'],['inst','سنة التركيب','number'],['notes','ملاحظات','area']];
+const ATY=['تكييف','مولد','لوحة كهرباء','موتور مياه','مصعد','محطة غازات','غسالة / مجفف / مكواة','سخان مياه','نظام نداء ممرضات','نظام إنذار حريق','UPS','ثلاجة','تلفزيون','شفاط','مخرج غاز طبي','حضانة أطفال','باب','شباك','حوض','قاعدة','خلاط','كشاف','كرسي','كنب','سرير','دولاب','مكتب','ترابيزة','ستارة','أخرى'],CAPU=['حصان','BTU','طن تبريد','kVA','كيلووات','كجم','لتر','أمبير'];
+const AF=()=>[['code','الكود','text'],['name','الاسم / الطراز','text'],['type','النوع','select',['',...ATY]],['cap','القدرة','number'],['capu','وحدة القدرة','select',['',...CAPU]],['loc','الموقع','text'],['value','قيمة الاستبدال التقريبية (ج.م)','number'],['brand','الماركة','text'],['model','الموديل / الشكل','text'],['inst','سنة التركيب','number'],['life','العمر الافتراضي (سنة)','number'],['notes','ملاحظات','area']];
+/* ---------- نظام الأصول المكوّدة: الحالة والقرار والربط بالصيانة العلاجية ---------- */
+const LIFE={'تكييف':12,'مولد':25,'لوحة كهرباء':25,'موتور مياه':10,'مصعد':25,'محطة غازات':20,'غسالة / مجفف / مكواة':10,'سخان مياه':8,'نظام نداء ممرضات':12,'نظام إنذار حريق':12,'UPS':7,'ثلاجة':12,'تلفزيون':8,'شفاط':8,'مخرج غاز طبي':20,'حضانة أطفال':12,'باب':20,'شباك':20,'حوض':15,'قاعدة':20,'خلاط':8,'كشاف':8,'كرسي':8,'كنب':10,'سرير':12,'دولاب':15,'مكتب':15,'ترابيزة':10,'ستارة':6,'أخرى':10};
+const PFX={'تكييف':'AC','مولد':'GEN','لوحة كهرباء':'EP','موتور مياه':'PUMP','مصعد':'LIFT','محطة غازات':'GAS','غسالة / مجفف / مكواة':'WSH','سخان مياه':'WH','نظام نداء ممرضات':'NC','نظام إنذار حريق':'FA','UPS':'UPS','ثلاجة':'FR','تلفزيون':'TV','شفاط':'EF','مخرج غاز طبي':'MG','حضانة أطفال':'INC','باب':'DR','شباك':'WN','حوض':'SK','قاعدة':'TL','خلاط':'FX','كشاف':'LT','كرسي':'CH','كنب':'SF','سرير':'BD','دولاب':'CB','مكتب':'DK','ترابيزة':'TB','ستارة':'CT','أخرى':'OT'};
+const TYPE_TRADE={'تكييف':'تكييف','مولد':'كهرباء','لوحة كهرباء':'كهرباء','موتور مياه':'سباكة','سخان مياه':'سباكة','نظام نداء ممرضات':'كهرباء','نظام إنذار حريق':'كهرباء','UPS':'كهرباء','شفاط':'كهرباء','كشاف':'كهرباء','باب':'نجارة','دولاب':'نجارة','مكتب':'نجارة','ترابيزة':'نجارة','شباك':'ألومنيوم','حوض':'سباكة','قاعدة':'سباكة','خلاط':'سباكة'};
+const DECS=['إبقاء في الخدمة','مراقبة','استبدال','تكهين'];
+const thisYear=()=>new Date().getFullYear();
+const sameCode=(x,y)=>String(x||'').trim().toLowerCase()===String(y||'').trim().toLowerCase();
+const assetByCode=c=>assets.find(a=>sameCode(a.code,c));
+function nextCodes(type,n){
+  const p=PFX[type]||'OT';let mx=0;assets.forEach(x=>{const m=String(x.code).match(/^([A-Za-z]+)-(\d+)$/);if(m&&m[1].toUpperCase()===p)mx=Math.max(mx,+m[2])});
+  const out=[];for(let i=1;i<=n;i++)out.push(p+'-'+String(mx+i).padStart(2,'0'));return out;
+}
 function assetStats(a){
-  const ns=notices.filter(n=>n.asset&&String(n.asset).trim().toLowerCase()===String(a.code).trim().toLowerCase());
-  const d1=new Date();d1.setFullYear(d1.getFullYear()-1);const y1=ymd(d1);
-  const cost=ns.reduce((t,n)=>t+noticeCost(n),0)+jobsheets.filter(j=>j.asset&&String(j.asset).trim().toLowerCase()===String(a.code).trim().toLowerCase()).reduce((t,j)=>t+(+j.cost||0),0),r12=ns.filter(n=>String(iso(n.date))>=y1).length,last=ns.map(n=>String(iso(n.date))).sort().pop()||'';
-  const reason=r12>=3?'تعطّل '+r12+' مرات خلال 12 شهراً':(a.value&&cost>=0.5*a.value?'تكلفة الإصلاح ≥ 50% من قيمة الاستبدال':'');
-  return{ns,cost,r12,last,reason};
+  const ns=notices.filter(n=>n.asset&&sameCode(n.asset,a.code)),d1=new Date();d1.setFullYear(d1.getFullYear()-1);const y1=ymd(d1);
+  const jc=jobsheets.filter(j=>j.asset&&sameCode(j.asset,a.code)).reduce((t,j)=>t+(+j.cost||0),0);
+  const cost=ns.reduce((t,n)=>t+noticeCost(n),0)+jc,open=ns.filter(n=>n.status!=='تم الإصلاح');
+  const r12=ns.filter(n=>String(iso(n.date))>=y1).length,last=ns.map(n=>String(iso(n.date))).sort().pop()||'';
+  const yr=yearOf(a.inst),age=yr?thisYear()-yr:null,life=+a.life||LIFE[a.type]||10;
+  let st='شغال',stc='s-ok';
+  if(a.stat==='مُكهّن'){st='مُكهّن';stc='s-bad'}
+  else if(open.some(n=>n.status==='غير قابل للإصلاح')){st='معطل – غير قابل للإصلاح';stc='s-bad'}
+  else if(open.length){st='معطل – تحت الصيانة';stc='s-warn'}
+  const R=[];let lv=0;const bump=(l,t)=>{R.push(t);lv=Math.max(lv,l)};
+  if(a.stat!=='مُكهّن'){
+    if(age!==null){if(age>=life)bump(2,'عمره '+age+' سنة وبلغ العمر الافتراضي ('+life+' سنة)');else if(age>=0.8*life)bump(1,'عمره '+age+' سنة وقارب العمر الافتراضي ('+life+' سنة)')}
+    if(r12>=3)bump(2,'تعطّل '+r12+' مرات خلال 12 شهراً');else if(r12===2)bump(1,'تعطّل مرتين خلال 12 شهراً');
+    if(+a.value>0){const rt=cost/(+a.value);if(rt>=.5)bump(2,'تكلفة إصلاحه '+Math.round(rt*100)+'% من قيمة استبداله');else if(rt>=.25)bump(1,'تكلفة إصلاحه '+Math.round(rt*100)+'% من قيمة استبداله')}
+    if(open.some(n=>n.status==='غير قابل للإصلاح'))bump(2,'فيه عطل مفتوح غير قابل للإصلاح');
+  }
+  const advice=a.stat==='مُكهّن'?'—':lv===2?'استبدال / تكهين':lv===1?'مراقبة':'سليم – إبقاء';
+  return{ns,open,cost,r12,last,age,life,st,stc,lv,advice,reasons:R,reason:lv===2?R.join('، '):''};
+}
+function assetLogAdd(code,kind,text){
+  const id='al'+Date.now()+'-'+DEV+Math.random().toString(36).slice(2,4),o={code,at:new Date().toISOString(),kind,text,by:window.USER_EMAIL||''};
+  assetLog.unshift({id,...o});return db.collection('assetLog').doc(id).set(o);
+}
+function aFilterBar(){
+  const sel=(k,l,opts)=>`<label>${l}<select onchange="liveFilter(this,af,'${k}')"><option value="">الكل</option>${opts.map(o=>`<option ${af[k]===o?'selected':''}>${o}</option>`).join('')}</select></label>`;
+  return `<div class="card"><div class="fbar"><label style="flex:2 1 200px">بحث (كود، اسم، موقع، ماركة)<input id="q_a" data-keep="1" value="${esc(af.q)}" oninput="liveFilter(this,af,'q')"></label>${sel('t','النوع',ATY)}${sel('st','الحالة',['شغال','معطل','مُكهّن'])}${sel('lv','التوصية',['استبدال / تكهين','مراقبة','سليم – إبقاء'])}${sel('dc','القرار',[...DECS,'بدون قرار'])}<button class="btn sm alt" onclick="af={q:'',t:'',st:'',lv:'',dc:''};render()">مسح الفلاتر</button></div></div>`;
+}
+function afOK(x){
+  const a=x.a;if(af.t&&a.type!==af.t)return false;
+  if(af.st==='شغال'&&x.st!=='شغال')return false;if(af.st==='معطل'&&!x.st.startsWith('معطل'))return false;if(af.st==='مُكهّن'&&x.st!=='مُكهّن')return false;
+  if(af.lv&&x.advice!==af.lv)return false;
+  if(af.dc==='بدون قرار'?!!a.dec:(af.dc&&a.dec!==af.dc))return false;
+  return !af.q||norm([a.code,a.name,a.loc,a.type,a.brand,a.model].join(' ')).includes(norm(af.q));
 }
 function vAssets(){
-  const st=assets.map(a=>({a,...assetStats(a)})).sort((x,y)=>(!!y.reason-!!x.reason)||y.ns.length-x.ns.length||String(x.a.code).localeCompare(String(y.a.code),'en',{numeric:true}));
-  const acs=assets.filter(a=>a.type==='تكييف'),acHP=Math.round(acs.filter(a=>a.capu==='حصان').reduce((t,a)=>t+(+a.cap||0),0)*100)/100,acN=acs.length,acNo=acs.filter(a=>!(+a.cap>0)).length;
-  const flagged=st.filter(x=>x.reason).length,totC=st.reduce((t,x)=>t+x.cost,0);
-  let h=`<div class="card"><div class="grid"><div class="k"><b>${assets.length}</b>أصل مسجّل</div><div class="k ${flagged?'s-bad':''}"><b>${flagged}</b>يُنصح بدراسة استبداله</div><div class="k"><b>${money(totC)}</b>إجمالي تكلفة الأعطال (ج.م)</div><div class="k"><b>${acHP} حصان</b>إجمالي قدرة التكييفات (${acN} وحدة${acNo?'، '+acNo+' بدون قدرة':''})</div></div>
-  <div class="msg">يُنصح بدراسة الاستبدال لو تعطّل الأصل 3 مرات أو أكثر خلال 12 شهراً، أو تجاوزت تكلفة إصلاحه 50% من قيمة استبداله (لو أدخلت القيمة). اربط الأعطال بالأصل بكتابة كوده في خانة «الأصل» عند تسجيل الإخطار.</div><div class="row" style="margin-top:8px"><button class="btn alt" onclick="exportAssets()">تصدير سجل الأصول Excel</button></div></div>`;
-  h+=`<div class="card addf"><div class="row"><label>الكود<input id="as_c" data-keep="1" placeholder="AC-05"></label><label>الاسم / الطراز<input id="as_n" data-keep="1"></label><label>النوع<select id="as_t">${ATY.map(t=>`<option>${t}</option>`).join('')}</select></label><label>القدرة<input id="as_cap" type="number" step="0.25" data-keep="1" style="width:90px"></label><label>الوحدة<select id="as_cu">${CAPU.map(u=>`<option>${u}</option>`).join('')}</select></label><label>الماركة<input id="as_b" data-keep="1" style="width:110px"></label><label>سنة التركيب<input id="as_y" type="number" min="1980" max="2100" data-keep="1" style="width:90px"></label><label>الموقع<input id="as_l" data-keep="1"></label><label>قيمة الاستبدال (ج.م)<input id="as_v" type="number" data-keep="1"></label><button class="btn" onclick="assetAdd()">إضافة أصل</button>${assets.length?'':'<button class="btn alt" onclick="seedAssets()">تحميل أصول المبنى (51 أصل)</button>'}</div></div>`;
-  h+=`<div class="card addf"><b>حصر التكييفات (${AC_ROWS.length} وحدة)</b><div class="msg">بيضيف أو بيحدّث التكييفات بالكود (AC-01 ... AC-${AC_ROWS.length}) بالدور والمكان والقدرة بالحصان والماركة والموديل وقيمة الاستبدال وسنة التركيب. التكييفات الموجودة بنفس الكود بتتحدّث بدل ما تتكرر.</div><div class="row" style="margin-top:6px"><button class="btn" onclick="acEmbedded()">إضافة / تحديث التكييفات (${AC_ROWS.length})</button><label class="btn alt" style="flex-direction:row">استيراد من ملف إكسل<input type="file" accept=".xlsx" onchange="acImportFile(this.files[0])" hidden></label></div><div id="acmsg" class="msg"></div></div>`;
-  h+=`<div class="card addf"><b>استيراد الأصول من ملف حصر المحتويات</b><div class="msg">اختر ملف الحصر (maintenance_budget_2027_linked.xlsx)، ثم حدّد الأصناف التي تريدها كأصول. الاستيراد لا يكرر ما سبق استيراده، ولو عندك تكييفات افتراضية بدون موقع (AC-01...) فبتتعبّى بمواقعها بدل ما تتكرر.</div><div class="row" style="margin-top:6px"><label class="btn alt" style="flex-direction:row">اختيار ملف الحصر<input type="file" accept=".xlsx" onchange="invLoad(this.files[0])" hidden></label></div>
-  ${inv?`<div style="margin-top:8px"><b>الأصناف في الملف (العدد):</b></div><div class="row" style="margin-top:4px">${Object.entries(inv.types).map(([k,v])=>`<label style="flex-direction:row;align-items:center;gap:4px;flex:0 0 auto"><input type="checkbox" style="width:auto;min-height:0" ${inv.sel[k]?'checked':''} onchange="inv.sel['${k}']=this.checked"> ${k} (${v})</label>`).join('')}</div><div class="row" style="margin-top:8px"><button class="btn" onclick="invImport()">استيراد الأصناف المحددة</button></div>`:''}<div id="invmsg" class="msg"></div></div>`;
-  h+=`<div class="card addf"><b>تعيين القدرة لمجموعة أصول دفعة واحدة</b><div class="row" style="margin-top:6px"><label>من كود<input id="bk_f" data-keep="1" placeholder="AC-05"></label><label>إلى كود<input id="bk_t" data-keep="1" placeholder="AC-41"></label><label>القدرة<input id="bk_c" type="number" step="0.25" data-keep="1" style="width:90px"></label><label>الوحدة<select id="bk_u">${CAPU.map(u=>`<option>${u}</option>`).join('')}</select></label><button class="btn" onclick="assetBulkCap()">تطبيق</button></div><div class="msg">مثال: من AC-05 إلى AC-20 بقدرة 2.25 حصان. الأكواد لازم تكون بنفس البادئة.</div></div>`;
+  const list=assets.map(a=>({a,...assetStats(a)})),act=list.filter(x=>x.a.stat!=='مُكهّن');
+  const broken=act.filter(x=>x.st!=='شغال').length,rec2=act.filter(x=>x.lv===2).length,rec1=act.filter(x=>x.lv===1).length;
+  const planned=act.filter(x=>x.a.dec==='استبدال'||x.a.dec==='تكهين'),plannedCost=planned.filter(x=>x.a.dec==='استبدال').reduce((t,x)=>t+(+x.a.decCost||+x.a.value||0),0);
+  const acs=assets.filter(a=>a.type==='تكييف'&&a.stat!=='مُكهّن'),acHP=Math.round(acs.filter(a=>a.capu==='حصان').reduce((t,a)=>t+(+a.cap||0),0)*100)/100;
+  let h=`<div class="card"><div class="grid"><div class="k"><b>${act.length}</b>أصل في الخدمة</div><div class="k ${broken?'s-warn':''}"><b>${broken}</b>معطل الآن</div><div class="k ${rec2?'s-bad':''}"><b>${rec2}</b>يُنصح باستبداله / تكهينه</div><div class="k"><b>${rec1}</b>تحت المراقبة</div><div class="k"><b>${planned.length}</b>قرارات استبدال / تكهين مخططة</div><div class="k"><b>${money(plannedCost)}</b>تكلفة الاستبدال المخطط (ج.م)</div><div class="k"><b>${list.length-act.length}</b>مُكهّن / مستبدل</div><div class="k"><b>${acHP} حصان</b>قدرة التكييفات (${acs.length} وحدة)</div></div>
+  <div class="msg">الحالة بتتحسب تلقائياً من الصيانة العلاجية: لو فيه إخطار مفتوح مربوط بكود الأصل يظهر «معطل»، ولو اتقفل يرجع «شغال». التوصية بتعتمد على: العمر مقابل العمر الافتراضي، وعدد الأعطال في 12 شهر، وتكلفة الإصلاح مقابل قيمة الاستبدال. القرار (إبقاء / مراقبة / استبدال / تكهين) بتحدده إنت وبيدخل في خطة البادجت.</div>
+  <div class="row" style="margin-top:8px"><button class="btn alt" onclick="exportAssets()">تصدير سجل الأصول Excel</button></div></div>`;
   h+=aFilterBar();
-  h+=`<div class="card wrap"><table><tr>${['الكود','الاسم','النوع','القدرة','الماركة','سنة التركيب','الموقع','عدد الأعطال','آخر 12 شهراً','آخر عطل','التكلفة (ج.م)','التقييم','إجراءات'].map(x=>`<th>${x}</th>`).join('')}</tr>`;
-  st.filter(afOK).forEach(x=>{h+=`<tr><td>${esc(x.a.code)}</td><td class="l">${esc(x.a.name)}</td><td>${esc(x.a.type)}</td><td>${+x.a.cap?x.a.cap+' '+esc(x.a.capu||''):''}</td><td>${esc(x.a.brand||'')}</td><td>${yearTxt(x.a.inst)}</td><td class="l">${esc(x.a.loc)}</td><td>${x.ns.length}</td><td class="${x.r12>=3?'s-bad':''}">${x.r12}</td><td>${x.last?fd(x.last):''}</td><td>${money(x.cost)}</td><td class="l ${x.reason?'s-bad':''}">${x.reason?'⚠ '+x.reason:'—'}</td><td><div style="display:flex;gap:4px;justify-content:center"><button class="btn sm alt" onclick="assetDetail('${x.a.id}')">السجل</button><button class="btn sm alt" onclick="openEdit('assets','${x.a.id}')">تعديل</button><button class="btn sm" style="background:#b42318" onclick="delItem('assets','${x.a.id}')">حذف</button></div></td></tr>`});
-  return h+(st.length?'':'<tr><td colspan="13">لا توجد أصول بعد</td></tr>')+'</table></div>';
+  const rows=list.filter(afOK).sort((x,y)=>(y.lv-x.lv)||(y.r12-x.r12)||String(x.a.code).localeCompare(String(y.a.code),'en',{numeric:true}));
+  h+=`<div class="card wrap"><table><tr>${['الكود','الاسم','النوع','الموقع','الحالة','سنة التركيب / العمر','الأعطال (12 شهر / الكل)','التكلفة (ج.م)','التوصية','القرار','إجراءات'].map(x=>`<th>${x}</th>`).join('')}</tr>`;
+  rows.forEach(x=>{const a=x.a,yr=yearOf(a.inst),dd=a.dec?(esc(a.dec)+(a.decDone?' ✔ نُفِّذ':'')+(a.decYear?'<div class="msg">'+a.decYear+'</div>':'')):'—';
+    h+=`<tr><td><b>${esc(a.code)}</b></td><td class="l">${esc(a.name)}<div class="msg">${[+a.cap?a.cap+' '+(a.capu||''):'',a.brand||''].filter(Boolean).map(esc).join(' · ')}</div></td><td>${esc(a.type)}</td><td class="l">${esc(a.loc)}</td><td class="${x.stc}">${x.st}</td>
+    <td class="${x.age!==null&&x.age>=x.life?'s-bad':x.age!==null&&x.age>=0.8*x.life?'s-warn':''}">${yr||'—'}<div class="msg">${x.age!==null?x.age+' من '+x.life+' سنة':''}</div></td><td class="${x.r12>=3?'s-bad':x.r12===2?'s-warn':''}">${x.r12} / ${x.ns.length}</td><td>${money(x.cost)}</td>
+    <td class="${x.lv===2?'s-bad':x.lv===1?'s-warn':a.stat==='مُكهّن'?'':'s-ok'}" title="${esc(x.reasons.join(' | '))}">${x.advice}<div class="msg">${esc(x.reasons[0]||'')}</div></td><td class="${a.dec==='استبدال'||a.dec==='تكهين'?'s-warn':''}">${dd}</td>
+    <td><div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap"><button class="btn sm alt" onclick="assetDetail('${a.id}')">السجل</button><button class="btn sm" onclick="assetDecide('${a.id}')">قرار</button><button class="btn sm alt" onclick="newFaultFor('${esc(a.code)}')">عطل</button><button class="btn sm alt" onclick="openEdit('assets','${a.id}')">تعديل</button><button class="btn sm" style="background:#b42318" onclick="delItem('assets','${a.id}')">حذف</button></div></td></tr>`});
+  h+=(rows.length?'':'<tr><td colspan="11">لا توجد أصول مطابقة</td></tr>')+'</table></div>';
+  h+=`<div class="card addf"><b>أصل جديد</b><div class="msg">سيب الكود فاضي وهيتولّد تلقائي حسب النوع (مثلاً AC-48 أو DR-07).</div><div class="row" style="margin-top:6px"><label>الكود (اختياري)<input id="as_c" data-keep="1" placeholder="تلقائي"></label><label>الاسم / الطراز<input id="as_n" data-keep="1"></label><label>النوع<select id="as_t">${ATY.map(t=>`<option>${t}</option>`).join('')}</select></label><label>القدرة<input id="as_cap" type="number" step="0.25" data-keep="1" style="width:90px"></label><label>الوحدة<select id="as_cu">${CAPU.map(u=>`<option>${u}</option>`).join('')}</select></label><label>الماركة<input id="as_b" data-keep="1" style="width:110px"></label><label>سنة التركيب<input id="as_y" type="number" min="1980" max="2100" data-keep="1" style="width:90px"></label><label>الموقع<input id="as_l" data-keep="1"></label><label>قيمة الاستبدال (ج.م)<input id="as_v" type="number" data-keep="1"></label><button class="btn" onclick="assetAdd()">إضافة أصل</button>${assets.length?'':'<button class="btn alt" onclick="seedAssets()">تحميل أصول المبنى الأساسية</button>'}</div></div>
+  <div class="card addf"><b>تسجيل أصول بالجملة بأكواد متسلسلة</b><div class="msg">اختار النوع والموقع والعدد، فيتولّد لكل واحد كود مستقل متسلسل (مثلاً 12 باب: DR-01 ... DR-12). بعدها تقدر تعدّل بيانات أي واحد.</div><div class="row" style="margin-top:6px"><label>النوع<select id="bc_t">${ATY.map(t=>`<option>${t}</option>`).join('')}</select></label><label>الاسم الأساسي<input id="bc_n" data-keep="1" placeholder="مثلاً: باب غرفة"></label><label>الموقع<input id="bc_l" data-keep="1" placeholder="مثلاً: الدور الأول – غرف الإقامة"></label><label>العدد<input id="bc_c" type="number" min="1" max="200" value="1" style="width:80px" data-keep="1"></label><label>سنة التركيب<input id="bc_y" type="number" data-keep="1" style="width:90px"></label><label>قيمة استبدال الواحد (ج.م)<input id="bc_v" type="number" data-keep="1"></label><button class="btn" onclick="assetBulkCreate()">إنشاء الأكواد</button></div></div>
+  <div class="card addf"><b>حصر التكييفات (${AC_ROWS.length} وحدة)</b><div class="msg">بيضيف أو بيحدّث التكييفات بالكود (AC-01 ... AC-${AC_ROWS.length}) بالدور والمكان والقدرة والماركة والموديل وقيمة الاستبدال وسنة التركيب. الموجود بنفس الكود بيتحدّث.</div><div class="row" style="margin-top:6px"><button class="btn" onclick="acEmbedded()">إضافة / تحديث التكييفات (${AC_ROWS.length})</button><label class="btn alt" style="flex-direction:row">استيراد من ملف إكسل<input type="file" accept=".xlsx" onchange="acImportFile(this.files[0])" hidden></label></div><div id="acmsg" class="msg"></div></div>
+  <div class="card addf"><b>إنشاء أصول من ملف حصر المحتويات (اختياري)</b><div class="msg">لو عندك ملف حصر بالأعداد، بيحوّل كل وحدة لأصل بكود مستقل (باب، شباك، حوض، قاعدة، كشاف، كرسي...). علّم الأصناف اللي عايزها بس.</div><div class="row" style="margin-top:6px"><label class="btn alt" style="flex-direction:row">اختيار الملف<input type="file" accept=".xlsx" onchange="invLoad(this.files[0])" hidden></label></div>
+  ${inv?`<div style="margin-top:8px"><b>الأصناف في الملف (العدد):</b></div><div class="row" style="margin-top:4px">${Object.entries(inv.types).map(([k,v])=>`<label style="flex-direction:row;align-items:center;gap:4px;flex:0 0 auto"><input type="checkbox" style="width:auto;min-height:0" ${inv.sel[k]?'checked':''} onchange="inv.sel['${k}']=this.checked"> ${k} (${v})</label>`).join('')}</div><div class="row" style="margin-top:8px"><button class="btn" onclick="invImport()">استيراد الأصناف المحددة</button></div>`:''}<div id="invmsg" class="msg"></div></div>
+  <div class="card addf"><b>تعيين القدرة لمجموعة أصول دفعة واحدة</b><div class="row" style="margin-top:6px"><label>من كود<input id="bk_f" data-keep="1" placeholder="AC-05"></label><label>إلى كود<input id="bk_t" data-keep="1" placeholder="AC-41"></label><label>القدرة<input id="bk_c" type="number" step="0.25" data-keep="1" style="width:90px"></label><label>الوحدة<select id="bk_u">${CAPU.map(u=>`<option>${u}</option>`).join('')}</select></label><button class="btn" onclick="assetBulkCap()">تطبيق</button></div><div class="msg">مثال: من AC-05 إلى AC-20 بقدرة 2.25 حصان. الأكواد لازم تكون بنفس البادئة.</div></div>`;
+  return h;
+}
+async function assetBulkCreate(){
+  const t=$('#bc_t').value,n=(+$('#bc_c').value)|0,base=$('#bc_n').value.trim()||t,loc=$('#bc_l').value.trim(),yr=+$('#bc_y').value||'',val=+$('#bc_v').value||0;
+  if(n<1||n>200){alert('العدد من 1 إلى 200');return}
+  if(!confirm('إنشاء '+n+' أصل من نوع «'+t+'» بأكواد متسلسلة؟'))return;
+  const codes=nextCodes(t,n);
+  for(let i=0;i<n;i++){const id='as_'+codes[i],o={code:codes[i],name:base+(n>1?' '+(i+1):''),type:t,loc,value:val,inst:yr,cap:0,capu:'',src:'تسجيل بالجملة'};assets.push({id,...o});await db.collection('assets').doc(id).set(o)}
+  toast('تمت إضافة '+n+' أصل: '+codes[0]+(n>1?' ... '+codes[n-1]:''));
+}
+async function assetAdd(){
+  const t=$('#as_t').value,n=$('#as_n').value.trim();let c=$('#as_c').value.trim();
+  if(!n){alert('اكتب اسم الأصل');return}
+  if(!c)c=nextCodes(t,1)[0];
+  if(assetByCode(c)){alert('الكود «'+c+'» مستخدم من قبل');return}
+  const id='as'+Date.now()+'-'+DEV,o={code:c,name:n,type:t,cap:+$('#as_cap').value||0,capu:$('#as_cu').value,loc:$('#as_l').value,value:+$('#as_v').value||0,brand:$('#as_b').value.trim(),inst:+$('#as_y').value||''};
+  assets.push({id,...o});await db.collection('assets').doc(id).set(o);await assetLogAdd(c,'إنشاء','تسجيل الأصل');
+  $('#as_c').value='';$('#as_n').value='';toast('تمت الإضافة ✓ (الكود '+c+')');
+}
+function assetDetailByCode(c){const a=assetByCode(c);if(a)assetDetail(a.id);else alert('الكود «'+c+'» غير موجود في سجل الأصول')}
+function newFaultFor(code){
+  const a=assetByCode(code);if(!a)return;closeEdit();goForm('notices');
+  const f=document.getElementById('f_asset');if(f)f.value=a.code;const d=document.getElementById('f_dept');if(d)d.value=a.loc||'';
+  const t=document.getElementById('f_trade');if(t&&TYPE_TRADE[a.type])t.value=TYPE_TRADE[a.type];
+  const x=document.getElementById('f_details');if(x)x.focus();
+}
+function assetDetail(id){
+  const a=assets.find(x=>x.id===id);if(!a)return;const x=assetStats(a);closeEdit();
+  const ev=[];x.ns.forEach(n=>ev.push({d:String(iso(n.date)),k:'عطل',t:n.ref+' – '+(n.details||''),s:n.status||'',c:noticeCost(n)}));
+  assetLog.filter(l=>sameCode(l.code,a.code)).forEach(l=>ev.push({d:String(l.at).slice(0,10),k:l.kind,t:l.text||'',s:'',c:0}));
+  ev.sort((p,q)=>q.d.localeCompare(p.d));
+  const d=document.createElement('div');d.id='md';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:60;overflow:auto;padding:12px';
+  d.innerHTML=`<div class="card" style="max-width:900px;margin:16px auto"><b style="font-size:16px">${esc(a.code)} – ${esc(a.name)}</b>
+  <div class="grid" style="margin:8px 0"><div class="k ${x.stc}"><b style="font-size:16px">${x.st}</b>الحالة التشغيلية</div><div class="k ${x.lv===2?'s-bad':x.lv===1?'s-warn':'s-ok'}"><b style="font-size:16px">${x.advice}</b>التوصية</div><div class="k"><b>${x.age!==null?x.age+' / '+x.life:'—'}</b>العمر / العمر الافتراضي (سنة)</div><div class="k"><b>${x.r12} / ${x.ns.length}</b>أعطال (12 شهر / الكل)</div><div class="k"><b>${money(x.cost)}</b>إجمالي التكلفة (ج.م)</div><div class="k"><b>${+a.value?money(a.value):'—'}</b>قيمة الاستبدال (ج.م)</div></div>
+  <div class="msg">${esc(a.type)} · ${esc(a.loc||'بدون موقع')}${+a.cap?' · '+a.cap+' '+esc(a.capu||''):''}${a.brand?' · '+esc(a.brand):''}${yearOf(a.inst)?' · تركيب '+yearOf(a.inst):''}</div>
+  ${x.reasons.length?`<div style="margin:6px 0"><b>أسباب التوصية:</b> ${x.reasons.map(esc).join(' | ')}</div>`:''}
+  <div style="margin:6px 0"><b>القرار:</b> ${a.dec?esc(a.dec)+(a.decDone?' (نُفِّذ)':'')+(a.decYear?' · سنة '+a.decYear:'')+(+a.decCost?' · '+money(a.decCost)+' ج.م':'')+(a.decWhy?' – '+esc(a.decWhy):''):'لم يُحدد'}${a.replacedBy?' · استُبدل بالكود '+esc(a.replacedBy):''}${a.replaces?' · بديل للكود '+esc(a.replaces):''}</div>
+  <div class="row" style="margin:8px 0"><button class="btn" onclick="assetDecide('${a.id}')">قرار</button><button class="btn alt" onclick="newFaultFor('${esc(a.code)}')">تسجيل عطل</button><button class="btn alt" onclick="openEdit('assets','${a.id}')">تعديل البيانات</button>${a.stat==='مُكهّن'?`<button class="btn alt" onclick="assetReactivate('${a.id}')">إعادة للخدمة</button>`:''}<button class="btn alt" onclick="closeEdit()">إغلاق</button></div>
+  <div class="wrap"><table><tr>${['التاريخ','النوع','التفاصيل','الحالة','التكلفة'].map(t=>`<th>${t}</th>`).join('')}</tr>${ev.map(e=>`<tr><td>${dFmt(e.d)}</td><td>${e.k}</td><td class="l">${esc(e.t)}</td><td>${esc(e.s)}</td><td>${e.c?money(e.c):''}</td></tr>`).join('')||'<tr><td colspan="5">لا توجد أحداث مسجلة</td></tr>'}</table></div></div>`;
+  document.body.appendChild(d);
+}
+function assetDecide(id){
+  const a=assets.find(x=>x.id===id);if(!a)return;const x=assetStats(a);closeEdit();
+  const d=document.createElement('div');d.id='md';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:60;overflow:auto;padding:12px';
+  d.innerHTML=`<div class="card" style="max-width:640px;margin:16px auto"><b>قرار بشأن ${esc(a.code)} – ${esc(a.name)}</b>
+  <div class="msg" style="margin:6px 0">التوصية الحالية: <b>${x.advice}</b>${x.reasons.length?' — '+x.reasons.map(esc).join(' | '):''}</div>
+  <div class="grid" style="margin-top:8px"><label>القرار<select id="d_dec"><option value="">بدون قرار</option>${DECS.map(o=>`<option ${a.dec===o?'selected':''}>${o}</option>`).join('')}</select></label><label>السنة المخططة للتنفيذ<input id="d_yr" type="number" min="2020" max="2100" value="${a.decYear||thisYear()+1}"></label><label>تكلفة الاستبدال المقدّرة (ج.م)<input id="d_cost" type="number" min="0" value="${+a.decCost||+a.value||''}"></label></div>
+  <label style="margin-top:8px">سبب القرار<textarea id="d_why" rows="2" style="min-width:0">${esc(a.decWhy||'')}</textarea></label>
+  <div class="row" style="margin-top:10px"><button class="btn" onclick="assetDecideSave('${a.id}')">حفظ القرار</button>${a.dec==='استبدال'&&!a.decDone?`<button class="btn alt" onclick="assetExecReplace('${a.id}')">تنفيذ الاستبدال (كود جديد)</button>`:''}${a.dec==='تكهين'&&!a.decDone?`<button class="btn alt" onclick="assetExecScrap('${a.id}')">تنفيذ التكهين</button>`:''}<button class="btn alt" onclick="closeEdit()">إلغاء</button></div>
+  <div class="msg" style="margin-top:6px">«تنفيذ الاستبدال» بيقفل الأصل القديم (مُكهّن) وبينشئ أصل جديد بكود جديد وسنة تركيب الحالية. «تنفيذ التكهين» بيخرج الأصل من الخدمة.</div></div>`;
+  document.body.appendChild(d);
+}
+async function assetDecideSave(id){
+  const a=assets.find(x=>x.id===id);if(!a)return;
+  const dec=$('#d_dec').value,why=$('#d_why').value.trim(),yr=+$('#d_yr').value||'',cost=+$('#d_cost').value||0;
+  const o={dec,decWhy:why,decYear:dec?yr:'',decCost:dec==='استبدال'?cost:0,decAt:ymd(new Date()),decDone:false};
+  Object.assign(a,o);await db.collection('assets').doc(id).update(o);
+  await assetLogAdd(a.code,'قرار',(dec||'إلغاء القرار')+(why?' – '+why:'')+(dec&&yr?' (سنة '+yr+')':''));
+  closeEdit();toast('تم حفظ القرار ✓');
+}
+async function assetExecScrap(id){
+  const a=assets.find(x=>x.id===id);if(!a||!confirm('تنفيذ تكهين «'+a.code+' – '+a.name+'» وإخراجه من الخدمة؟'))return;
+  const o={stat:'مُكهّن',decDone:true,decAt:ymd(new Date())};Object.assign(a,o);await db.collection('assets').doc(id).update(o);
+  await assetLogAdd(a.code,'تكهين','تم تنفيذ التكهين وإخراج الأصل من الخدمة');closeEdit();toast('تم التكهين ✓');
+}
+async function assetExecReplace(id){
+  const a=assets.find(x=>x.id===id);if(!a||!confirm('تنفيذ استبدال «'+a.code+' – '+a.name+'»؟ هيتقفل الأصل القديم وينشأ أصل جديد بكود جديد.'))return;
+  const nc=nextCodes(a.type,1)[0],nid='as_'+nc;
+  const n={code:nc,name:a.name,type:a.type,cap:+a.cap||0,capu:a.capu||'',loc:a.loc||'',value:+a.decCost||+a.value||0,brand:a.brand||'',model:a.model||'',inst:thisYear(),life:+a.life||'',notes:'بديل للكود '+a.code,replaces:a.code,src:'استبدال'};
+  assets.push({id:nid,...n});await db.collection('assets').doc(nid).set(n);
+  const o={stat:'مُكهّن',decDone:true,decAt:ymd(new Date()),replacedBy:nc};Object.assign(a,o);await db.collection('assets').doc(id).update(o);
+  await assetLogAdd(a.code,'استبدال','تم الاستبدال بالأصل الجديد '+nc);await assetLogAdd(nc,'إنشاء','أصل جديد بديل للكود '+a.code);
+  closeEdit();toast('تم الاستبدال – الكود الجديد '+nc);
+}
+async function assetReactivate(id){
+  const a=assets.find(x=>x.id===id);if(!a||!confirm('إعادة «'+a.code+'» للخدمة؟'))return;
+  const o={stat:'',decDone:false};Object.assign(a,o);await db.collection('assets').doc(id).update(o);await assetLogAdd(a.code,'إعادة للخدمة','تمت إعادة الأصل للخدمة');closeEdit();toast('تمت الإعادة للخدمة');
+}
+function planBy(year){
+  const by={},list=[],sug=[];
+  assets.forEach(a=>{if(a.stat==='مُكهّن')return;const t=TYPE_TRADE[a.type]||'أخرى';
+    if(a.dec==='استبدال'&&!a.decDone&&String(a.decYear)===String(year)){const c=+a.decCost||+a.value||0;by[t]=(by[t]||0)+c;list.push({a,c,t})}
+    else if(!a.dec){const x=assetStats(a);if(x.lv===2&&+a.value>0)sug.push({a,c:+a.value,t,x})}});
+  return{by,list,sug};
+}
+function planTable(p,year){
+  const tr=l=>l.map(r=>`<tr><td><b>${esc(r.a.code)}</b></td><td class="l">${esc(r.a.name)}</td><td class="l">${esc(r.a.loc)}</td><td>${r.t}</td><td>${money(r.c)}</td>${r.x?`<td class="l">${esc(r.x.reasons[0]||'')}</td>`:`<td class="l">${esc(r.a.decWhy||'')}</td>`}</tr>`).join('');
+  const head=['الكود','الأصل','الموقع','التخصص','التكلفة (ج.م)','السبب'].map(x=>`<th>${x}</th>`).join('');
+  return `<h4>خطة الاستبدال لسنة ${year} (قرارات اتُّخذت): ${money(p.list.reduce((t,r)=>t+r.c,0))} ج.م</h4><div style="overflow-x:auto"><table><tr>${head}</tr>${tr(p.list)||'<tr><td colspan="6">لا توجد قرارات استبدال مخططة لهذه السنة — حددها من «قرار» في سجل الأصول</td></tr>'}</table></div>
+  <h4>أصول يُنصح باستبدالها ولم يُتخذ فيها قرار بعد (${p.sug.length}): ${money(p.sug.reduce((t,r)=>t+r.c,0))} ج.م</h4><div style="overflow-x:auto"><table><tr>${head}</tr>${tr(p.sug.slice(0,30))||'<tr><td colspan="6">لا يوجد</td></tr>'}</table></div>`;
 }
 function exportAssets(){
   if(typeof XLSX==='undefined'){alert('مكتبة الإكسل غير محملة – تأكد من الإنترنت وجرّب تاني');return}
   const list=assets.map(a=>({a,...assetStats(a)})).sort((x,y)=>String(x.a.code).localeCompare(String(y.a.code),'en',{numeric:true}));
-  const head=['الكود','الاسم / الطراز','النوع','القدرة','وحدة القدرة','الموقع','قيمة الاستبدال (ج.م)','سنة التركيب','عمر الجهاز (سنة)','الماركة','الموديل','عدد الأعطال','أعطال آخر 12 شهراً','تاريخ آخر عطل','إجمالي التكلفة (ج.م)','التقييم','ملاحظات'];
-  const rows=list.map(x=>[x.a.code,x.a.name||'',x.a.type||'',+x.a.cap||'',x.a.capu||'',x.a.loc||'',+x.a.value||'',yearOf(x.a.inst)||'',yearOf(x.a.inst)?new Date().getFullYear()-yearOf(x.a.inst):'',x.a.brand||'',x.a.model||'',x.ns.length,x.r12,toD(x.last)||'',Math.round(x.cost*100)/100,x.reason?'يُنصح بدراسة الاستبدال – '+x.reason:'',x.a.notes||'']);
+  const head=['الكود','الاسم / الطراز','النوع','القدرة','وحدة القدرة','الماركة','الموديل','الموقع','سنة التركيب','العمر (سنة)','العمر الافتراضي','قيمة الاستبدال (ج.م)','الحالة التشغيلية','عدد الأعطال','أعطال آخر 12 شهراً','تاريخ آخر عطل','إجمالي التكلفة (ج.م)','التوصية','أسباب التوصية','القرار','سبب القرار','سنة التنفيذ المخططة','تكلفة الاستبدال المقدّرة (ج.م)','نُفِّذ؟','ملاحظات'];
+  const rows=list.map(x=>[x.a.code,x.a.name||'',x.a.type||'',+x.a.cap||'',x.a.capu||'',x.a.brand||'',x.a.model||'',x.a.loc||'',yearOf(x.a.inst)||'',x.age===null?'':x.age,x.life,+x.a.value||'',x.st,x.ns.length,x.r12,toD(x.last)||'',Math.round(x.cost*100)/100,x.advice,x.reasons.join(' | '),x.a.dec||'',x.a.decWhy||'',x.a.decYear||'',+x.a.decCost||'',x.a.decDone?'نعم':'',x.a.notes||'']);
   const ws=XLSX.utils.aoa_to_sheet([['سجل الأصول – قسم الصيانة – مستشفى الابتسامة'],['تاريخ التصدير: '+dFmt(ymd(new Date()))+' – عدد الأصول: '+assets.length],[],head,...rows],{cellDates:true});
-  ws['!cols']=[10,34,20,9,11,30,16,12,12,10,12,12,11,14,14,16,36,28].map(w=>({wch:w}));ws['!views']=[{RTL:true}];
+  ws['!cols']=[10,32,20,9,10,12,12,30,11,10,12,16,24,10,12,13,16,18,40,16,30,12,16,8,28].map(w=>({wch:w}));ws['!views']=[{RTL:true}];
   const wb=XLSX.utils.book_new();wb.Workbook={Views:[{RTL:true}]};XLSX.utils.book_append_sheet(wb,ws,'سجل الأصول');
   const fl=[];list.forEach(x=>x.ns.slice().sort((p,q)=>String(iso(p.date)).localeCompare(String(iso(q.date)))).forEach(n=>fl.push([x.a.code,x.a.name||'',n.ref,toD(n.date)||'',n.details||'',n.status||'',Math.round(noticeCost(n)*100)/100])));
-  const w2=XLSX.utils.aoa_to_sheet([['الكود','اسم الأصل','الإخطار','التاريخ','العطل','الحالة','التكلفة (ج.م)'],...fl],{cellDates:true});
-  w2['!cols']=[10,30,10,12,40,16,14].map(w=>({wch:w}));w2['!views']=[{RTL:true}];XLSX.utils.book_append_sheet(wb,w2,'أعطال الأصول');
-  dl('سجل_الأصول_'+ymd(new Date())+'.xlsx',XLSX.write(wb,{type:'array',bookType:'xlsx',cellDates:true}));
-  toast('تم تجهيز ملف سجل الأصول');
+  const w2=XLSX.utils.aoa_to_sheet([['الكود','اسم الأصل','الإخطار','التاريخ','العطل','الحالة','التكلفة (ج.م)'],...fl],{cellDates:true});w2['!cols']=[10,30,10,12,40,16,14].map(w=>({wch:w}));w2['!views']=[{RTL:true}];XLSX.utils.book_append_sheet(wb,w2,'أعطال الأصول');
+  const w3=XLSX.utils.aoa_to_sheet([['الكود','الوقت','النوع','التفاصيل','بواسطة'],...assetLog.slice().reverse().map(l=>[l.code,String(l.at).slice(0,16).replace('T',' '),l.kind,l.text,l.by||''])]);w3['!cols']=[10,18,14,50,24].map(w=>({wch:w}));w3['!views']=[{RTL:true}];XLSX.utils.book_append_sheet(wb,w3,'سجل القرارات');
+  dl('سجل_الأصول_'+ymd(new Date())+'.xlsx',XLSX.write(wb,{type:'array',bookType:'xlsx',cellDates:true}));toast('تم تجهيز ملف سجل الأصول');
 }
 const AC_ROWS=[["AC-01","الأرضي","معمل الذكورة",2.25,"كارير",32000,2023,"سبليت"],["AC-02","الأرضي","التعقيم",2.25,"كارير",32000,2023,"سبليت"],["AC-03","الأرضي","الطواريء",3.0,"شارب",42000,2005,"سبليت"],["AC-04","الأرضي","مدير المستشفي",3.0,"شارب",42000,2023,"سبليت"],["AC-05","الأرضي","معمل الدم",3.0,"كارير",43000,2005,"سبليت"],["AC-06","الأرضي","الصيدالية",3.0,"شارب",42000,2023,"سبليت"],["AC-07","الأرضي","IT",4.0,"كارير",70000,2023,"سبليت"],["AC-08","الأرضي","الريسبشن 1",5.0,"كارير",80000,2005,"سبليت"],["AC-09","الأرضي","الريسبشن 2",5.0,"كارير",80000,2005,"سبليت"],["AC-10","الأرضي","الريسبشن 3",5.0,"كارير",80000,2005,"سبليت"],["AC-11","الأول","101",2.25,"كارير",32000,2005,"سبليت"],["AC-12","الأول","102",2.25,"كارير",32000,2005,"سبليت"],["AC-13","الأول","104",2.25,"كارير",32000,2005,"سبليت"],["AC-14","الأول","105",1.5,"شارب",26000,2005,"سبليت"],["AC-15","الأول","106",2.25,"كارير",32000,2005,"سبليت"],["AC-16","الأول","107",1.5,"ميديا",20000,2026,"سبليت"],["AC-17","الأول","107",1.5,"ميديا",20000,2026,"سبليت"],["AC-18","الأول","108",2.25,"كارير",32000,2005,"سبليت"],["AC-19","الأول","ارشيف",1.5,"شارب",26000,2005,"سبليت"],["AC-20","الأول","حسابات مرضى",2.25,"كارير",32000,2005,"سبليت"],["AC-21","الأول","ريسبشن العيادات",5.0,"كارير",104000,2023,"ستاند"],["AC-22","الأول","عياده 1",3.0,"ميركو",35000,2005,"سبليت"],["AC-23","الأول","عياده 2",1.5,"شارب",26000,2005,"سبليت"],["AC-24","الأول","عياده 3",3.0,"كارير",43000,2005,"سبليت"],["AC-25","الأول","عياده 5",3.0,"كارير",43000,2005,"سبليت"],["AC-26","الأول","غرف اطباء",1.5,"ميديا",20000,2026,"سبليت"],["AC-27","الأول","غرف اطباء",1.5,"ميديا",20000,2026,"سبليت"],["AC-28","الأول","مخزن",3.0,"كارير",43000,2005,"سبليت"],["AC-29","الثاني","200",5.0,"كارير",150000,2023,"كونسلد"],["AC-30","الثاني","201",2.25,"كارير",32000,2005,"سبليت"],["AC-31","الثاني","202",2.25,"شارب",36000,2005,"سبليت"],["AC-32","الثاني","203",2.25,"شارب",36000,2005,"سبليت"],["AC-33","الثاني","204",1.5,"كارير",21000,2005,"سبليت"],["AC-34","الثاني","205",2.25,"كارير",32000,2005,"سبليت"],["AC-35","الثاني","206",2.25,"شارب",36000,2005,"سبليت"],["AC-36","الثاني","207",3.0,"شارب",42000,2005,"سبليت"],["AC-37","الثاني","208",2.25,"كارير",32000,2005,"سبليت"],["AC-38","الثاني","209",1.5,"كارير",21000,2005,"سبليت"],["AC-39","الثاني","210",1.5,"كارير",21000,2005,"سبليت"],["AC-40","الثاني","استراحه الدور الثاني",5.0,"كارير",150000,2023,"كونسلد"],["AC-41","الثاني","استراحه العمليات",1.5,"شارب",26000,2005,"سبليت"],["AC-42","الثاني","الحضانه",2.25,"شارب",36000,2005,"سبليت"],["AC-43","الثاني","الحضانه",3.0,"كارير",43000,2026,"سبليت"],["AC-44","الثاني","تحضير وافاقه",3.0,"كارير",43000,2005,"سبليت"],["AC-45","الثاني","عمليات 2",3.0,"شارب",42000,2005,"سبليت"],["AC-46","الثاني","عمليات1",5.0,"كارير",80000,2005,"سبليت"],["AC-47","الثاني","مخزن العمليات",3.0,"كارير",43000,2005,"سبليت"]];
 const yearOf=v=>{if(v==null||v==='')return 0;if(v instanceof Date)return v.getFullYear();const m=String(v).match(/\d{4}/);return m?+m[0]:0};
@@ -933,196 +1069,6 @@ async function acImportFile(f){
   const r=await acUpsert(rows);const m=document.getElementById('acmsg');
   if(m)m.textContent='تم: إضافة '+r.added+' وتحديث '+r.updated+' تكييف من الملف.';toast('تمت إضافة التكييفات ✓');
 }
-const DEF_LOCS=[["الدور","المنطقة","الموقع / الغرفة"],["الدور الثاني","منطقة العمليات","غرفة عمليات 1"],["الدور الثاني","منطقة العمليات","غرفة عمليات 2"],["الدور الثاني","منطقة العمليات","غرفه 200"],["الدور الثاني","منطقة العمليات","غرفة التحضير"],["الدور الثاني","منطقة العمليات","حمام"],["الدور الثاني","منطقة العمليات","استقبال العمليات"],["الدور الثاني","منطقة العمليات","معمل الأجنه"],["الدور الثاني","منطقة العمليات","مخزن ادوية"],["الدور الثاني","منطقة الحضانة","الحضانة"],["الدور الثاني","منطقة الحضانة","تطهير الحضانة"],["الدور الثاني","غرف الإقامة","غرفة إقامة 201"],["الدور الثاني","غرف الإقامة","غرفة إقامة 202"],["الدور الثاني","غرف الإقامة","غرفة إقامة 203"],["الدور الثاني","غرف الإقامة","غرفة إقامة 204"],["الدور الثاني","غرف الإقامة","غرفة إقامة 205"],["الدور الثاني","غرف الإقامة","غرفة إقامة 206"],["الدور الثاني","غرف الإقامة","غرفة إقامة 207"],["الدور الثاني","غرف الإقامة","غرفة إقامة 208"],["الدور الثاني","خدمات الدور الثاني","كونتر التمريض"],["الدور الثاني","خدمات الدور الثاني","الكافتيريا"],["الدور الثاني","خدمات الدور الثاني","ممرات الدور الثاني"],["الدور الأول","غرف الإقامة","غرفة إقامة 101"],["الدور الأول","غرف الإقامة","غرفة إقامة 102"],["الدور الأول","غرف الإقامة","غرفة إقامة 103"],["الدور الأول","غرف الإقامة","غرفة إقامة 104"],["الدور الأول","غرف الإقامة","غرفة إقامة 105"],["الدور الأول","غرف الإقامة","غرفة إقامة 106"],["الدور الأول","العيادات","عيادة 1"],["الدور الأول","العيادات","عيادة 2"],["الدور الأول","العيادات","عيادة 3"],["الدور الأول","العيادات","عيادة 4"],["الدور الأول","العيادات","عيادة 5"],["الدور الأول","خدمات الدور الأول","مخزن طبي"],["الدور الأول","خدمات الدور الأول","الفندقة"],["الدور الأول","خدمات الدور الأول","استقبال العيادات"],["الدور الأول","خدمات الدور الأول","ممرات الدور الأول"],["الدور الأول","خدمات الدور الأول","حمام رجالي"],["الدور الأول","خدمات الدور الأول","حمام سيدات"],["الدور الأرضي","الخدمات الطبية","الصيدلية"],["الدور الأرضي","الخدمات الطبية","معمل الذكورة"],["الدور الأرضي","الخدمات الطبية","معمل الدم"],["الدور الأرضي","الخدمات الطبية","التعقيم"],["الدور الأرضي","الخدمات الطبية","الطوارئ"],["الدور الأرضي","الإدارة والاستقبال","مكتب مدير المستشفى"],["الدور الأرضي","الإدارة والاستقبال","الاستقبال الرئيسي"],["الدور الأرضي","الإدارة والاستقبال","الريسيبشن"],["الدور الأرضي","الخدمات المساندة","المغسلة"],["الدور الأرضي","الخدمات المساندة","حمام سيدات – أرضي"],["الدور الأرضي","الخدمات المساندة","حمام رجالي – أرضي"],["الدور الأرضي","الخدمات المساندة","المطبخ"],["الدور الأرضي","الخدمات المساندة","ممرات الدور الأرضي"],["مناطق فنية","مناطق فنية","المولد"],["مناطق فنية","مناطق فنية","محطة الغازات"],["مناطق فنية","مناطق فنية","مواتير المياه"],["مناطق فنية","مناطق فنية","الخارج"]];
-const DEF_INV=[["الدور الثاني","غرفة عمليات 1","تكييف اسبلت",1,"سليم"],["الدور الثاني","غرفة عمليات 1","كشاف",2,"سليم"],["الدور الثاني","غرفة عمليات 1","باب",1,"سليم"],["الدور الثاني","غرفة عمليات 1","مخرج غاز طبي",2,"سليم"],["الدور الثاني","غرفة عمليات 1","لوحة كهرباء",1,"سليم"],["الدور الثاني","غرفة عمليات 2","تكييف اسبلت",1,"سليم"],["الدور الثاني","غرفة عمليات 2","كشاف",2,"سليم"],["الدور الثاني","غرفة عمليات 2","مفتاح",2,"سليم"],["الدور الثاني","غرفة عمليات 2","باب",1,"سليم"],["الدور الثاني","غرفة عمليات 2","مخرج غاز طبي",1,"سليم"],["الدور الثاني","غرفة عمليات 2","شفاط",1,"سليم"],["الدور الثاني","غرفة عمليات 2","خلاط",1,"سليم"],["الدور الثاني","غرفه 200","تكييف اسبلت",1,"سليم"],["الدور الثاني","غرفه 200","كشاف",4,"سليم"],["الدور الثاني","غرفه 200","لمبة 7وات",2,"سليم"],["الدور الثاني","غرفه 200","مفتاح",4,"سليم"],["الدور الثاني","غرفه 200","باب",1,"سليم"],["الدور الثاني","غرفه 200","سرير",2,"سليم"],["الدور الثاني","غرفه 200","مخرج غاز طبي",2,"سليم"],["الدور الثاني","غرفة إقامة 201","تكييف اسبلت",1,"سليم"],["الدور الثاني","غرفة إقامة 201","كشاف",4,"سليم"],["الدور الثاني","غرفة إقامة 201","لمبة 7وات",4,"سليم"],["الدور الثاني","غرفة إقامة 201","مفتاح",6,"سليم"],["الدور الثاني","غرفة إقامة 201","باب",2,"سليم"],["الدور الثاني","غرفة إقامة 201","سرير",1,"سليم"],["الدور الثاني","غرفة إقامة 201","تلفزيون",1,"سليم"],["الدور الثاني","غرفة إقامة 201","ثلاجة",1,"سليم"],["الدور الثاني","غرفة إقامة 201","حمام",1,"سليم"],["الدور الثاني","غرفة إقامة 201","خلاط",1,"سليم"],["الدور الثاني","غرفة إقامة 201","خلاط دش",1,"سليم"],["الدور الثاني","غرفة إقامة 201","سخان مياه",1,"سليم"],["الدور الثاني","غرفة إقامة 201","مخرج غاز طبي",1,"سليم"],["الدور الثاني","غرفة إقامة 201","نقطة استدعاء تمريض",1,"سليم"],["الدور الثاني","غرفة إقامة 202","تكييف اسبلت",1,"سليم"],["الدور الثاني","غرفة إقامة 202","كشاف",4,"سليم"],["الدور الثاني","غرفة إقامة 202","لمبة 7وات",4,"سليم"],["الدور الثاني","غرفة إقامة 202","مفتاح",6,"سليم"],["الدور الثاني","غرفة إقامة 202","باب",2,"سليم"],["الدور الثاني","غرفة إقامة 202","سرير",1,"سليم"],["الدور الثاني","غرفة إقامة 202","تلفزيون",1,"سليم"],["الدور الثاني","غرفة إقامة 202","ثلاجة",1,"سليم"],["الدور الثاني","غرفة إقامة 202","حمام",1,"سليم"],["الدور الثاني","غرفة إقامة 202","خلاط",1,"سليم"],["الدور الثاني","غرفة إقامة 202","خلاط دش",1,"سليم"],["الدور الثاني","غرفة إقامة 202","سخان مياه",1,"سليم"],["الدور الثاني","غرفة إقامة 202","مخرج غاز طبي",1,"سليم"],["الدور الثاني","غرفة إقامة 202","نقطة استدعاء تمريض",1,"سليم"],["الدور الثاني","غرفة إقامة 203","تكييف اسبلت",1,"سليم"],["الدور الثاني","غرفة إقامة 203","كشاف",4,"سليم"],["الدور الثاني","غرفة إقامة 203","لمبة 7وات",4,"سليم"],["الدور الثاني","غرفة إقامة 203","مفتاح",6,"سليم"],["الدور الثاني","غرفة إقامة 203","باب",2,"سليم"],["الدور الثاني","غرفة إقامة 203","سرير",1,"سليم"],["الدور الثاني","غرفة إقامة 203","تلفزيون",1,"سليم"],["الدور الثاني","غرفة إقامة 203","ثلاجة",1,"سليم"],["الدور الثاني","غرفة إقامة 203","حمام",1,"سليم"],["الدور الثاني","غرفة إقامة 203","خلاط",1,"سليم"],["الدور الثاني","غرفة إقامة 203","خلاط دش",1,"سليم"],["الدور الثاني","غرفة إقامة 203","سخان مياه",1,"سليم"],["الدور الثاني","غرفة إقامة 203","مخرج غاز طبي",1,"سليم"],["الدور الثاني","غرفة إقامة 203","نقطة استدعاء تمريض",1,"سليم"],["الدور الثاني","غرفة إقامة 204","تكييف اسبلت",1,"سليم"],["الدور الثاني","غرفة إقامة 204","كشاف",4,"سليم"],["الدور الثاني","غرفة إقامة 204","لمبة 7وات",4,"سليم"],["الدور الثاني","غرفة إقامة 204","مفتاح",6,"سليم"],["الدور الثاني","غرفة إقامة 204","باب",2,"سليم"],["الدور الثاني","غرفة إقامة 204","سرير",1,"سليم"],["الدور الثاني","غرفة إقامة 204","تلفزيون",1,"سليم"],["الدور الثاني","غرفة إقامة 204","ثلاجة",1,"سليم"],["الدور الثاني","غرفة إقامة 204","حمام",1,"سليم"],["الدور الثاني","غرفة إقامة 204","خلاط",1,"سليم"],["الدور الثاني","غرفة إقامة 204","خلاط دش",1,"سليم"],["الدور الثاني","غرفة إقامة 204","سخان مياه",1,"سليم"],["الدور الثاني","غرفة إقامة 204","مخرج غاز طبي",1,"سليم"],["الدور الثاني","غرفة إقامة 204","نقطة استدعاء تمريض",1,"سليم"],["الدور الثاني","غرفة إقامة 205","تكييف اسبلت",1,"سليم"],["الدور الثاني","غرفة إقامة 205","كشاف",4,"سليم"],["الدور الثاني","غرفة إقامة 205","لمبة 7وات",4,"سليم"],["الدور الثاني","غرفة إقامة 205","مفتاح",6,"سليم"],["الدور الثاني","غرفة إقامة 205","باب",2,"سليم"],["الدور الثاني","غرفة إقامة 205","سرير",1,"سليم"],["الدور الثاني","غرفة إقامة 205","تلفزيون",1,"سليم"],["الدور الثاني","غرفة إقامة 205","ثلاجة",1,"سليم"],["الدور الثاني","غرفة إقامة 205","حمام",1,"سليم"],["الدور الثاني","غرفة إقامة 205","خلاط",1,"سليم"],["الدور الثاني","غرفة إقامة 205","خلاط دش",1,"سليم"],["الدور الثاني","غرفة إقامة 205","سخان مياه",1,"سليم"],["الدور الثاني","غرفة إقامة 205","مخرج غاز طبي",1,"سليم"],["الدور الثاني","غرفة إقامة 205","نقطة استدعاء تمريض",1,"سليم"],["الدور الثاني","غرفة إقامة 206","تكييف اسبلت",1,"سليم"],["الدور الثاني","غرفة إقامة 206","كشاف",4,"سليم"],["الدور الثاني","غرفة إقامة 206","لمبة 7وات",4,"سليم"],["الدور الثاني","غرفة إقامة 206","مفتاح",6,"سليم"],["الدور الثاني","غرفة إقامة 206","باب",2,"سليم"],["الدور الثاني","غرفة إقامة 206","سرير",1,"سليم"],["الدور الثاني","غرفة إقامة 206","تلفزيون",1,"سليم"],["الدور الثاني","غرفة إقامة 206","ثلاجة",1,"سليم"],["الدور الثاني","غرفة إقامة 206","حمام",1,"سليم"],["الدور الثاني","غرفة إقامة 206","خلاط",1,"سليم"],["الدور الثاني","غرفة إقامة 206","خلاط دش",1,"سليم"],["الدور الثاني","غرفة إقامة 206","سخان مياه",1,"سليم"],["الدور الثاني","غرفة إقامة 206","مخرج غاز طبي",1,"سليم"],["الدور الثاني","غرفة إقامة 206","نقطة استدعاء تمريض",1,"سليم"],["الدور الثاني","غرفة إقامة 207","تكييف اسبلت",1,"سليم"],["الدور الثاني","غرفة إقامة 207","كشاف",4,"سليم"],["الدور الثاني","غرفة إقامة 207","لمبة 7وات",4,"سليم"],["الدور الثاني","غرفة إقامة 207","مفتاح",6,"سليم"],["الدور الثاني","غرفة إقامة 207","باب",2,"سليم"],["الدور الثاني","غرفة إقامة 207","سرير",1,"سليم"],["الدور الثاني","غرفة إقامة 207","تلفزيون",1,"سليم"],["الدور الثاني","غرفة إقامة 207","ثلاجة",1,"سليم"],["الدور الثاني","غرفة إقامة 207","حمام",1,"سليم"],["الدور الثاني","غرفة إقامة 207","خلاط",1,"سليم"],["الدور الثاني","غرفة إقامة 207","خلاط دش",1,"سليم"],["الدور الثاني","غرفة إقامة 207","سخان مياه",1,"سليم"],["الدور الثاني","غرفة إقامة 207","مخرج غاز طبي",1,"سليم"],["الدور الثاني","غرفة إقامة 207","نقطة استدعاء تمريض",1,"سليم"],["الدور الثاني","غرفة إقامة 208","تكييف اسبلت",1,"سليم"],["الدور الثاني","غرفة إقامة 208","كشاف",4,"سليم"],["الدور الثاني","غرفة إقامة 208","لمبة 7وات",4,"سليم"],["الدور الثاني","غرفة إقامة 208","مفتاح",6,"سليم"],["الدور الثاني","غرفة إقامة 208","باب",2,"سليم"],["الدور الثاني","غرفة إقامة 208","سرير",1,"سليم"],["الدور الثاني","غرفة إقامة 208","تلفزيون",1,"سليم"],["الدور الثاني","غرفة إقامة 208","ثلاجة",1,"سليم"],["الدور الثاني","غرفة إقامة 208","حمام",1,"سليم"],["الدور الثاني","غرفة إقامة 208","خلاط",1,"سليم"],["الدور الثاني","غرفة إقامة 208","خلاط دش",1,"سليم"],["الدور الثاني","غرفة إقامة 208","سخان مياه",1,"سليم"],["الدور الثاني","غرفة إقامة 208","مخرج غاز طبي",1,"سليم"],["الدور الثاني","غرفة إقامة 208","نقطة استدعاء تمريض",1,"سليم"],["الدور الثاني","كونتر التمريض","كرسي",3,"سليم"],["الدور الثاني","الكافتيريا","كشاف",4,"سليم"],["الدور الثاني","الكافتيريا","باب",1,"سليم"],["الدور الثاني","الكافتيريا","ثلاجة",1,"سليم"],["الدور الثاني","الكافتيريا","شفاط",1,"سليم"],["الدور الثاني","ممرات الدور الثاني","تكييف كونسلد",1,"سليم"],["الدور الثاني","ممرات الدور الثاني","لمبة 7وات",180,"سليم"],["الدور الثاني","ممرات الدور الثاني","لوحة كهرباء",2,"سليم"],["الدور الأول","غرفة إقامة 101","تكييف اسبلت",1,"سليم"],["الدور الأول","غرفة إقامة 101","كشاف",4,"سليم"],["الدور الأول","غرفة إقامة 101","لمبة 7وات",4,"سليم"],["الدور الأول","غرفة إقامة 101","مفتاح",6,"سليم"],["الدور الأول","غرفة إقامة 101","باب",2,"سليم"],["الدور الأول","غرفة إقامة 101","سرير",1,"سليم"],["الدور الأول","غرفة إقامة 101","تلفزيون",1,"سليم"],["الدور الأول","غرفة إقامة 101","ثلاجة",1,"سليم"],["الدور الأول","غرفة إقامة 101","كنب",1,"سليم"],["الدور الأول","غرفة إقامة 101","خلاط",1,"سليم"],["الدور الأول","غرفة إقامة 101","خلاط دش",1,"سليم"],["الدور الأول","غرفة إقامة 101","سخان مياه",1,"سليم"],["الدور الأول","غرفة إقامة 101","مخرج غاز طبي",1,"سليم"],["الدور الأول","غرفة إقامة 101","كرسي",2,"سليم"],["الدور الأول","غرفة إقامة 101","ترابيزة",1,"سليم"],["الدور الأول","غرفة إقامة 101","نقطة استدعاء تمريض",1,"سليم"],["الدور الأول","غرفة إقامة 102","تكييف اسبلت",1,"سليم"],["الدور الأول","غرفة إقامة 102","كشاف",4,"سليم"],["الدور الأول","غرفة إقامة 102","لمبة 7وات",4,"سليم"],["الدور الأول","غرفة إقامة 102","مفتاح",6,"سليم"],["الدور الأول","غرفة إقامة 102","باب",2,"سليم"],["الدور الأول","غرفة إقامة 102","سرير",1,"سليم"],["الدور الأول","غرفة إقامة 102","تلفزيون",1,"سليم"],["الدور الأول","غرفة إقامة 102","ثلاجة",1,"سليم"],["الدور الأول","غرفة إقامة 102","حمام",1,"سليم"],["الدور الأول","غرفة إقامة 102","خلاط",1,"سليم"],["الدور الأول","غرفة إقامة 102","خلاط دش",1,"سليم"],["الدور الأول","غرفة إقامة 102","سخان مياه",1,"سليم"],["الدور الأول","غرفة إقامة 102","مخرج غاز طبي",1,"سليم"],["الدور الأول","غرفة إقامة 102","نقطة استدعاء تمريض",1,"سليم"],["الدور الأول","غرفة إقامة 103","تكييف اسبلت",1,"سليم"],["الدور الأول","غرفة إقامة 103","كشاف",4,"سليم"],["الدور الأول","غرفة إقامة 103","لمبة 7وات",4,"سليم"],["الدور الأول","غرفة إقامة 103","مفتاح",6,"سليم"],["الدور الأول","غرفة إقامة 103","باب",2,"سليم"],["الدور الأول","غرفة إقامة 103","سرير",1,"سليم"],["الدور الأول","غرفة إقامة 103","تلفزيون",1,"سليم"],["الدور الأول","غرفة إقامة 103","ثلاجة",1,"سليم"],["الدور الأول","غرفة إقامة 103","حمام",1,"سليم"],["الدور الأول","غرفة إقامة 103","خلاط",1,"سليم"],["الدور الأول","غرفة إقامة 103","خلاط دش",1,"سليم"],["الدور الأول","غرفة إقامة 103","سخان مياه",1,"سليم"],["الدور الأول","غرفة إقامة 103","مخرج غاز طبي",1,"سليم"],["الدور الأول","غرفة إقامة 103","نقطة استدعاء تمريض",1,"سليم"],["الدور الأول","غرفة إقامة 104","تكييف اسبلت",1,"سليم"],["الدور الأول","غرفة إقامة 104","كشاف",4,"سليم"],["الدور الأول","غرفة إقامة 104","لمبة 7وات",4,"سليم"],["الدور الأول","غرفة إقامة 104","مفتاح",6,"سليم"],["الدور الأول","غرفة إقامة 104","باب",2,"سليم"],["الدور الأول","غرفة إقامة 104","سرير",1,"سليم"],["الدور الأول","غرفة إقامة 104","تلفزيون",1,"سليم"],["الدور الأول","غرفة إقامة 104","ثلاجة",1,"سليم"],["الدور الأول","غرفة إقامة 104","حمام",1,"سليم"],["الدور الأول","غرفة إقامة 104","خلاط",1,"سليم"],["الدور الأول","غرفة إقامة 104","خلاط دش",1,"سليم"],["الدور الأول","غرفة إقامة 104","سخان مياه",1,"سليم"],["الدور الأول","غرفة إقامة 104","مخرج غاز طبي",1,"سليم"],["الدور الأول","غرفة إقامة 104","نقطة استدعاء تمريض",1,"سليم"],["الدور الأول","غرفة إقامة 105","تكييف اسبلت",1,"سليم"],["الدور الأول","غرفة إقامة 105","كشاف",4,"سليم"],["الدور الأول","غرفة إقامة 105","لمبة 7وات",4,"سليم"],["الدور الأول","غرفة إقامة 105","مفتاح",6,"سليم"],["الدور الأول","غرفة إقامة 105","باب",2,"سليم"],["الدور الأول","غرفة إقامة 105","سرير",1,"سليم"],["الدور الأول","غرفة إقامة 105","تلفزيون",1,"سليم"],["الدور الأول","غرفة إقامة 105","ثلاجة",1,"سليم"],["الدور الأول","غرفة إقامة 105","حمام",1,"سليم"],["الدور الأول","غرفة إقامة 105","خلاط",1,"سليم"],["الدور الأول","غرفة إقامة 105","خلاط دش",1,"سليم"],["الدور الأول","غرفة إقامة 105","سخان مياه",1,"سليم"],["الدور الأول","غرفة إقامة 105","مخرج غاز طبي",1,"سليم"],["الدور الأول","غرفة إقامة 105","نقطة استدعاء تمريض",1,"سليم"],["الدور الأول","غرفة إقامة 106","تكييف اسبلت",1,"سليم"],["الدور الأول","غرفة إقامة 106","كشاف",4,"سليم"],["الدور الأول","غرفة إقامة 106","لمبة 7وات",4,"سليم"],["الدور الأول","غرفة إقامة 106","مفتاح",6,"سليم"],["الدور الأول","غرفة إقامة 106","باب",2,"سليم"],["الدور الأول","غرفة إقامة 106","سرير",1,"سليم"],["الدور الأول","غرفة إقامة 106","تلفزيون",1,"سليم"],["الدور الأول","غرفة إقامة 106","ثلاجة",1,"سليم"],["الدور الأول","غرفة إقامة 106","حمام",1,"سليم"],["الدور الأول","غرفة إقامة 106","خلاط",1,"سليم"],["الدور الأول","غرفة إقامة 106","خلاط دش",1,"سليم"],["الدور الأول","غرفة إقامة 106","سخان مياه",1,"سليم"],["الدور الأول","غرفة إقامة 106","مخرج غاز طبي",1,"سليم"],["الدور الأول","غرفة إقامة 106","نقطة استدعاء تمريض",1,"سليم"],["الدور الأول","عيادة 1","تكييف اسبلت",1,"سليم"],["الدور الأول","عيادة 1","كشاف",4,"سليم"],["الدور الأول","عيادة 1","باب",1,"سليم"],["الدور الأول","عيادة 1","مكتب",1,"سليم"],["الدور الأول","عيادة 1","سرير",1,"سليم"],["الدور الأول","عيادة 1","خلاط",1,"سليم"],["الدور الأول","عيادة 2","تكييف اسبلت",1,"سليم"],["الدور الأول","عيادة 2","كشاف",4,"سليم"],["الدور الأول","عيادة 2","باب",1,"سليم"],["الدور الأول","عيادة 2","مكتب",1,"سليم"],["الدور الأول","عيادة 2","سرير",1,"سليم"],["الدور الأول","عيادة 2","خلاط",1,"سليم"],["الدور الأول","عيادة 3","تكييف اسبلت",1,"سليم"],["الدور الأول","عيادة 3","كشاف",4,"سليم"],["الدور الأول","عيادة 3","باب",1,"سليم"],["الدور الأول","عيادة 3","مكتب",1,"سليم"],["الدور الأول","عيادة 3","سرير",1,"سليم"],["الدور الأول","عيادة 3","خلاط",1,"سليم"],["الدور الأول","عيادة 4","تكييف اسبلت",1,"سليم"],["الدور الأول","عيادة 4","كشاف",4,"سليم"],["الدور الأول","عيادة 4","باب",1,"سليم"],["الدور الأول","عيادة 4","مكتب",1,"سليم"],["الدور الأول","عيادة 4","سرير",1,"سليم"],["الدور الأول","عيادة 4","خلاط",1,"سليم"],["الدور الأول","عيادة 5","تكييف اسبلت",1,"سليم"],["الدور الأول","عيادة 5","كشاف",4,"سليم"],["الدور الأول","عيادة 5","باب",1,"سليم"],["الدور الأول","عيادة 5","مكتب",1,"سليم"],["الدور الأول","عيادة 5","سرير",1,"سليم"],["الدور الأول","عيادة 5","خلاط",1,"سليم"],["الدور الأرضي","الصيدلية","تكييف اسبلت",1,"سليم"],["الدور الأرضي","الصيدلية","كشاف",4,"سليم"],["الدور الأرضي","الصيدلية","مفتاح",2,"سليم"],["الدور الأرضي","الصيدلية","باب",1,"سليم"],["الدور الأرضي","الصيدلية","ثلاجة",5,"سليم"],["الدور الأرضي","معمل الذكورة","تكييف اسبلت",1,"سليم"],["الدور الأرضي","معمل الذكورة","كشاف",2,"سليم"],["الدور الأرضي","معمل الذكورة","مفتاح",2,"سليم"],["الدور الأرضي","معمل الذكورة","باب",1,"سليم"],["الدور الأرضي","معمل الذكورة","خلاط",1,"سليم"],["الدور الأرضي","معمل الدم","تكييف اسبلت",1,"سليم"],["الدور الأرضي","معمل الدم","كشاف",4,"سليم"],["الدور الأرضي","معمل الدم","مفتاح",2,"سليم"],["الدور الأرضي","معمل الدم","باب",1,"سليم"],["الدور الأرضي","معمل الدم","ثلاجة",2,"سليم"],["الدور الأرضي","معمل الدم","خلاط",1,"سليم"],["الدور الأرضي","التعقيم","تكييف اسبلت",1,"سليم"],["الدور الأرضي","التعقيم","كشاف",2,"سليم"],["الدور الأرضي","التعقيم","مفتاح",3,"سليم"],["الدور الأرضي","التعقيم","باب",1,"سليم"],["الدور الأرضي","التعقيم","شفاط",1,"سليم"],["الدور الأرضي","التعقيم","خلاط",1,"سليم"],["الدور الأرضي","التعقيم","لوحة كهرباء",1,"سليم"],["الدور الأرضي","الطوارئ","تكييف اسبلت",1,"سليم"],["الدور الأرضي","الطوارئ","كشاف",5,"سليم"],["الدور الأرضي","الطوارئ","لمبة 7وات",2,"سليم"],["الدور الأرضي","الطوارئ","مفتاح",3,"سليم"],["الدور الأرضي","الطوارئ","باب",1,"سليم"],["الدور الأرضي","الطوارئ","مكتب",1,"سليم"],["الدور الأرضي","الطوارئ","مخرج غاز طبي",3,"سليم"],["الدور الأرضي","الطوارئ","كرسي",2,"سليم"],["الدور الأرضي","مكتب مدير المستشفى","تكييف اسبلت",1,"سليم"],["الدور الأرضي","مكتب مدير المستشفى","كشاف",4,"سليم"],["الدور الأرضي","مكتب مدير المستشفى","كرسي",8,"سليم"],["الدور الأرضي","مكتب مدير المستشفى","مفتاح",2,"سليم"],["الدور الأرضي","مكتب مدير المستشفى","باب",2,"سليم"],["الدور الأرضي","مكتب مدير المستشفى","مكتب",3,"سليم"],["الدور الأرضي","مكتب مدير المستشفى","دولاب",1,"سليم"],["الدور الأرضي","مكتب مدير المستشفى","تلفزيون",1,"سليم"],["الدور الأرضي","الاستقبال الرئيسي","تكييف اسبلت",3,"سليم"],["الدور الأرضي","الاستقبال الرئيسي","كشاف",23,"سليم"],["الدور الأرضي","الاستقبال الرئيسي","لمبة 7وات",60,"سليم"],["الدور الأرضي","الاستقبال الرئيسي","مفتاح",6,"سليم"],["الدور الأرضي","الاستقبال الرئيسي","باب",1,"سليم"],["الدور الأرضي","الاستقبال الرئيسي","تلفزيون",1,"سليم"],["الدور الأرضي","الاستقبال الرئيسي","لوحة كهرباء",4,"سليم"],["الدور الأرضي","المغسلة","كشاف",5,"سليم"],["الدور الأرضي","المغسلة","مفتاح",3,"سليم"],["الدور الأرضي","المغسلة","باب",2,"سليم"],["الدور الأرضي","المغسلة","شفاط",1,"سليم"],["الدور الأرضي","المغسلة","لوحة كهرباء",1,"سليم"],["الدور الأرضي","المغسلة","خلاط",1,"سليم"],["الدور الأرضي","المغسلة","سخان مياه",1,"سليم"],["الدور الأرضي","المغسلة","ماكينة مغسلة",1,"سليم"],["الدور الأرضي","حمام رجالي – أرضي","كشاف",1,"سليم"],["الدور الأرضي","حمام رجالي – أرضي","مفتاح",1,"سليم"],["الدور الأرضي","حمام رجالي – أرضي","باب",1,"سليم"],["الدور الأرضي","حمام رجالي – أرضي","خلاط",1,"سليم"],["الدور الأرضي","حمام رجالي – أرضي","شباك",1,"سليم"],["الدور الأرضي","حمام سيدات – أرضي","كشاف",1,"سليم"],["الدور الأرضي","حمام سيدات – أرضي","مفتاح",2,"سليم"],["الدور الأرضي","حمام سيدات – أرضي","باب",1,"سليم"],["الدور الأرضي","حمام سيدات – أرضي","خلاط",1,"سليم"],["الدور الأرضي","حمام سيدات – أرضي","شفاط",1,"سليم"],["الدور الأرضي","المطبخ","كشاف",4,"سليم"],["الدور الأرضي","المطبخ","شفاط",2,"سليم"],["الدور الأرضي","المطبخ","خلاط",2,"سليم"],["الدور الأرضي","المطبخ","ثلاجة",3,"سليم"],["الدور الأرضي","المطبخ","كرسي",2,"سليم"]];
-const INV_CONDS=['سليم','يحتاج صيانة','تالف'];
-const INV_CATS=['مدني','كهرباء','سباكة','تكييف','أثاث','أجهزة','غازات طبية','أخرى'];
-const DEF_ITEMS=[['تكييف اسبلت','تكييف'],['تكييف كونسلد','تكييف'],['تكييف استاند','تكييف'],['كشاف','كهرباء'],['لمبة 7وات','كهرباء'],['مفتاح','كهرباء'],['لوحة كهرباء','كهرباء'],['نقطة استدعاء تمريض','كهرباء'],['شفاط','كهرباء'],['مولد','كهرباء'],['باب','مدني'],['شباك','مدني'],['ستارة','مدني'],['حوض','سباكة'],['قاعدة','سباكة'],['كمود','سباكة'],['خلاط','سباكة'],['خلاط دش','سباكة'],['شطاف','سباكة'],['حمام','سباكة'],['سخان مياه','سباكة'],['مضخة مياه','سباكة'],['سرير','أثاث'],['دولاب','أثاث'],['مكتب','أثاث'],['كرسي','أثاث'],['كنب','أثاث'],['ترابيزة','أثاث'],['تلفزيون','أجهزة'],['ثلاجة','أجهزة'],['ماكينة مغسلة','أجهزة'],['حضانة أطفال','أجهزة'],['مخرج غاز طبي','غازات طبية'],['منظم غاز طبي','غازات طبية']];
-let iv={view:'loc',loc:'',all:false,extra:{},fl:'',cat:'',_rows:[]};
-const b64=t=>btoa(unescape(encodeURIComponent(t))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-const ivKey=(fl,loc,item,cond)=>[fl,loc,item,cond].join('|');
-const ivId=k=>'iv_'+b64(k);
-function allLocs(){
-  const m=new Map();DEF_LOCS.forEach(([fl,z,n])=>m.set(fl+'|'+n,{fl,zone:z,name:n,def:true}));
-  invLocs.forEach(l=>{const k=l.fl+'|'+l.name;m.set(k,{...(m.get(k)||{}),...l,def:m.has(k)&&m.get(k).def})});
-  return [...m.entries()].map(([key,v])=>({key,...v}));
-}
-function allItems(){
-  const m=new Map();DEF_ITEMS.forEach(([n,c])=>m.set(n,{name:n,cat:c,unit:'قطعة',cost:0,def:true}));
-  invItems.forEach(i=>{const o=m.get(i.name);m.set(i.name,{...(o||{}),...i,def:!!(o&&o.def)})});
-  return [...m.values()];
-}
-const itemInfo=n=>allItems().find(i=>i.name===n)||{name:n,cat:'أخرى',cost:0,unit:'قطعة'};
-const normCond=c=>{c=String(c||'');return c.includes('تالف')?'تالف':c.includes('صيانة')?'يحتاج صيانة':'سليم'};
-function locOf(fl,name){return allLocs().find(l=>l.fl===fl&&l.name===name)}
-async function ivPut(fl,loc,item,cond,qty){
-  const k=ivKey(fl,loc,item,cond),id=ivId(k),i=ivr.findIndex(r=>r.id===id);
-  if(qty>0){const l=locOf(fl,loc),o={fl,zone:(l&&l.zone)||'',loc,item,cat:itemInfo(item).cat,cond,qty,key:k};if(i>=0)ivr[i]={...ivr[i],...o};else ivr.push({id,...o});await db.collection('inv').doc(id).set(o)}
-  else{if(i>=0)ivr.splice(i,1);await db.collection('inv').doc(id).delete()}
-}
-function ivCell(r,c,v){
-  const it=iv._rows[r],l=curLoc();if(!l)return;
-  ivPut(l.fl,l.name,it,INV_CONDS[c],Math.max(0,parseInt(v)||0)).then(()=>render());
-}
-const curLoc=()=>allLocs().find(l=>l.key===iv.loc)||null;
-function locMatch(n,l){
-  const dept=String(n.dept||''),num=(l.name.match(/\d{3}/)||[])[0];
-  if(num)return dept.includes(num);
-  const nm=l.name.trim();return nm.length>2&&(dept.includes(nm)||nm.includes(dept)&&dept.length>2);
-}
-function ivSubTabs(){return `<div class="card"><div class="fbar">${[['loc','حصر بالمكان'],['sum','الملخص والتصدير'],['items','الأصناف والأسعار']].map(([k,v])=>`<button class="btn ${iv.view===k?'':'alt'}" onclick="iv.view='${k}';render()">${v}</button>`).join('')}</div></div>`}
-function vInv(){
-  const body=iv.view==='sum'?ivSum():iv.view==='items'?ivItems():ivLoc();
-  return ivSubTabs()+body;
-}
-function locOptions(L,floors){
-  let o='<option value="">— اختر المكان —</option>';
-  floors.forEach(f=>{[...new Set(L.filter(l=>l.fl===f).map(l=>l.zone))].forEach(z=>{
-    o+='<optgroup label="'+esc(f)+' – '+esc(z)+'">';
-    L.filter(l=>l.fl===f&&l.zone===z).forEach(l=>{const n=ivr.filter(r=>r.fl===l.fl&&r.loc===l.name).reduce((a,r)=>a+(+r.qty||0),0);o+='<option value="'+esc(l.key)+'"'+(l.key===iv.loc?' selected':'')+'>'+esc(l.name)+(n?' ('+n+')':'')+'</option>'});
-    o+='</optgroup>'})});
-  return o;
-}
-function ivLoc(){
-  const L=allLocs(),floors=[...new Set(L.map(l=>l.fl))],sel=curLoc();
-  let h=`<div class="card"><div class="row"><label style="flex:2 1 260px">المكان<select id="iv_loc" onchange="iv.loc=this.value;iv.all=false;render()">${locOptions(L,floors)}</select></label>
-  ${sel?`<button class="btn alt" onclick="ivCopyOpen()">نسخ هذا الحصر إلى أماكن أخرى</button><button class="btn alt" onclick="iv.all=!iv.all;render()">${iv.all?'عرض الأصناف الموجودة فقط':'عرض كل الأصناف'}</button><button class="btn" style="background:#b42318" onclick="ivClearLoc()">مسح حصر المكان</button>`:''}</div></div>`;
-  h+=`<div class="card addf"><b>مكان جديد</b><div class="row"><label>الدور<input id="il_f" list="il_fl" data-keep="1" placeholder="الدور الأول"></label><datalist id="il_fl">${floors.map(f=>`<option value="${esc(f)}">`).join('')}</datalist><label>المنطقة<input id="il_z" data-keep="1" placeholder="غرف الإقامة"></label><label>اسم المكان<input id="il_n" data-keep="1"></label><button class="btn" onclick="ivAddLoc()">إضافة مكان</button></div></div>
-  <div class="card addf"><b>تحميل / استيراد الحصر</b><div class="msg">«تحميل الحصر الحالي» بيضيف الأعداد الموجودة في ملف maintenance_budget_2027_linked.xlsx (${DEF_INV.length} بند) داخل البرنامج. لو غيّرت أعداد نفس الأصناف قبل كده بتتبدل بقيم الملف. تقدر كمان تستورد نسخة محدّثة من الملف.</div><div class="row" style="margin-top:6px"><button class="btn" onclick="ivLoadDefault()">تحميل الحصر الحالي (${DEF_INV.length} بند)</button><label class="btn alt" style="flex-direction:row">استيراد من ملف إكسل<input type="file" accept=".xlsx" onchange="ivImportFile(this.files[0])" hidden></label></div><div id="ivmsg" class="msg"></div></div>`;
-  if(!sel)return h+`<div class="card"><div class="msg">اختر مكان من القائمة لعرض وتعديل محتوياته. الرقم بين قوسين = إجمالي عدد الأصناف المسجلة فيه.</div></div>`;
-  const recs=ivr.filter(r=>r.fl===sel.fl&&r.loc===sel.name),items=allItems();
-  const have=new Set(recs.map(r=>r.item)),extra=iv.extra[sel.key]||[];
-  const shown=items.filter(i=>iv.all||have.has(i.name)||extra.includes(i.name)).map(i=>i.name);
-  iv._rows=shown;
-  const q=(item,cond)=>recs.filter(r=>r.item===item&&r.cond===cond).reduce((a,r)=>a+(+r.qty||0),0);
-  const tot=recs.reduce((a,r)=>a+(+r.qty||0),0),bad=recs.filter(r=>r.cond==='تالف').reduce((a,r)=>a+(+r.qty||0),0),mnt=recs.filter(r=>r.cond==='يحتاج صيانة').reduce((a,r)=>a+(+r.qty||0),0);
-  const open=notices.filter(n=>n.status!=='تم الإصلاح'&&locMatch(n,sel));
-  h+=`<div class="card"><div class="grid"><div class="k"><b>${tot}</b>إجمالي الأصناف</div><div class="k ${mnt?'s-warn':''}"><b>${mnt}</b>تحتاج صيانة</div><div class="k ${bad?'s-bad':''}"><b>${bad}</b>تالف</div><div class="k ${open.length?'s-warn':''}"><b>${open.length}</b>أعطال مفتوحة في المكان</div></div>${open.length?`<div class="msg" style="margin-top:6px">${open.slice(0,5).map(n=>esc(n.ref)+' – '+esc(n.details)).join('؛ ')}</div>`:''}</div>`;
-  const notShown=items.filter(i=>!shown.includes(i.name));
-  h+=`<div class="card wrap"><table><tr><th>الصنف</th><th>التصنيف</th>${INV_CONDS.map(c=>`<th>${c}</th>`).join('')}<th>الإجمالي</th></tr>`;
-  shown.forEach((it,r)=>{const info=itemInfo(it),v=INV_CONDS.map(c=>q(it,c)),t=v.reduce((a,b)=>a+b,0);
-    h+=`<tr><td class="l"><b>${esc(it)}</b></td><td>${esc(info.cat)}</td>${v.map((x,c)=>`<td class="${c===2&&x?'s-bad':c===1&&x?'s-warn':''}"><input type="number" min="0" data-keep="1" value="${x||''}" style="width:80px" onchange="ivCell(${r},${c},this.value)"></td>`).join('')}<td><b>${t}</b></td></tr>`});
-  h+=(shown.length?'':'<tr><td colspan="6">لا توجد أصناف مسجلة في هذا المكان بعد — أضف صنف من القائمة تحت أو اعرض كل الأصناف</td></tr>')+`</table></div>`;
-  h+=`<div class="card"><div class="row"><label style="flex:2 1 240px">إضافة صنف لهذا المكان<select id="iv_add" onchange="ivAddRow(this.value);this.value=''"><option value="">— اختر صنف —</option>${notShown.map(i=>`<option>${esc(i.name)}</option>`).join('')}<option value="__new">＋ صنف جديد غير موجود في القائمة…</option></select></label></div></div>`;
-  return h;
-}
-function ivAddRow(v){
-  const sel=curLoc();if(!sel||!v)return;
-  if(v==='__new'){const n=(prompt('اسم الصنف الجديد (مثل: مرآة، سلة مهملات، ستارة...)')||'').trim();if(!n)return;
-    const c=(prompt('التصنيف: '+INV_CATS.join(' / '),'أخرى')||'أخرى').trim();db.collection('invItems').doc('it_'+b64(n)).set({name:n,cat:INV_CATS.includes(c)?c:'أخرى',unit:'قطعة',cost:0});v=n}
-  (iv.extra[sel.key]=iv.extra[sel.key]||[]).push(v);render();
-}
-async function ivAddLoc(){
-  const fl=$('#il_f').value.trim(),z=$('#il_z').value.trim()||fl,n=$('#il_n').value.trim();if(!fl||!n){alert('اكتب الدور واسم المكان');return}
-  if(allLocs().some(l=>l.fl===fl&&l.name===n)){alert('المكان موجود بالفعل');return}
-  await db.collection('invLocs').doc('lc_'+b64(fl+'|'+n)).set({fl,zone:z,name:n});iv.loc=fl+'|'+n;toast('تمت إضافة المكان ✓');
-}
-async function ivClearLoc(){
-  const l=curLoc();if(!l)return;const recs=ivr.filter(r=>r.fl===l.fl&&r.loc===l.name);
-  if(!recs.length||!confirm('مسح كل أصناف «'+l.name+'» ('+recs.length+' بند)؟'))return;
-  for(const r of recs)await ivPut(r.fl,r.loc,r.item,r.cond,0);render();
-}
-function ivCopyOpen(){
-  const src=curLoc();if(!src)return;closeEdit();
-  const L=allLocs().filter(l=>l.key!==src.key);
-  const d=document.createElement('div');d.id='md';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:60;overflow:auto;padding:12px';
-  d.innerHTML=`<div class="card" style="max-width:640px;margin:16px auto"><b>نسخ حصر «${esc(src.name)}» إلى:</b><div class="msg">الأصناف بتتنسخ بنفس الأعداد والحالات. الأصناف الموجودة بالفعل في المكان الهدف بتفضل زي ما هي (إلا لو اخترت الاستبدال).</div>
-  <div class="row" style="margin:8px 0"><label style="flex-direction:row;align-items:center;gap:4px;flex:0 0 auto"><input type="checkbox" id="cp_rep" style="width:auto;min-height:0"> استبدال الموجود</label><button class="btn sm alt" onclick="document.querySelectorAll('.cp_c').forEach(c=>c.checked=true)">تحديد الكل</button><button class="btn sm alt" onclick="document.querySelectorAll('.cp_c').forEach(c=>c.checked=false)">إلغاء التحديد</button></div>
-  <div style="max-height:50vh;overflow:auto;border:1px solid var(--bd);border-radius:8px;padding:6px">${L.map(l=>`<label style="flex-direction:row;align-items:center;gap:6px;padding:3px 0;color:var(--tx);font-size:13px"><input type="checkbox" class="cp_c" value="${esc(l.key)}" style="width:auto;min-height:0"> ${esc(l.fl)} – ${esc(l.name)}</label>`).join('')}</div>
-  <div class="row" style="margin-top:10px"><button class="btn" onclick="ivCopyDo()">نسخ</button><button class="btn alt" onclick="closeEdit()">إلغاء</button></div></div>`;
-  document.body.appendChild(d);
-}
-async function ivCopyDo(){
-  const src=curLoc(),rep=document.getElementById('cp_rep').checked,keys=[...document.querySelectorAll('.cp_c:checked')].map(c=>c.value);
-  if(!keys.length){alert('اختر مكان واحد على الأقل');return}
-  const recs=ivr.filter(r=>r.fl===src.fl&&r.loc===src.name);let n=0;
-  for(const k of keys){const t=allLocs().find(l=>l.key===k);if(!t)continue;
-    for(const r of recs){const exists=ivr.some(x=>x.fl===t.fl&&x.loc===t.name&&x.item===r.item);
-      if(exists&&!rep)continue;await ivPut(t.fl,t.name,r.item,r.cond,r.qty);n++}}
-  closeEdit();toast('تم نسخ '+n+' بند إلى '+keys.length+' مكان');render();
-}
-async function ivLoadRows(rows){
-  const locs=new Set(allLocs().map(l=>l.key));let n=0;
-  for(const [fl,loc,item,qty,cond,zone] of rows){
-    if(!locs.has(fl+'|'+loc)){await db.collection('invLocs').doc('lc_'+b64(fl+'|'+loc)).set({fl,zone:zone||fl,name:loc});locs.add(fl+'|'+loc);invLocs.push({fl,zone:zone||fl,name:loc})}
-    if(!allItems().some(i=>i.name===item)){await db.collection('invItems').doc('it_'+b64(item)).set({name:item,cat:'أخرى',unit:'قطعة',cost:0});invItems.push({name:item,cat:'أخرى',unit:'قطعة',cost:0})}
-    await ivPut(fl,loc,item,normCond(cond),+qty||0);n++;
-  }
-  return n;
-}
-ivLoadRows=noLog(ivLoadRows);
-async function ivLoadDefault(){
-  if(!confirm('تحميل '+DEF_INV.length+' بند حصر من الملف؟ (أعداد نفس الأصناف والأماكن بتتبدل بقيم الملف)'))return;
-  const n=await ivLoadRows(DEF_INV);const m=document.getElementById('ivmsg');if(m)m.textContent='تم تحميل '+n+' بند.';toast('تم تحميل الحصر ✓');render();
-}
-async function ivImportFile(f){
-  if(!f)return;if(typeof XLSX==='undefined'){alert('مكتبة الإكسل غير محملة – تأكد من الإنترنت وجرّب تاني');return}
-  const wb=XLSX.read(await f.arrayBuffer()),ws=wb.Sheets['حصر المحتويات']||wb.Sheets[wb.SheetNames[0]];
-  const agg=new Map();XLSX.utils.sheet_to_json(ws,{header:1,defval:''}).slice(3).forEach(r=>{
-    const fl=String(r[1]).trim(),zone=String(r[2]).trim(),loc=String(r[3]).trim(),item=String(r[4]).trim(),q=+r[5]||0;if(!fl||!loc||!item||q<=0)return;
-    const c=normCond(r[6]),k=[fl,loc,item,c].join('|'),o=agg.get(k);agg.set(k,o?[fl,loc,item,o[3]+q,c,zone]:[fl,loc,item,q,c,zone])});
-  const rows=[...agg.values()];if(!rows.length){alert('لم أجد بنود بأعداد في الملف');return}
-  if(!confirm('استيراد '+rows.length+' بند من الملف؟'))return;
-  const n=await ivLoadRows(rows);const m=document.getElementById('ivmsg');if(m)m.textContent='تم استيراد '+n+' بند من الملف.';toast('تم الاستيراد ✓');render();
-}
-function ivSumData(){
-  const fl=iv.fl,cat=iv.cat,recs=ivr.filter(r=>(!fl||r.fl===fl)&&(!cat||r.cat===cat));
-  const byItem={},byLoc={};
-  recs.forEach(r=>{const o=byItem[r.item]=byItem[r.item]||{item:r.item,cat:r.cat,ok:0,mnt:0,bad:0};const k=r.cond==='تالف'?'bad':r.cond==='يحتاج صيانة'?'mnt':'ok';o[k]+=+r.qty||0;
-    const lk=r.fl+'|'+r.loc,p=byLoc[lk]=byLoc[lk]||{fl:r.fl,loc:r.loc,tot:0,mnt:0,bad:0};p.tot+=+r.qty||0;if(k==='bad')p.bad+=+r.qty||0;if(k==='mnt')p.mnt+=+r.qty||0});
-  return{recs,items:Object.values(byItem).sort((a,b)=>(b.ok+b.mnt+b.bad)-(a.ok+a.mnt+a.bad)),locs:Object.values(byLoc)};
-}
-function ivSum(){
-  const d=ivSumData(),floors=[...new Set(allLocs().map(l=>l.fl))];
-  const tot=d.items.reduce((a,i)=>a+i.ok+i.mnt+i.bad,0),mnt=d.items.reduce((a,i)=>a+i.mnt,0),bad=d.items.reduce((a,i)=>a+i.bad,0);
-  const repl=d.items.reduce((a,i)=>a+i.bad*(+itemInfo(i.item).cost||0),0),noCost=d.items.filter(i=>i.bad&&!(+itemInfo(i.item).cost)).length;
-  const byCat={};d.items.forEach(i=>byCat[i.cat]=(byCat[i.cat]||0)+i.ok+i.mnt+i.bad);
-  const worst=d.locs.filter(l=>l.bad+l.mnt>0).sort((a,b)=>(b.bad*2+b.mnt)-(a.bad*2+a.mnt)).slice(0,10);
-  let h=`<div class="card"><div class="row"><label>الدور<select onchange="iv.fl=this.value;render()"><option value="">الكل</option>${floors.map(f=>`<option ${iv.fl===f?'selected':''}>${esc(f)}</option>`).join('')}</select></label><label>التصنيف<select onchange="iv.cat=this.value;render()"><option value="">الكل</option>${INV_CATS.map(c=>`<option ${iv.cat===c?'selected':''}>${c}</option>`).join('')}</select></label><button class="btn" onclick="exportInv()">تصدير Excel</button><button class="btn alt" onclick="pdf('ملخص_حصر_المحتويات_'+ymd(new Date()))">تصدير PDF</button></div></div>
-  <div class="card" id="rep"><h3>ملخص حصر المحتويات – مستشفى الابتسامة</h3><div class="msg">${iv.fl||'كل الأدوار'} · ${iv.cat||'كل التصنيفات'} · ${dFmt(ymd(new Date()))}</div>
-  <div class="grid" style="margin:8px 0"><div class="k"><b>${tot}</b>إجمالي الأصناف</div><div class="k"><b>${d.items.length}</b>نوع صنف</div><div class="k ${mnt?'s-warn':''}"><b>${mnt}</b>تحتاج صيانة</div><div class="k ${bad?'s-bad':''}"><b>${bad}</b>تالف</div><div class="k"><b>${money(repl)}</b>تقدير استبدال التالف (ج.م)</div></div>
-  ${noCost?`<div class="msg">⚠ ${noCost} صنف تالف ماله سعر استبدال — أدخل السعر من «الأصناف والأسعار» لتظهر القيمة كاملة.</div>`:''}
-  ${barChart('الأعداد حسب التصنيف',Object.entries(byCat).sort((a,b)=>b[1]-a[1]))}${barChart('أكتر الأماكن احتياجاً لصيانة/استبدال (تالف + يحتاج صيانة)',worst.map(l=>[l.loc.trim(),l.bad+l.mnt]))}
-  <h4>حسب الصنف</h4><div style="overflow-x:auto"><table><tr>${['الصنف','التصنيف','الإجمالي','سليم','يحتاج صيانة','تالف','سعر الاستبدال','تقدير استبدال التالف'].map(x=>`<th>${x}</th>`).join('')}</tr>
-  ${d.items.map(i=>{const c=+itemInfo(i.item).cost||0;return `<tr><td class="l">${esc(i.item)}</td><td>${esc(i.cat)}</td><td><b>${i.ok+i.mnt+i.bad}</b></td><td>${i.ok}</td><td class="${i.mnt?'s-warn':''}">${i.mnt}</td><td class="${i.bad?'s-bad':''}">${i.bad}</td><td>${c?money(c):''}</td><td>${i.bad&&c?money(i.bad*c):''}</td></tr>`}).join('')||'<tr><td colspan="8">لا توجد بيانات — حمّل الحصر أو سجّل أصناف بالمكان</td></tr>'}</table></div>
-  <h4>حسب المكان (الأعلى احتياجاً أولاً)</h4><div style="overflow-x:auto"><table><tr>${['الدور','المكان','الإجمالي','تحتاج صيانة','تالف','نسبة غير السليم'].map(x=>`<th>${x}</th>`).join('')}</tr>
-  ${d.locs.sort((a,b)=>(b.bad+b.mnt)/(b.tot||1)-(a.bad+a.mnt)/(a.tot||1)).map(l=>`<tr><td>${esc(l.fl)}</td><td class="l">${esc(l.loc.trim())}</td><td>${l.tot}</td><td class="${l.mnt?'s-warn':''}">${l.mnt}</td><td class="${l.bad?'s-bad':''}">${l.bad}</td><td>${Math.round(100*(l.bad+l.mnt)/(l.tot||1))}%</td></tr>`).join('')||'<tr><td colspan="6">—</td></tr>'}</table></div></div>`;
-  return h;
-}
-function exportInv(){
-  if(typeof XLSX==='undefined'){alert('مكتبة الإكسل غير محملة – تأكد من الإنترنت وجرّب تاني');return}
-  const d=ivSumData(),recs=d.recs.slice().sort((a,b)=>(a.fl+a.loc+a.item).localeCompare(b.fl+b.loc+b.item,'ar'));
-  const wb=XLSX.utils.book_new(),add=(n,aoa,w)=>{const ws=XLSX.utils.aoa_to_sheet(aoa);ws['!cols']=w.map(x=>({wch:x}));ws['!views']=[{RTL:true}];XLSX.utils.book_append_sheet(wb,ws,n)};
-  wb.Workbook={Views:[{RTL:true}]};
-  add('حصر المحتويات',[['حصر محتويات الغرف والمناطق'],[],['م','الدور','المنطقة','الموقع / الغرفة','الصنف','التصنيف','العدد','الحالة','ملاحظات'],...recs.map((r,i)=>[i+1,r.fl,r.zone||'',String(r.loc).trim(),r.item,r.cat||'',+r.qty||0,r.cond,''])],[6,16,20,28,22,14,8,14,20]);
-  add('ملخص الأصناف',[['الصنف','التصنيف','الإجمالي','سليم','يحتاج صيانة','تالف','سعر الاستبدال (ج.م)','تقدير استبدال التالف (ج.م)'],...d.items.map(i=>{const c=+itemInfo(i.item).cost||0;return[i.item,i.cat,i.ok+i.mnt+i.bad,i.ok,i.mnt,i.bad,c||'',i.bad&&c?i.bad*c:'']})],[24,14,10,10,12,10,16,22]);
-  add('ملخص الأماكن',[['الدور','المكان','الإجمالي','تحتاج صيانة','تالف','نسبة غير السليم %'],...d.locs.sort((a,b)=>a.fl.localeCompare(b.fl,'ar')||a.loc.localeCompare(b.loc,'ar')).map(l=>[l.fl,String(l.loc).trim(),l.tot,l.mnt,l.bad,Math.round(100*(l.bad+l.mnt)/(l.tot||1))])],[16,28,10,12,10,16]);
-  dl('حصر_المحتويات_'+ymd(new Date())+'.xlsx',XLSX.write(wb,{type:'array',bookType:'xlsx'}));toast('تم تجهيز ملف الحصر');
-}
-function ivItems(){
-  const its=allItems(),cnt={};ivr.forEach(r=>cnt[r.item]=(cnt[r.item]||0)+(+r.qty||0));
-  let h=`<div class="card addf"><b>صنف جديد</b><div class="row"><label>اسم الصنف<input id="ni_name" data-keep="1"></label><label>التصنيف<select id="ni_cat">${INV_CATS.map(c=>`<option>${c}</option>`).join('')}</select></label><label>سعر الاستبدال (ج.م)<input id="ni_cost" type="number" min="0" data-keep="1"></label><button class="btn" onclick="ivNewItem()">إضافة</button></div></div>
-  <div class="card"><div class="msg">سعر الاستبدال بيُستخدم لتقدير تكلفة استبدال الأصناف التالفة في الملخص. اكتب سعر الوحدة بالجنيه.</div></div>
-  <div class="card wrap"><table><tr>${['الصنف','التصنيف','سعر الاستبدال (ج.م)','الموجود','إجراءات'].map(x=>`<th>${x}</th>`).join('')}</tr>`;
-  its.forEach(i=>{const id='it_'+b64(i.name);
-    h+=`<tr><td class="l"><b>${esc(i.name)}</b></td><td><select onchange="ivItemSet('${id}','cat',this.value,${JSON.stringify(esc(i.name))})">${INV_CATS.map(c=>`<option ${c===i.cat?'selected':''}>${c}</option>`).join('')}</select></td><td><input type="number" min="0" data-keep="1" value="${+i.cost||''}" style="width:110px" onchange="ivItemSet('${id}','cost',this.value,${JSON.stringify(esc(i.name))})"></td><td>${cnt[i.name]||0}</td><td>${i.def?'':`<button class="btn sm" style="background:#b42318" onclick="ivDelItem('${id}')">حذف</button>`}</td></tr>`});
-  return h+'</table></div>';
-}
-function ivItemSet(id,f,v,name){
-  name=name.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"');
-  const cur=allItems().find(i=>i.name===name)||{name,cat:'أخرى',unit:'قطعة',cost:0},o={name,cat:cur.cat,unit:cur.unit||'قطعة',cost:+cur.cost||0};
-  o[f]=f==='cost'?(+v||0):v;const i=invItems.findIndex(x=>x.name===name);if(i>=0)invItems[i]={...invItems[i],...o};else invItems.push({id,...o});
-  db.collection('invItems').doc(id).set(o);
-}
-async function ivNewItem(){
-  const n=$('#ni_name').value.trim();if(!n){alert('اكتب اسم الصنف');return}
-  if(allItems().some(i=>i.name===n)){alert('الصنف موجود بالفعل');return}
-  await db.collection('invItems').doc('it_'+b64(n)).set({name:n,cat:$('#ni_cat').value,unit:'قطعة',cost:+$('#ni_cost').value||0});$('#ni_name').value='';toast('تمت إضافة الصنف ✓');
-}
-async function ivDelItem(id){const i=invItems.find(x=>x.id===id);if(!i)return;const used=ivr.some(r=>r.item===i.name);if(used&&!confirm('الصنف «'+i.name+'» له أعداد مسجلة في أماكن. حذفه من القائمة لن يحذف الأعداد. متأكد؟'))return;await db.collection('invItems').doc(id).delete()}
-async function assetAdd(){const c=$('#as_c').value.trim(),n=$('#as_n').value.trim();if(!c||!n){alert('اكتب الكود والاسم');return}
-  if(assets.some(a=>String(a.code).toLowerCase()===c.toLowerCase())){alert('الكود مستخدم من قبل');return}
-  await db.collection('assets').doc('as'+Date.now()).set({code:c,name:n,type:$('#as_t').value,cap:+$('#as_cap').value||0,capu:$('#as_cu').value,loc:$('#as_l').value,value:+$('#as_v').value||0,brand:$('#as_b').value.trim(),inst:+$('#as_y').value||''});$('#as_c').value='';$('#as_n').value='';toast('تمت الإضافة ✓')}
 async function assetBulkCap(){
   const f=$('#bk_f').value.trim(),t=$('#bk_t').value.trim(),c=+$('#bk_c').value;
   const m1=f.match(/^(.*?)(\d+)$/),m2=t.match(/^(.*?)(\d+)$/);
@@ -1135,7 +1081,7 @@ async function assetBulkCap(){
   toast('تم تحديث '+list.length+' أصل');
 }
 let inv=null;
-const INVMAP={'تكييف اسبلت':['AC','تكييف','تكييف سبليت'],'تكييف كونسلد':['AC','تكييف','تكييف كونسلد'],'تكييف استاند':['AC','تكييف','تكييف استاند'],'سخان مياه':['WH','سخان مياه','سخان مياه'],'لوحة كهرباء':['EP','لوحة كهرباء','لوحة كهرباء'],'ماكينة مغسلة':['WM','غسالة / مجفف / مكواة','ماكينة مغسلة'],'نقطة استدعاء تمريض':['NC','نظام نداء ممرضات','نقطة استدعاء تمريض'],'مولد':['GEN','مولد','مولد'],'مضخة مياه':['PUMP','موتور مياه','مضخة مياه'],'منظم غاز طبي':['REG','محطة غازات','منظم غاز طبي'],'حضانة أطفال':['INC','حضانة أطفال','حضانة أطفال'],'ثلاجة':['FR','ثلاجة','ثلاجة'],'تلفزيون':['TV','تلفزيون','تلفزيون'],'شفاط':['EF','شفاط','شفاط'],'مخرج غاز طبي':['MG','مخرج غاز طبي','مخرج غاز طبي']};
+const INVMAP={'تكييف اسبلت':['AC','تكييف','تكييف سبليت'],'تكييف كونسلد':['AC','تكييف','تكييف كونسلد'],'تكييف استاند':['AC','تكييف','تكييف استاند'],'سخان مياه':['WH','سخان مياه','سخان مياه'],'لوحة كهرباء':['EP','لوحة كهرباء','لوحة كهرباء'],'ماكينة مغسلة':['WM','غسالة / مجفف / مكواة','ماكينة مغسلة'],'نقطة استدعاء تمريض':['NC','نظام نداء ممرضات','نقطة استدعاء تمريض'],'مولد':['GEN','مولد','مولد'],'مضخة مياه':['PUMP','موتور مياه','مضخة مياه'],'منظم غاز طبي':['REG','محطة غازات','منظم غاز طبي'],'حضانة أطفال':['INC','حضانة أطفال','حضانة أطفال'],'ثلاجة':['FR','ثلاجة','ثلاجة'],'تلفزيون':['TV','تلفزيون','تلفزيون'],'شفاط':['EF','شفاط','شفاط'],'مخرج غاز طبي':['MG','مخرج غاز طبي','مخرج غاز طبي'],'باب':['DR','باب','باب'],'شباك':['WN','شباك','شباك'],'حوض':['SK','حوض','حوض'],'قاعدة':['TL','قاعدة','قاعدة'],'كمود':['TL','قاعدة','كمود'],'خلاط':['FX','خلاط','خلاط'],'خلاط دش':['FX','خلاط','خلاط دش'],'كشاف':['LT','كشاف','كشاف'],'كرسي':['CH','كرسي','كرسي'],'كنب':['SF','كنب','كنب'],'سرير':['BD','سرير','سرير'],'دولاب':['CB','دولاب','دولاب'],'مكتب':['DK','مكتب','مكتب'],'ترابيزة':['TB','ترابيزة','ترابيزة'],'ستارة':['CT','ستارة','ستارة']};
 const INVDEF=new Set(['تكييف اسبلت','تكييف كونسلد','تكييف استاند','سخان مياه','لوحة كهرباء','ماكينة مغسلة','نقطة استدعاء تمريض','مولد','مضخة مياه','منظم غاز طبي','حضانة أطفال']);
 function invSet(rows){const types={};rows.forEach(r=>types[r.it]=(types[r.it]||0)+r.n);inv={rows,types,sel:Object.fromEntries(Object.keys(types).map(k=>[k,INVDEF.has(k)]))};render()}
 async function invLoad(f){
@@ -1168,12 +1114,6 @@ async function seedAssets(){
   toast('تم تحميل '+L.length+' أصل');
 }
 seedAssets=noLog(seedAssets);
-function assetDetail(id){
-  const a=assets.find(x=>x.id===id);if(!a)return;const x=assetStats(a);closeEdit();
-  const d=document.createElement('div');d.id='md';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:60;overflow:auto;padding:12px';
-  d.innerHTML=`<div class="card" style="max-width:860px;margin:16px auto"><b>سجل أعطال ${esc(a.code)} – ${esc(a.name)}</b><div class="msg">عدد الأعطال ${x.ns.length} · التكلفة ${money(x.cost)} ج.م ${x.reason?'· ⚠ '+x.reason:''}</div><div class="wrap" style="margin-top:8px"><table><tr>${['الإخطار','التاريخ','العطل','الحالة','التكلفة'].map(t=>`<th>${t}</th>`).join('')}</tr>${x.ns.sort((p,q)=>String(iso(q.date)).localeCompare(String(iso(p.date)))).map(n=>`<tr><td>${n.ref}</td><td>${fd(n.date)}</td><td class="l">${esc(n.details)}</td><td class="${stCls(n.status)}">${esc(n.status)}</td><td>${money(noticeCost(n))}</td></tr>`).join('')||'<tr><td colspan="5">لا توجد أعطال مسجلة</td></tr>'}</table></div><div class="row" style="margin-top:10px"><button class="btn alt" onclick="closeEdit()">إغلاق</button></div></div>`;
-  document.body.appendChild(d);
-}
 /* ---------- المخزن وقطع الغيار ---------- */
 const SF=()=>[['name','الصنف','text'],['qty','الرصيد','number'],['min','الحد الأدنى','number'],['unit','الوحدة','text'],['cost','سعر الوحدة (ج.م)','number'],['loc','مكان التخزين','text'],['notes','ملاحظات','area']];
 function findStock(name){const b=String(name||'').trim().toLowerCase();if(!b)return null;return stock.find(x=>{const a=String(x.name||'').trim().toLowerCase();return a&&(a.includes(b)||b.includes(a))})||null}
@@ -1217,14 +1157,16 @@ function spendBy(year){
 function vBudget(){
   const sp=spendBy(bYear),bd=(settings.budget||{})[bYear]||{};
   const totB=TRALL.reduce((a,t)=>a+(+bd[t]||0),0),totS=TRALL.reduce((a,t)=>a+(sp.by[t]||0),0);
+  const plan=planBy(bYear),totP=TRALL.reduce((a,t)=>a+(plan.by[t]||0),0);
   const yrs=['2026','2027','2028'];
   let h=`<div class="card"><div class="row"><label>السنة<select onchange="bYear=this.value;render()">${yrs.map(y=>`<option ${y===bYear?'selected':''}>${y}</option>`).join('')}</select></label><button class="btn" onclick="pdf('التكاليف_والبادجت_'+bYear)">تصدير PDF</button></div>
   <div class="msg">المصروف = تكلفة الإصلاح/الخدمة المسجلة في الإخطارات + (السعر × الكمية) لأصناف الشراء (بدون المصروف من المخزن). أدخل البادجت لكل تخصص. تُسجَّل التكلفة في خانة «التكلفة» بالإخطار وسعر الوحدة في طلب الشراء.</div></div>
   <div class="card" id="rep"><h3>التكاليف مقابل البادجت – ${bYear} – قسم الصيانة</h3>
-  <div class="grid" style="margin:8px 0"><div class="k"><b>${money(totB)}</b>إجمالي البادجت (ج.م)</div><div class="k"><b>${money(totS)}</b>المصروف (ج.م)</div><div class="k ${totB&&totS>totB?'s-bad':''}"><b>${money(totB-totS)}</b>المتبقي (ج.م)</div><div class="k"><b>${totB?Math.round(100*totS/totB)+'%':'—'}</b>نسبة الاستهلاك</div></div>
-  <div style="overflow-x:auto"><table><tr>${['التخصص','البادجت (ج.م)','المصروف','المتبقي','نسبة الاستهلاك'].map(x=>`<th>${x}</th>`).join('')}</tr>
-  ${TRALL.map(t=>{const b=+bd[t]||0,s=sp.by[t]||0,p=b?s/b:null;return `<tr><td class="l">${t}</td><td>${t==='غير مصنف'?'—':`<input type="number" min="0" data-keep="1" value="${b||''}" style="width:110px" onchange="bSet('${t}',this.value)">`}</td><td>${money(s)}</td><td class="${b&&s>b?'s-bad':''}">${t==='غير مصنف'?'—':money(b-s)}</td><td class="${p===null?'':p>1?'s-bad':p>.8?'s-warn':'s-ok'}">${p===null?'—':Math.round(p*100)+'%'}</td></tr>`}).join('')}
-  <tr><td class="l"><b>الإجمالي</b></td><td><b>${money(totB)}</b></td><td><b>${money(totS)}</b></td><td><b>${money(totB-totS)}</b></td><td></td></tr></table></div>
+  <div class="grid" style="margin:8px 0"><div class="k"><b>${money(totB)}</b>إجمالي البادجت (ج.م)</div><div class="k"><b>${money(totS)}</b>المصروف (ج.م)</div><div class="k ${totB&&totS>totB?'s-bad':''}"><b>${money(totB-totS)}</b>المتبقي (ج.م)</div><div class="k"><b>${totB?Math.round(100*totS/totB)+'%':'—'}</b>نسبة الاستهلاك</div><div class="k"><b>${money(totP)}</b>استبدال مخطط من سجل الأصول (ج.م)</div><div class="k ${totB&&totS+totP>totB?'s-bad':''}"><b>${money(totB-totS-totP)}</b>المتبقي بعد المصروف والمخطط</div></div>
+  <div style="overflow-x:auto"><table><tr>${['التخصص','البادجت (ج.م)','المصروف','المتبقي','نسبة الاستهلاك','استبدال مخطط','المتبقي بعد المخطط'].map(x=>`<th>${x}</th>`).join('')}</tr>
+  ${TRALL.map(t=>{const b=+bd[t]||0,s=sp.by[t]||0,p=b?s/b:null;return `<tr><td class="l">${t}</td><td>${t==='غير مصنف'?'—':`<input type="number" min="0" data-keep="1" value="${b||''}" style="width:110px" onchange="bSet('${t}',this.value)">`}</td><td>${money(s)}</td><td class="${b&&s>b?'s-bad':''}">${t==='غير مصنف'?'—':money(b-s)}</td><td class="${p===null?'':p>1?'s-bad':p>.8?'s-warn':'s-ok'}">${p===null?'—':Math.round(p*100)+'%'}</td><td>${money(plan.by[t]||0)}</td><td class="${b&&(s+(plan.by[t]||0))>b?'s-bad':''}">${t==='غير مصنف'?'—':money(b-s-(plan.by[t]||0))}</td></tr>`}).join('')}
+  <tr><td class="l"><b>الإجمالي</b></td><td><b>${money(totB)}</b></td><td><b>${money(totS)}</b></td><td><b>${money(totB-totS)}</b></td><td></td><td><b>${money(totP)}</b></td><td><b>${money(totB-totS-totP)}</b></td></tr></table></div>
+  ${planTable(plan,bYear)}
   ${barChart('المصروف حسب التخصص (ج.م)',TRALL.map(t=>[t,Math.round(sp.by[t]||0)]).filter(r=>r[1]).sort((a,b)=>b[1]-a[1]))}
   ${barChart('المصروف حسب الشهر (ج.م)',sp.mo.map((v,i)=>[String(i+1).padStart(2,'0')+'/'+bYear,Math.round(v)]).filter(r=>r[1]))}</div>`;
   return h;
