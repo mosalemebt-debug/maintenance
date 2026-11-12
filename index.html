@@ -663,7 +663,7 @@ function prRender(){
   const bi=(en,ar)=>`<div class="bi"><span>${en}</span><span class="ar">${ar}</span></div>`;
   const box=(en,ar,v)=>`<td style="text-align:left">${bi(en,ar)}<div style="min-height:14px;text-align:center;font-weight:700">${esc(v||'')}</div></td>`;
   const sig=(en,ar,name)=>`<tr><td>${bi(en,ar)}</td><td>${esc(name||'')}</td><td></td><td></td></tr>`;
-  const hd=`<tr><th>${bi('Authorized By','يعتمد')}</th><th>${bi('Name','الاسم')}</th><th>${bi('Sign Name','التوقيع')}</th><th>${bi('Date','التاريخ')}</th></tr>`;
+  const hd=`<tr><th>${bi('يعتمد')}</th><th>${bi('الاسم')}</th><th>${bi('التوقيع')}</th><th>${bi('التاريخ')}</th></tr>`;
   document.getElementById('prpages').innerHTML=pages.map((pg,pi)=>{
     let tot=0;
     const rows=[...Array(7)].map((_,r)=>{const p=pg[r];const n=pi*7+r+1;if(!p)return `<tr><td>${n}</td><td></td><td style="height:20px"></td><td></td><td></td><td></td></tr>`;
@@ -677,9 +677,9 @@ function prRender(){
     <table style="margin-top:4px"><tr><td>${bi('Item Code','كود الصنف')}</td><td>${bi('Current Stock','الرصيد الحالي')}</td><td>${bi('Current Stock Value','قيمة الرصيد')}</td></tr></table>
     <table style="margin-top:4px"><tr><th style="width:5%">S<br>م</th><th style="width:14%">Item Code<br>كود الصنف</th><th>Description<br>وصف الصنف</th><th style="width:14%">Quantity Per Month/Year/Single<br>الكمية</th><th style="width:12%">Estimated Unit Price<br>السعر التقديري للوحدة</th><th style="width:12%">Estimated Total Price<br>الإجمالي التقديري</th></tr>${rows}
     <tr><td colspan="4" style="text-align:left"><b>Total PR Estimated Value</b> &nbsp; <span class="ar">إجمالي القيمة التقديرية للطلب</span></td><td colspan="2" style="text-align:right"><b>EGP ${tot.toFixed(2)}</b></td></tr></table>
-    <div style="display:flex;gap:6px;margin-top:6px"><table>${hd}${sig('Head of Department','مدير الإدارة',PRS.head)}<tr><td>${bi('Budget/Planned','الموازنة والخطط')}</td><td colspan="3">Yes ${ck(PRS.budget==='نعم')} &nbsp; No ${ck(PRS.budget==='لا')}</td></tr></table>
-    <table>${hd}${sig('In Line Manager','المدير المباشر','')}${sig('GM','المدير العام','')}</table></div>
-    <table style="margin-top:6px"><tr><td style="text-align:left;height:34px">${bi('Received Date With Required Authorization By Supply Chain','تم الاستلام بالتاريخ والاعتمادات المطلوبة في')}<div style="margin-top:6px">By: ____________ &nbsp;&nbsp; On: ____________ &nbsp;&nbsp; At: ____________</div></td></tr></table></div>`}).join('');
+    <div style="display:flex;gap:6px;margin-top:6px"><table>${hd}${sig('مدير الإدارة')}<tr><td>${bi('الموازنة والخطط')}</td><td colspan="3">Yes ${ck(PRS.budget==='نعم')} &nbsp; No ${ck(PRS.budget==='لا')}</td></tr></table>
+    <table>${hd}${sig('المدير المباشر','')}${sig('المدير العام','')}</table></div>
+    <table style="margin-top:6px"><tr><td style="text-align:left;height:34px">${bi('تم الاستلام بالتاريخ والاعتمادات المطلوبة في')}</div></td></tr></table></div>`}).join('');
 }
 async function prPdf(){
   const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:'p',unit:'pt',format:'a4'}),W=doc.internal.pageSize.getWidth()-30,Hh=doc.internal.pageSize.getHeight()-30;
