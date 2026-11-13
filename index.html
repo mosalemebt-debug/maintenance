@@ -143,7 +143,7 @@ table.compact th:nth-child(1),table.compact td:nth-child(1),table.compact th:nth
 </style>
 </head>
 <body>
-<header><span id="hdate" style="float:left;font-weight:400;font-size:12px;opacity:.85"></span><span id="net" style="float:left;margin-inline-end:10px;font-weight:400;font-size:12px;background:rgba(255,255,255,.18);border-radius:6px;padding:1px 8px"></span><button id="digtog" style="float:left;margin-inline-end:10px;background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.5);border-radius:6px;padding:0 8px;font-size:12px;cursor:pointer"></button>برنامج الصيانة – مستشفى الابتسامة – مصر الجديدة <small style="opacity:.7;font-weight:400">(إصدار 4-11 – ن)</small></header>
+<header><span id="hdate" style="float:left;font-weight:400;font-size:12px;opacity:.85"></span><span id="net" style="float:left;margin-inline-end:10px;font-weight:400;font-size:12px;background:rgba(255,255,255,.18);border-radius:6px;padding:1px 8px"></span><button id="digtog" style="float:left;margin-inline-end:10px;background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.5);border-radius:6px;padding:0 8px;font-size:12px;cursor:pointer"></button>برنامج الصيانة – مستشفى الابتسامة – مصر الجديدة <small style="opacity:.7;font-weight:400">(إصدار 4-11 – س)</small></header>
 <nav id="nav"></nav>
 <main id="main"></main>
 <button id="fab" title="إضافة جديد" onclick="toggleForm()">＋</button>
@@ -413,10 +413,10 @@ function vPurch(){
   <label>تاريخ الطلب<input type="date" id="p_rdate" value="${new Date().toISOString().slice(0,10)}"></label>
   <label>الصنف<input id="p_item"></label><label>الكمية<input id="p_qty" type="number" value="1" style="width:70px"></label>
   <button class="btn" onclick="savePurch()">حفظ</button><button class="btn alt" onclick="pdf('طلبات_الشراء')">تصدير PDF</button><button class="btn" onclick="openPR()">طباعة طلب شراء PR (للأصناف المحددة)</button></div></div>
-  ${pFilterBar()}<div class="card wrap" id="rep"><h3>طلبات الشراء – مستشفى الابتسامة</h3><table><tr><th class="noprint">PR</th>${['م','الإخطار','القسم','الصنف','الكمية','سعر الوحدة','تاريخ الطلب','الحالة','تاريخ التوريد','تاريخ التركيب'].map(x=>`<th>${x}</th>`).join('')}<th class="noprint">إجراءات</th></tr>`;
+  ${pFilterBar()}<div class="card wrap" id="rep"><h3>طلبات الشراء – مستشفى الابتسامة</h3><table><tr><th class="noprint">PR</th>${['م','الإخطار','القسم','الصنف','الكمية','تاريخ الطلب','الحالة','تاريخ التوريد','تاريخ التركيب'].map(x=>`<th>${x}</th>`).join('')}<th class="noprint">إجراءات</th></tr>`;
   purchases.slice().filter(pfOK).sort((a,b)=>(num(a.ref)||1e9)-(num(b.ref)||1e9)||a.k-b.k).forEach(p=>{const n=notices.find(x=>x.ref===p.ref)||{};
     const refSel=`<select onchange="db.collection('purchases').doc('${p.id}').update({ref:this.value})"><option value=""></option>${notices.slice().reverse().map(x=>`<option ${x.ref===p.ref?'selected':''}>${x.ref}</option>`).join('')}</select>`;
-    h+=`<tr><td class="noprint"><input type="checkbox" ${prSel.has(p.id)?'checked':''} onchange="togglePR('${p.id}',this.checked)"></td><td>${p.k}</td><td>${refSel}</td><td class="l">${esc(n.dept||p.notes)}</td><td class="l">${esc(p.item)}</td><td>${p.qty??''}</td><td><input type="number" data-keep="1" value="${p.price??''}" style="width:90px" onchange="db.collection('purchases').doc('${p.id}').update({price:+this.value||0})"></td><td>${fd(p.rdate)}</td>
+    h+=`<tr><td class="noprint"><input type="checkbox" ${prSel.has(p.id)?'checked':''} onchange="togglePR('${p.id}',this.checked)"></td><td>${p.k}</td><td>${refSel}</td><td class="l">${esc(n.dept||p.notes)}</td><td class="l">${esc(p.item)}</td><td>${p.qty??''}</td><td>${fd(p.rdate)}</td>
     <td class="${['تم الشراء/التوريد','صرف من المخزن','تم التركيب'].includes(p.status)?'s-ok':p.status==='لم يُطلب'?'s-bad':'s-warn'}"><select onchange="setPurchStatus('${p.id}',this.value)">${PST.map(s=>`<option ${s===p.status?'selected':''}>${s}</option>`).join('')}</select></td><td>${fd(p.ddate)}</td><td>${fd(p.idate)}</td><td class="noprint"><div style="display:flex;gap:4px;justify-content:center"><button class="btn sm alt" onclick="openEdit('purchases','${p.id}')">تعديل</button><button class="btn sm" style="background:#b42318" onclick="delItem('purchases','${p.id}')">حذف</button></div></td></tr>`});
   return h+'</table></div>';
 }
@@ -514,7 +514,7 @@ let EM=null;
 const NF=()=>[['date','التاريخ','date'],['time','الوقت','time'],['dept','القسم','text'],['reporter','مسؤول الإخطار','text'],['details','تفاصيل العطل','area'],['action','الإجراء المتخذ','area'],['status','الحالة','select',ST],['fixdate','تاريخ الإصلاح','date'],['rep','ممثل الصيانة','text'],['needbuy','يحتاج شراء؟','select',['','نعم','لا']],['prio','الأولوية (فارغ = تلقائي)','select',['',...PR]],['trade','التخصص','select',['',...TRD]],['asset','الأصل (الكود)','text'],['cost','تكلفة الإصلاح / الخدمة (ج.م)','number'],['notes','ملاحظات','area'],['cls','التصنيف','text']];
 function openEdit(kind,id){
   const isN=kind==='notices',row=({notices,purchases,assets,stock,jobsheets}[kind]).find(x=>x.id===id);if(!row)return;
-  const F=isN?NF():kind==='assets'?AF():kind==='stock'?SF():kind==='jobsheets'?JF():[['ref','الإخطار','select',['',...notices.slice().sort((a,b)=>a.n-b.n).map(n=>n.ref)]],['rdate','تاريخ الطلب','date'],['item','الصنف','text'],['code','كود الصنف','text'],['qty','الكمية','number'],['price','السعر التقديري للوحدة (ج.م)','number'],['spec','مواصفات إضافية','area'],['status','الحالة','select',PST],['ddate','تاريخ التوريد','date'],['idate','تاريخ التركيب','date'],['notes','ملاحظات','area']];
+  const F=isN?NF():kind==='assets'?AF():kind==='stock'?SF():kind==='jobsheets'?JF():[['ref','الإخطار','select',['',...notices.slice().sort((a,b)=>a.n-b.n).map(n=>n.ref)]],['rdate','تاريخ الطلب','date'],['item','الصنف','text'],['code','كود الصنف','text'],['qty','الكمية','number'],['price','سعر الشراء الفعلي للوحدة (ج.م) – يُسجل بعد الشراء','number'],['spec','مواصفات إضافية','area'],['status','الحالة','select',PST],['ddate','تاريخ التوريد','date'],['idate','تاريخ التركيب','date'],['notes','ملاحظات','area']];
   EM={kind,id,F};closeEdit();
   const d=document.createElement('div');d.id='md';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:60;overflow:auto;padding:12px';
   const fld=([k,l,t,o])=>{const v=t==='date'?iso(row[k]):row[k];
@@ -651,7 +651,7 @@ function prShow(){
   const o=document.createElement('div');o.id='prv';
   const f=(k,l,t)=>`<label>${l}<input value="${esc(PRS[k])}" oninput="PRS.${k}=this.value;prRender()"></label>`;
   const sel=(k,l)=>`<label>${l}<select onchange="PRS.${k}=this.value;prRender()">${['','نعم','لا'].map(v=>`<option ${v===PRS[k]?'selected':''}>${v}</option>`).join('')}</select></label>`;
-  o.innerHTML=`<div class="prtools"><b>طلب شراء PR – معاينة قبل الطباعة</b><div class="row" style="margin-top:6px">${f('no','رقم طلب الشراء')}${f('by','الجهة الطالبة')}${f('head','اسم مدير الإدارة')}${sel('isNew','صنف جديد؟')}${sel('repl','يحل محل صنف مستخدم؟')}${sel('budget','ضمن الموازنة والخطط؟')}<label style="flex:2 1 300px">المواصفات / سبب الطلب<textarea rows="2" style="min-width:0" oninput="PRS.spec=this.value;prRender()">${esc(PRS.spec)}</textarea></label></div>
+  o.innerHTML=`<div class="prtools"><b>طلب شراء PR – معاينة قبل الطباعة</b><div class="row" style="margin-top:6px">${f('no','رقم طلب الشراء')}${f('by','الجهة الطالبة')}${f('head','اسم مدير الصيانة')}${sel('isNew','صنف جديد؟')}${sel('repl','يحل محل صنف مستخدم؟')}${sel('budget','ضمن الموازنة والخطط؟')}<label style="flex:2 1 300px">المواصفات / سبب الطلب<textarea rows="2" style="min-width:0" oninput="PRS.spec=this.value;prRender()">${esc(PRS.spec)}</textarea></label></div>
   <div class="row" style="margin-top:8px"><button class="btn" onclick="window.print()">طباعة</button><button class="btn alt" onclick="prPdf()">تحميل PDF</button><button class="btn alt" onclick="document.getElementById('prv').remove()">إغلاق</button></div></div><div id="prpages"></div>`;
   document.body.appendChild(o);prRender();
 }
@@ -662,24 +662,21 @@ function prRender(){
   const pages=[];for(let i=0;i<items.length;i+=7)pages.push(items.slice(i,i+7));
   const bi=(en,ar)=>`<div class="bi"><span>${en}</span><span class="ar">${ar}</span></div>`;
   const box=(en,ar,v)=>`<td style="text-align:left">${bi(en,ar)}<div style="min-height:14px;text-align:center;font-weight:700">${esc(v||'')}</div></td>`;
-  const sig=(en,ar,name)=>`<tr><td>${bi(en,ar)}</td><td>${esc(name||'')}</td><td></td><td></td></tr>`;
-  const hd=`<tr><th>${bi('يعتمد')}</th><th>${bi('الاسم')}</th><th>${bi('التوقيع')}</th><th>${bi('التاريخ')}</th></tr>`;
+  const sig=(en,ar,name)=>`<tr><td style="width:32%">${bi(en,ar)}</td><td style="height:52px">${esc(name||'')}</td><td></td><td></td></tr>`;
+  const hd=`<tr><th>${bi('Authorized By','يعتمد')}</th><th>${bi('Name','الاسم')}</th><th>${bi('Sign Name','التوقيع')}</th><th>${bi('Date','التاريخ')}</th></tr>`;
   document.getElementById('prpages').innerHTML=pages.map((pg,pi)=>{
-    let tot=0;
-    const rows=[...Array(7)].map((_,r)=>{const p=pg[r];const n=pi*7+r+1;if(!p)return `<tr><td>${n}</td><td></td><td style="height:20px"></td><td></td><td></td><td></td></tr>`;
-      const t=(+p.price||0)*(+p.qty||0);tot+=t;
-      return `<tr><td>${n}</td><td>${esc(p.code||'')}</td><td class="ar">${esc(p.item)}${p.spec?' – '+esc(p.spec):''}</td><td>${p.qty??''}</td><td>${p.price?(+p.price).toFixed(2):''}</td><td>${t?t.toFixed(2):''}</td></tr>`}).join('');
+    const rows=[...Array(7)].map((_,r)=>{const p=pg[r];const n=pi*7+r+1;if(!p)return `<tr><td>${n}</td><td></td><td style="height:20px"></td><td></td></tr>`;
+      return `<tr><td>${n}</td><td>${esc(p.code||'')}</td><td class="ar">${esc(p.item)}${p.spec?' – '+esc(p.spec):''}</td><td>${p.qty??''}</td></tr>`}).join('');
     return `<div class="prpage">
     <table><tr><td style="width:22%;border:0"></td><td style="border:0"><div class="t">Purchase Requisition (PR) طلب الشراء</div></td><td style="width:26%;border:0"><b>مستشفى الابتسامة</b><br>Al Ebtesama Hospital<br>${esc(PRS.by)}</td></tr></table>
     <table style="margin-top:4px"><tr>${box('PR No.','رقم طلب الشراء',PRS.no+(pages.length>1?' ('+(pi+1)+'/'+pages.length+')':''))}${box('Requested By','الجهة الطالبة',PRS.by)}</tr></table>
     <table style="margin-top:4px"><tr><td style="text-align:left;height:70px;vertical-align:top">${bi('Specifications','المواصفات')}<div class="g">(Please specify the item as much as possible or /and attached details specifications or catalogues, data sheets …etc)</div><div class="ar" style="margin-top:4px">${esc(PRS.spec)}</div></td></tr></table>
     <table style="margin-top:4px"><tr><td style="text-align:left">${bi('New Item','صنف جديد')}<div style="text-align:center">Yes ${ck(PRS.isNew==='نعم')} &nbsp; No ${ck(PRS.isNew==='لا')}</div></td><td style="text-align:left">${bi('If Yes, Does It Replace For Current Used Item','هل يحل محل صنف مستخدم')}<div style="text-align:center">Yes ${ck(PRS.repl==='نعم')} &nbsp; No ${ck(PRS.repl==='لا')}</div></td></tr></table>
     <table style="margin-top:4px"><tr><td>${bi('Item Code','كود الصنف')}</td><td>${bi('Current Stock','الرصيد الحالي')}</td><td>${bi('Current Stock Value','قيمة الرصيد')}</td></tr></table>
-    <table style="margin-top:4px"><tr><th style="width:5%">S<br>م</th><th style="width:14%">Item Code<br>كود الصنف</th><th>Description<br>وصف الصنف</th><th style="width:14%">Quantity Per Month/Year/Single<br>الكمية</th><th style="width:12%">Estimated Unit Price<br>السعر التقديري للوحدة</th><th style="width:12%">Estimated Total Price<br>الإجمالي التقديري</th></tr>${rows}
-    <tr><td colspan="4" style="text-align:left"><b>Total PR Estimated Value</b> &nbsp; <span class="ar">إجمالي القيمة التقديرية للطلب</span></td><td colspan="2" style="text-align:right"><b>EGP ${tot.toFixed(2)}</b></td></tr></table>
-    <div style="display:flex;gap:6px;margin-top:6px"><table>${hd}${sig('مدير الإدارة')}<tr><td>${bi('الموازنة والخطط')}</td><td colspan="3">Yes ${ck(PRS.budget==='نعم')} &nbsp; No ${ck(PRS.budget==='لا')}</td></tr></table>
-    <table>${hd}${sig('المدير المباشر','')}${sig('المدير العام','')}</table></div>
-    <table style="margin-top:6px"><tr><td style="text-align:left;height:34px">${bi('تم الاستلام بالتاريخ والاعتمادات المطلوبة في')}</div></td></tr></table></div>`}).join('');
+    <table style="margin-top:4px"><tr><th style="width:6%">S<br>م</th><th style="width:16%">Item Code<br>كود الصنف</th><th>Description<br>وصف الصنف</th><th style="width:18%">Quantity Per Month/Year/Single<br>الكمية</th></tr>${rows}</table>
+    <table style="margin-top:4px"><tr><td style="text-align:left">${bi('Budget/Planned','الموازنة والخطط')}<div style="text-align:center">Yes ${ck(PRS.budget==='نعم')} &nbsp; No ${ck(PRS.budget==='لا')}</div></td></tr></table>
+    <table style="margin-top:6px">${hd}${sig('Maintenance Manager','مدير الصيانة',PRS.head)}${sig('Hospital Manager','مدير المستشفى','')}${sig('Finance Department','الإدارة المالية','')}</table>
+    <table style="margin-top:6px"><tr><td style="text-align:left;height:34px">${bi('Received Date With Required Authorization By Supply Chain','تم الاستلام بالتاريخ والاعتمادات المطلوبة في')}<div style="margin-top:6px">By: ____________ &nbsp;&nbsp; On: ____________ &nbsp;&nbsp; At: ____________</div></td></tr></table></div>`}).join('');
 }
 async function prPdf(){
   const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:'p',unit:'pt',format:'a4'}),W=doc.internal.pageSize.getWidth()-30,Hh=doc.internal.pageSize.getHeight()-30;
@@ -1140,7 +1137,7 @@ async function stockAdd(){const n=$('#st_n').value.trim();if(!n){alert('اكتب
   await db.collection('stock').doc('st'+Date.now()).set({name:n,qty:+$('#st_q').value||0,min:+$('#st_m').value||0,unit:$('#st_u').value,cost:+$('#st_c').value||0});$('#st_n').value='';toast('تمت الإضافة ✓')}
 async function stockAdj(id,d){const x=stock.find(s=>s.id===id);if(!x)return;await db.collection('stock').doc(id).update({qty:Math.max(0,(+x.qty||0)+d)})}
 async function stockReorder(id){const x=stock.find(s=>s.id===id);if(!x)return;const k=nextK(),q=Math.max((+x.min||1)*2-(+x.qty||0),1);
-  const o={k,ref:'',rdate:ymd(new Date()),item:x.name,qty:q,price:+x.cost||0,status:'جاري إعداد الطلب',ddate:'',idate:'',notes:'تجديد مخزون'};
+  const o={k,ref:'',rdate:ymd(new Date()),item:x.name,qty:q,status:'جاري إعداد الطلب',ddate:'',idate:'',notes:'تجديد مخزون'};
   purchases.push({id:uid('p',k),...o});await db.collection('purchases').doc(uid('p',k)).set(o);toast('أُضيف لطلبات الشراء (الكمية '+q+')')}
 /* ---------- التكاليف والبادجت ---------- */
 let bYear='2027';
@@ -1160,7 +1157,7 @@ function vBudget(){
   const plan=planBy(bYear),totP=TRALL.reduce((a,t)=>a+(plan.by[t]||0),0);
   const yrs=['2026','2027','2028'];
   let h=`<div class="card"><div class="row"><label>السنة<select onchange="bYear=this.value;render()">${yrs.map(y=>`<option ${y===bYear?'selected':''}>${y}</option>`).join('')}</select></label><button class="btn" onclick="pdf('التكاليف_والبادجت_'+bYear)">تصدير PDF</button></div>
-  <div class="msg">المصروف = تكلفة الإصلاح/الخدمة المسجلة في الإخطارات + (السعر × الكمية) لأصناف الشراء (بدون المصروف من المخزن). أدخل البادجت لكل تخصص. تُسجَّل التكلفة في خانة «التكلفة» بالإخطار وسعر الوحدة في طلب الشراء.</div></div>
+  <div class="msg">المصروف = تكلفة الإصلاح/الخدمة المسجلة في الإخطارات + (السعر × الكمية) لأصناف الشراء (بدون المصروف من المخزن). أدخل البادجت لكل تخصص. تُسجَّل التكلفة في خانة «التكلفة» بالإخطار وسعر الشراء الفعلي بعد تنفيذ الشراء (من «تعديل» صنف الشراء في طلبات الشراء).</div></div>
   <div class="card" id="rep"><h3>التكاليف مقابل البادجت – ${bYear} – قسم الصيانة</h3>
   <div class="grid" style="margin:8px 0"><div class="k"><b>${money(totB)}</b>إجمالي البادجت (ج.م)</div><div class="k"><b>${money(totS)}</b>المصروف (ج.م)</div><div class="k ${totB&&totS>totB?'s-bad':''}"><b>${money(totB-totS)}</b>المتبقي (ج.م)</div><div class="k"><b>${totB?Math.round(100*totS/totB)+'%':'—'}</b>نسبة الاستهلاك</div><div class="k"><b>${money(totP)}</b>استبدال مخطط من سجل الأصول (ج.م)</div><div class="k ${totB&&totS+totP>totB?'s-bad':''}"><b>${money(totB-totS-totP)}</b>المتبقي بعد المصروف والمخطط</div></div>
   <div style="overflow-x:auto"><table><tr>${['التخصص','البادجت (ج.م)','المصروف','المتبقي','نسبة الاستهلاك','استبدال مخطط','المتبقي بعد المخطط'].map(x=>`<th>${x}</th>`).join('')}</tr>
@@ -1202,7 +1199,7 @@ function vJobs(){
   let h=`<div class="card addf"><b>إصدار JobSheet جديد</b><div class="msg">يمكنك أيضاً إنشاءه من زر «JobSheet» بجانب أي إخطار في الصيانة العلاجية فيتعبّى منه تلقائياً.</div><div class="row" style="margin-top:6px"><label>الشركة المنفذة<input id="j_c" value="${esc(lastContractor())}" data-keep="1"></label><label>التاريخ<input id="j_d" type="date" value="${ymd(new Date())}"></label>
   <label>الإخطارات (ع-..، افصل بفاصلة)<input id="j_r" list="jnlist" data-keep="1"></label><datalist id="jnlist">${notices.filter(n=>n.status!=='تم الإصلاح').map(n=>`<option value="${n.ref}">${esc(n.dept)}</option>`).join('')}</datalist>
   <label>الموقع / القسم<input id="j_p" data-keep="1"></label><label>الأصل (الكود)<input id="j_a" list="assetlist" data-keep="1"></label><datalist id="assetlist">${assets.map(a=>`<option value="${esc(a.code)}">${esc(a.name)}</option>`).join('')}</datalist>
-  <label style="flex:2 1 260px">نطاق العمل<textarea id="j_s" rows="2" data-keep="1" style="min-width:0"></textarea></label><label>التكلفة النهائية<input id="j_e" type="number" data-keep="1"></label><button class="btn" onclick="jsAdd()">إصدار</button></div></div>
+  <label style="flex:2 1 260px">نطاق العمل<textarea id="j_s" rows="2" data-keep="1" style="min-width:0"></textarea></label><button class="btn" onclick="jsAdd()">إصدار</button></div></div>
   <div class="card wrap"><table><tr>${['الرقم','الشركة','التاريخ','الإخطارات','الموقع','نطاق العمل','الحالة','التكلفة (ج.م)','إجراءات'].map(x=>`<th>${x}</th>`).join('')}</tr>`;
   jobsheets.slice().reverse().forEach(j=>{h+=`<tr><td>${esc(j.no)}</td><td>${esc(j.contractor)}</td><td>${fd(j.date)}</td><td>${esc(j.refs)}</td><td class="l">${esc(j.dept)}</td><td class="l">${esc(j.scope)}</td>
   <td class="${j.status==='تم التنفيذ'||j.status==='مغلق'?'s-ok':j.status==='قيد التنفيذ'?'s-warn':''}"><select onchange="setJSStatus('${j.id}',this.value)">${JSTAT.map(s=>`<option ${s===j.status?'selected':''}>${s}</option>`).join('')}</select></td><td>${+j.cost?money(j.cost):''}</td>
@@ -1212,7 +1209,7 @@ function vJobs(){
 async function jsCreate(o){const n=nextJ(),id=uid('js',n),d={no:jno(n),contractor:lastContractor(),date:ymd(new Date()),refs:'',dept:'',asset:'',scope:'',materials:'',cost:0,status:'مسودة',end:'',tech:'',rep:'',notes:'',...o};
   jobsheets.push({id,...d});localStorage.setItem('js_contractor',d.contractor);await db.collection('jobsheets').doc(id).set(d);return id}
 async function jsAdd(){const sc=$('#j_s').value.trim();if(!sc){alert('اكتب نطاق العمل');return}
-  await jsCreate({contractor:$('#j_c').value.trim()||'GHD',date:$('#j_d').value,refs:$('#j_r').value.trim(),dept:$('#j_p').value,asset:$('#j_a').value.trim(),scope:sc,cost:+$('#j_e').value||0});
+  await jsCreate({contractor:$('#j_c').value.trim()||'GHD',date:$('#j_d').value,refs:$('#j_r').value.trim(),dept:$('#j_p').value,asset:$('#j_a').value.trim(),scope:sc});
   $('#j_s').value='';$('#j_r').value='';toast('تم إصدار JobSheet ✓')}
 async function createJS(nid){const n=notices.find(x=>x.id===nid);if(!n)return;
   const id=await jsCreate({refs:n.ref,dept:n.dept||'',asset:n.asset||'',scope:(n.details||'')+(n.action?' – '+n.action:'')});toast('تم إنشاء JobSheet من '+n.ref);openJS(id)}
@@ -1229,22 +1226,23 @@ async function setJSStatus(id,v){
 function openJS(id){
   const j=jobsheets.find(x=>x.id===id);if(!j)return;const old=document.getElementById('prv');if(old)old.remove();
   const ns=(String(j.refs||'').match(/ع-\d+/g)||[]).map(r=>notices.find(n=>n.ref===r)).filter(Boolean);
-  const as=assets.find(a=>String(a.code).toLowerCase()===String(j.asset||'').trim().toLowerCase());
-  const assetTxt=as?as.code+' – '+as.name:(j.asset||'');
+  const as=assets.find(a=>sameCode(a.code,j.asset)),assetTxt=as?as.code+' – '+as.name:(j.asset||'');
   const o=document.createElement('div');o.id='prv';
-  const cell=(l,v,big)=>`<div class="jc"><div class="jl">${l}</div><div class="jv${big?' big':''}">${esc(v||'')||'&nbsp;'}</div></div>`;
-  const ap=(t,name)=>`<div class="jc ja"><div class="jl">${t}</div><div class="jb"><div class="jline sig">التوقيع:</div></div></div>`;
-  o.innerHTML=`<div class="prtools"><b>أمر عمل ${esc(j.no)} – معاينة قبل الطباعة</b><div class="row" style="margin-top:8px"><button class="btn" onclick="window.print()">طباعة</button><button class="btn alt" onclick="prPdf()">تحميل PDF</button><button class="btn alt" onclick="document.getElementById('prv').remove()">إغلاق</button></div></div>
-  <div id="prpages"><div class="prpage jsp"><div class="jsin">
-  <div class="jhead"><div class="jh-r"><div class="jt">أمر عمل</div><div class="jen">Job Sheet - External Maintenance Works</div><div class="jsub">نموذج تنفيذ أعمال الصيانة الخارجية</div></div><div class="jh-l"><div class="jhos">مستشفى الابتسامة</div><div class="jen">Al Ebtesama Hospital</div><div class="jdep">قسم الصيانة</div></div></div>
-  <div class="jr c4">${cell('حالة التنفيذ',j.status)}${cell('الشركة / الفني الخارجي',j.contractor)}${cell('تاريخ التنفيذ',j.end?fd(j.end):'____ / ____ / ____')}${cell('رقم أمر العمل',j.no)}</div>
-  <div class="jr c211">${cell('القسم',j.dept)}${cell('الأصل والجهاز',assetTxt)}${cell('رقم الإخطار المرتبط',j.refs)}</div>
-  <div class="jbox"><div class="jl jtitle">نطاق العمل المطلوب</div><div class="jscope">${esc(j.scope)}${ns.length?`<div class="jnote">الأعطال المرتبطة: ${ns.map(n=>esc(n.ref)+' – '+esc(n.details)).join('؛ ')}</div>`:''}</div><div class="jdiv"></div><div class="jsubt">وصف ما تم تنفيذه</div><div class="jdone">${esc(j.materials)}</div></div>
-  <div class="jr c2">${cell('ملاحظات',j.notes)}${cell('التكلفة النهائية بالجنيه المصري',+j.cost?money(j.cost):'',true)}</div>
-  <div class="jr c2">${cell('فني الشركة',j.tech)}${cell('مشرف الصيانة',j.rep)}</div>
-  <div class="jap"><div class="japt">الاعتمادات والتوقيعات</div><div class="jr c4 nomt">${ap('الإدارة المالية')}${ap('مدير المستشفى')}${ap('مدير الصيانة')}${ap('الفني المنفذ')}</div></div>
-  <div class="jfoot">مستشفى الابتسامة | قسم الصيانة${j.date?' &nbsp;·&nbsp; تاريخ الإصدار: '+fd(j.date):''}</div>
-  </div></div></div>`;
+  const bi=(en,ar)=>`<div class="bi"><span>${en}</span><span class="ar">${ar}</span></div>`;
+  const box=(en,ar,v)=>`<td style="text-align:left">${bi(en,ar)}<div style="min-height:16px;text-align:center;font-weight:700">${esc(v||'')}</div></td>`;
+  const sg=(en,ar)=>`<tr><td style="width:38%">${bi(en,ar)}</td><td style="height:58px"></td></tr>`;
+  o.innerHTML=`<div class="prtools"><b>Job Sheet ${esc(j.no)} – معاينة قبل الطباعة</b><div class="row" style="margin-top:8px"><button class="btn" onclick="window.print()">طباعة</button><button class="btn alt" onclick="prPdf()">تحميل PDF</button><button class="btn alt" onclick="document.getElementById('prv').remove()">إغلاق</button></div></div>
+  <div id="prpages"><div class="prpage">
+  <table><tr><td style="width:22%;border:0"></td><td style="border:0"><div class="t">Job Sheet أمر عمل</div><div class="g" style="font-size:11px">External Maintenance Works – نموذج تنفيذ أعمال الصيانة الخارجية</div></td><td style="width:26%;border:0"><b>مستشفى الابتسامة</b><br>Al Ebtesama Hospital<br>قسم الصيانة</td></tr></table>
+  <table style="margin-top:4px"><tr>${box('JS No.','رقم أمر العمل',j.no)}${box('Date','التاريخ',fd(j.date))}${box('Contractor','الشركة المنفذة',j.contractor)}${box('Status','حالة التنفيذ',j.status)}</tr></table>
+  <table style="margin-top:4px"><tr>${box('Department','القسم',j.dept)}${box('Asset','الأصل والجهاز',assetTxt)}${box('Related Notice','رقم الإخطار المرتبط',j.refs)}</tr></table>
+  <table style="margin-top:4px"><tr><td style="text-align:left;height:100px;vertical-align:top">${bi('Scope of Work','نطاق العمل المطلوب')}<div class="ar" style="margin-top:4px;font-weight:700">${esc(j.scope)}</div>${ns.length?`<div class="g" style="margin-top:6px">الأعطال المرتبطة: ${ns.map(n=>esc(n.ref)+' – '+esc(n.details)).join('؛ ')}</div>`:''}</td></tr></table>
+  <table style="margin-top:4px"><tr><td style="text-align:left;height:100px;vertical-align:top">${bi('Work Done','وصف ما تم تنفيذه')}<div class="ar" style="margin-top:4px;font-weight:700">${esc(j.materials)}</div></td></tr></table>
+  <table style="margin-top:4px"><tr>${box('Execution Date','تاريخ التنفيذ',j.end?fd(j.end):'')}${box('Final Cost (EGP)','التكلفة النهائية بالجنيه المصري',+j.cost?money(j.cost):'')}${box('Contractor Technician','فني الشركة',j.tech)}${box('Maintenance Supervisor','مشرف الصيانة',j.rep)}</tr></table>
+  <table style="margin-top:4px"><tr><td style="text-align:left;height:46px;vertical-align:top">${bi('Notes','ملاحظات')}<div class="ar" style="margin-top:4px">${esc(j.notes)}</div></td></tr></table>
+  <table style="margin-top:6px"><tr><th>${bi('Authorized By','يعتمد')}</th><th>${bi('Signature','التوقيع')}</th></tr>${sg('Executing Technician','الفني المنفذ')}${sg('Maintenance Manager','مدير الصيانة')}${sg('Hospital Manager','مدير المستشفى')}${sg('Finance Department','الإدارة المالية')}</table>
+  <div class="g" style="text-align:center;margin-top:8px">مستشفى الابتسامة | قسم الصيانة${j.date?' · تاريخ الإصدار: '+fd(j.date):''}</div>
+  </div></div>`;
   document.body.appendChild(o);
 }
 importXlsx=noLog(importXlsx);restoreJSON=noLog(restoreJSON);
