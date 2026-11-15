@@ -53,6 +53,7 @@ td.l{text-align:right;white-space:normal;min-width:140px}
 .nar h4{margin:14px 0 4px;color:var(--pri);border-bottom:1px solid var(--bd);padding-bottom:3px}
 .nar ul{margin:4px 0 8px;padding-inline-start:22px}
 .nar li{margin-bottom:3px}
+.nar[contenteditable]:focus{outline:1px dashed var(--bd);outline-offset:4px}
 .repnote{min-height:70px;border:1px dashed var(--bd);border-radius:8px;padding:8px;white-space:pre-wrap;line-height:1.8}
 /* ---- توافق الشاشات ---- */
 html{-webkit-text-size-adjust:100%}
@@ -197,9 +198,9 @@ const AREAS=[["الدور الثاني",["غرفة 201","غرفة 202","غرفة
 ["الدور الأول",["عيادة 1","عيادة 2","عيادة 3","عيادة 4","عيادة 5","غرفة الدعم الطبي","حمام رجالي – الدور الأول","حمام حريمي – الدور الأول","غرفة 100 (حسابات المرضى)","غرفة 101 (استراحة د. الأطفال)","غرفة 102","غرفة 103","غرفة 104 (نائب د. النساء)","غرفة 105","غرفة 106","غرفة 107 (مخزن)","غرفة 108 (مخزن الفندقة)","مكتب مديرة الفندقة","مخزن أدوية رئيسي"]],
 ["الدور الأرضي",["الريسيبشن","مكتب مدير المستشفى","الخزن","غرفة طوارئ","غرفة IT","معمل التحليل","معمل الذكورة","التعقيم","الصيدلية","المطبخ","المغسلة","حمام رجالي – الأرضي","حمام حريمي – الأرضي"]]];
 const ALL=AREAS.flatMap(([f,l])=>l.map(a=>({f,a})));
-const ST=['تم الإصلاح','تم جزئياً','إصلاح مؤقت','جاري التنفيذ','لم يتم الإصلاح','غير قابل للإصلاح'];
+const ST=['تم الإصلاح','غير قابل للإصلاح'];const LEGST=['تم جزئياً','إصلاح مؤقت','جاري التنفيذ','لم يتم الإصلاح'];const normN=o=>(LEGST.includes(o.status)?{...o,status:''}:o);
 const PST=['لم يُطلب','جاري إعداد الطلب','تم الطلب','تم الشراء/التوريد','صرف من المخزن','تم التركيب'];
-const stCls=s=>s==='تم الإصلاح'?'s-ok':['تم جزئياً','إصلاح مؤقت','جاري التنفيذ'].includes(s)?'s-warn':s?'s-bad':'';
+const stCls=s=>s==='تم الإصلاح'?'s-ok':s==='غير قابل للإصلاح'?'s-bad':'s-warn';
 let db=null,notices=[],purchases=[],rounds={},tab='daily',assetLog=[],jobsheets=[],assets=[],stock=[],settings={},auditLog=[],rdate=ymd(new Date());
 const $=s=>document.querySelector(s);
 function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -220,7 +221,7 @@ async function init(){
   if(window.ROLE==='entry'){tab='e_round';nav();render();return}
   db.collection('inbox').onSnapshot(s=>procInbox(s.docs.map(d=>({id:d.id,o:d.data()}))));
   const t=setTimeout(()=>{},10000);
-  db.collection('notices').onSnapshot(s=>{notices=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.n-b.n);clearTimeout(t);render()});
+  db.collection('notices').onSnapshot(s=>{notices=s.docs.map(d=>normN({id:d.id,...d.data()})).sort((a,b)=>a.n-b.n);clearTimeout(t);render()});
   db.collection('purchases').onSnapshot(s=>{purchases=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.k-b.k);render()});
   db.collection('rounds').onSnapshot(s=>{rounds={};s.docs.forEach(d=>rounds[d.id]=d.data());render()});
   db.collection('settings').onSnapshot(s=>{settings={};s.docs.forEach(d=>settings[d.id]=d.data());render()});
@@ -294,7 +295,7 @@ let lastN=0,lastK=0;
 const nextN=()=>(lastN=Math.max(lastN,...notices.map(n=>n.n))+1);
 const nextK=()=>(lastK=Math.max(lastK,...purchases.map(p=>p.k))+1);
 async function addNotice(o){
-  const n=nextN(),d={n,ref:ref(n),status:'لم يتم الإصلاح',...o};if(!d.prio)d.prio=autoPrio(d.dept,d.details);
+  const n=nextN(),d={n,ref:ref(n),status:'',...o};if(!d.prio)d.prio=autoPrio(d.dept,d.details);
   notices.push({id:uid('n',n),...d});
   await db.collection('notices').doc(uid('n',n)).set(d);
 }
@@ -351,7 +352,7 @@ function vNotices(){
   <label>الوقت<input type="time" id="f_time"></label>
   <label>القسم<input id="f_dept"></label><label>مسؤول الإخطار<input id="f_reporter"></label>
   <label>تفاصيل العطل<input id="f_details" style="width:220px"></label><label>الإجراء المتخذ<input id="f_action" style="width:200px"></label>
-  <label>الحالة<select id="f_status">${ST.map(s=>`<option ${s==='لم يتم الإصلاح'?'selected':''}>${s}</option>`).join('')}</select></label>
+  <label>الحالة<select id="f_status"><option value="" selected>مفتوح</option>${ST.map(s=>`<option>${s}</option>`).join('')}</select></label>
   <label>ممثل الصيانة<input id="f_rep"></label>
   <label>يحتاج شراء؟<select id="f_needbuy"><option>لا</option><option>نعم</option></select></label>
   <label>الأولوية<select id="f_prio"><option value="">تلقائي</option>${PR.map(p=>`<option>${p}</option>`).join('')}</select></label>
@@ -363,7 +364,7 @@ function vNotices(){
   notices.slice().reverse().filter(nfOK).forEach(n=>{const si=slaInfo(n);
     h+=`<tr><td>${n.n}</td><td>${n.ref}</td><td>${fd(n.date)}</td><td>${esc(n.time)}</td><td class="l">${esc(n.dept)}</td><td>${n.asset?`<a href="#" onclick="assetDetailByCode('${esc(n.asset)}');return false">${esc(n.asset)}</a>`:''}</td><td>${esc(n.reporter)}</td><td class="l">${esc(n.details)}</td>
     <td class="l"><textarea rows="1" data-keep="1" oninput="fit(this)" onchange="upd('${n.id}',{action:this.value})">${esc(n.action)}</textarea></td>
-    <td class="${stCls(n.status)}"><select onchange="setStatus('${n.id}',this.value)">${ST.map(s=>`<option ${s===n.status?'selected':''}>${s}</option>`).join('')}</select></td>
+    <td class="${stCls(n.status)}"><select onchange="setStatus('${n.id}',this.value)"><option value="" ${!n.status?'selected':''}>مفتوح</option>${ST.map(s=>`<option ${s===n.status?'selected':''}>${s}</option>`).join('')}</select></td>
     <td><input type="date" value="${iso(n.fixdate)}" onchange="upd('${n.id}',{fixdate:this.value})"></td>
     <td><textarea rows="1" data-keep="1" oninput="fit(this)" onchange="upd('${n.id}',{rep:this.value})" style="min-width:110px">${esc(n.rep)}</textarea></td>
     <td><select onchange="upd('${n.id}',{needbuy:this.value})">${['','نعم','لا'].map(s=>`<option ${s===(n.needbuy||'')?'selected':''}>${s}</option>`).join('')}</select></td>
@@ -461,11 +462,10 @@ function vSum(){
   const c=s=>notices.filter(n=>n.status===s).length,pc=s=>purchases.filter(p=>p.status===s).length;
   const linked=new Set(purchases.filter(p=>p.ref).map(p=>p.ref)),viaP=notices.filter(n=>n.viaPurchase).length,linkedOpen=[...linked].filter(r=>{const n=notices.find(x=>x.ref===r);return n&&n.status!=='تم الإصلاح'}).length;
   const closed=notices.length?Math.round(100*c('تم الإصلاح')/notices.length):0;
-  const tmp=notices.length?Math.round(100*c('إصلاح مؤقت')/notices.length):0;
   return `<div class="card"><button class="btn" onclick="pdf('الملخص')">تصدير PDF</button></div>
   <div class="card" id="rep"><h3>ملخص الصيانة – مستشفى الابتسامة</h3>
-  <div class="grid"><div class="k"><b>${notices.length}</b>إجمالي الإخطارات</div><div class="k"><b>${closed}%</b>نسبة الإغلاق</div><div class="k"><b>${tmp}%</b>إصلاحات مؤقتة</div><div class="k"><b>${purchases.length}</b>أصناف الشراء</div><div class="k"><b>${linked.size}</b>إخطارات مرتبطة بطلب شراء</div><div class="k"><b>${viaP}</b>أُغلقت بعد شراء وتركيب</div><div class="k"><b>${linkedOpen}</b>مرتبطة بشراء ولم تُغلق</div></div>
-  <h4>الصيانة العلاجية حسب الحالة</h4><table>${ST.map(s=>`<tr><td class="l ${stCls(s)}">${s}</td><td>${c(s)}</td></tr>`).join('')}</table>
+  <div class="grid"><div class="k"><b>${notices.length}</b>إجمالي الإخطارات</div><div class="k"><b>${closed}%</b>نسبة الإغلاق</div><div class="k"><b>${notices.filter(n=>!n.status).length}</b>إخطارات مفتوحة</div><div class="k"><b>${purchases.length}</b>أصناف الشراء</div><div class="k"><b>${linked.size}</b>إخطارات مرتبطة بطلب شراء</div><div class="k"><b>${viaP}</b>أُغلقت بعد شراء وتركيب</div><div class="k"><b>${linkedOpen}</b>مرتبطة بشراء ولم تُغلق</div></div>
+  <h4>الصيانة العلاجية حسب الحالة</h4><table><tr><td class="l s-warn">مفتوح</td><td>${notices.filter(n=>!n.status).length}</td></tr>${ST.map(s=>`<tr><td class="l ${stCls(s)}">${s}</td><td>${c(s)}</td></tr>`).join('')}</table>
   <h4>الرسوم البيانية</h4>${sumCharts()}<h4>طلبات الشراء</h4><table>${PST.map(s=>`<tr><td class="l">${s}</td><td>${pc(s)}</td></tr>`).join('')}</table></div>`;
 }
 /* ---------- التقارير الأسبوعية والشهرية ---------- */
@@ -493,16 +493,17 @@ function repData(from,to){
   const slaOk=nClosed.filter(n=>slaInfo(n).txt==='ضمن المهلة').length;
   return{slaOk,nNew,nClosed,avg,days:rs.length,span,bad,byA:top(byA),byC:top(byC),rec:top(rec).filter(x=>x[1]>=2),open,pa,pd,pi,pp,openNow:notices.filter(n=>n.status!=='تم الإصلاح').length};
 }
+function repSave(key){try{localStorage.setItem(key,document.getElementById('narx').innerHTML)}catch(e){}}
+function repReset(key){if(confirm('سيتم مسح تعديلاتك على هذا التقرير وإعادة كتابته من بيانات البرنامج. متابعة؟')){try{localStorage.removeItem(key)}catch(e){}render()}}
 function repStory(from,to,type,d){
   const inR=v=>{const x=iso(v);return typeof x==='string'&&x>=from&&x<=to};
   const per=type==='w'?'الأسبوع':'الشهر',today=ymd(new Date());
-  const li=a=>a.length?'<ul>'+a.map(x=>'<li>'+x+'</li>').join('')+'</ul>':'<p class="msg">لا يوجد خلال '+per+'.</p>';
+  const li=a=>a.length?'<ul>'+a.map(x=>'<li>'+x+'</li>').join('')+'</ul>':'<p>لا يوجد خلال '+per+'.</p>';
   const fx=n=>{const f=iso(n.fixdate);return typeof f==='string'&&f?dFmt(f):''};
   const line=n=>'<b>'+esc(n.ref||'')+'</b> – '+esc(n.dept||'')+': '+esc(n.details||'');
   const pit=p=>esc(p.item||'')+(p.qty?' ('+esc(p.qty)+')':'')+(p.ref?' – '+esc(p.ref):'');
   const pl=(t,a)=>'<p><b>'+t+' ('+a.length+'):</b> '+(a.length?a.map(pit).join('، '):'لا يوجد')+'</p>';
   const DEL=['تم الشراء/التوريد','صرف من المخزن','تم التركيب'];
-  const temp=notices.filter(n=>['إصلاح مؤقت','تم جزئياً'].includes(n.status)&&inR(n.date));
   const req=purchases.filter(p=>inR(p.rdate)),del=purchases.filter(p=>DEL.includes(p.status)&&inR(p.ddate)),ins=purchases.filter(p=>inR(p.idate));
   const js=jobsheets.filter(j=>inR(j.date)||inR(j.end));
   const open=notices.filter(n=>n.status!=='تم الإصلاح').map(n=>({n,age:Math.round((new Date(today)-new Date(iso(n.date)))/864e5),si:slaInfo(n)}))
@@ -515,23 +516,23 @@ function repStory(from,to,type,d){
     +(d.nClosed.length?'، منها '+d.slaOk+' ضمن المهلة المستهدفة':'')+'. '
     +'وتم تنفيذ المرور اليومي في '+d.days+' يوم من أصل '+d.span+'، وسُجّلت '+d.bad+' خانة بها ملاحظة. '
     +'ويبلغ عدد الإخطارات المفتوحة حالياً <b>'+d.openNow+'</b> إخطار.</p>']);
-  sec.push(['المعاينة وتحديد الأعطال',li(d.nNew.map(n=>line(n)+(n.action?' – <i>الإجراء/السبب:</i> '+esc(n.action):'')+(n.status?' <span class="msg">['+esc(n.status)+']</span>':'')))]);
-  sec.push(['الإصلاحات التي نفذها القسم',li(d.nClosed.map(n=>line(n)+(n.action?' – '+esc(n.action):'')+(fx(n)?' <span class="msg">(بتاريخ '+fx(n)+')</span>':'')))
-    +(temp.length?'<p><b>إصلاحات مؤقتة / جزئية (تحتاج إصلاحاً نهائياً):</b></p>'+li(temp.map(n=>line(n)+(n.action?' – '+esc(n.action):'')+' <span class="msg">['+esc(n.status)+']</span>')):'')]);
+  sec.push(['المعاينة وتحديد الأعطال',li(d.nNew.map(n=>line(n)+(n.action?' – الإجراء/السبب: '+esc(n.action):'')+' ['+esc(n.status||'مفتوح')+']'))]);
+  sec.push(['الإصلاحات التي نفذها القسم',li(d.nClosed.map(n=>line(n)+(n.action?' – '+esc(n.action):'')+(fx(n)?' (بتاريخ '+fx(n)+')':'')))]);
   sec.push(['المشتريات والتوريد',pl('طُلبت',req)+pl('تم توريدها',del)+pl('تم تركيبها',ins)]);
-  if(js.length)sec.push(['أعمال الشركات الخارجية',li(js.map(j=>'<b>'+esc(j.no||'')+'</b> – '+esc(j.contractor||'')+': '+esc(j.scope||'')+(j.status?' <span class="msg">['+esc(j.status)+']</span>':'')))]);
+  if(js.length)sec.push(['أعمال الشركات الخارجية',li(js.map(j=>'<b>'+esc(j.no||'')+'</b> – '+esc(j.contractor||'')+': '+esc(j.scope||'')+(j.status?' ['+esc(j.status)+']':'')))]);
   sec.push(['ما سيتابعه القسم خلال الفترة القادمة',
-    (open.length?'<p><b>إخطارات مفتوحة (الأهم أولاً):</b></p>'+li(open.slice(0,10).map(o=>line(o.n)+' <span class="msg">['+esc(o.n.status||'')+' – عمره '+(isNaN(o.age)?'—':o.age)+' يوم'+(o.si.over?' – متأخر عن المهلة':'')+']</span>'))+(open.length>10?'<p class="msg">وعدد '+(open.length-10)+' إخطارات أخرى مفتوحة.</p>':''):'<p>لا توجد إخطارات مفتوحة.</p>')
+    (open.length?'<p><b>إخطارات مفتوحة (الأهم أولاً):</b></p>'+li(open.slice(0,10).map(o=>line(o.n)+' ['+esc(o.n.status||'مفتوح')+' – عمره '+(isNaN(o.age)?'—':o.age)+' يوم'+(o.si.over?' – متأخر عن المهلة':'')+']'))+(open.length>10?'<p>وعدد '+(open.length-10)+' إخطارات أخرى مفتوحة.</p>':''):'<p>لا توجد إخطارات مفتوحة.</p>')
     +(pend.length?'<p><b>أصناف شراء لم يكتمل تركيبها ('+pend.length+'):</b> '+pend.slice(0,10).map(pit).join('، ')+(pend.length>10?' وغيرها':'')+'</p>':'')]);
-  const key='repnote_'+type+'_'+from;let saved='';try{saved=localStorage.getItem(key)||''}catch(e){}
   const OR=['أولاً','ثانياً','ثالثاً','رابعاً','خامساً','سادساً','سابعاً','ثامناً'];
-  const body=sec.map((x,i)=>'<h4>'+OR[i]+': '+x[0]+'</h4>'+x[1]).join('');
-  const nt=OR[sec.length]+': ملاحظات وتوصيات مدير الصيانة';
-  return '<div class="nar"><p><b>السيد الدكتور / مدير المستشفى</b></p><p>تحية طيبة وبعد،</p>'
+  sec.push(['ملاحظات وتوصيات مدير الصيانة','<p>&nbsp;</p>']);
+  const gen='<p><b>السيد الدكتور / مدير المستشفى</b></p><p>تحية طيبة وبعد،</p>'
     +'<p>أتشرف بأن أرفع لسيادتكم ملخصاً بما نفذه قسم الصيانة خلال الفترة من '+dFmt(from)+' إلى '+dFmt(to)+'.</p>'
-    +body+'<h4>'+nt+'</h4><div class="repnote" contenteditable="true" oninput="try{localStorage.setItem(\''+key+'\',this.innerText)}catch(e){}">'+esc(saved)+'</div>'
-    +'<div class="msg noprint">اكتب هنا توصياتك أو ما يحتاج قراراً من الإدارة؛ يُحفظ على هذا الجهاز ويظهر في ملف PDF.</div>'
-    +'<p style="margin-top:12px">وتفضلوا بقبول فائق الاحترام والتقدير،</p><p><b>م/ محمد خالد المحمدي</b><br>مدير الصيانة<br>مستشفى الابتسامة – مصر الجديدة</p></div>';
+    +sec.map((x,i)=>'<h4>'+OR[i]+': '+x[0]+'</h4>'+x[1]).join('')
+    +'<p style="margin-top:12px">وتفضلوا بقبول فائق الاحترام والتقدير،</p><p><b>م/ محمد خالد المحمدي</b><br>مدير الصيانة<br>مستشفى الابتسامة – مصر الجديدة</p>';
+  const key='repdoc_'+type+'_'+from+'_'+to;let saved=null;try{saved=localStorage.getItem(key)}catch(e){}
+  return '<div class="msg noprint">'+(saved?'هذه نسخة معدّلة بخط يدك ومحفوظة على هذا الجهاز.':'التقرير قابل للتعديل: اضغط على أي نص وعدّله أو أضف توصياتك، ويُحفظ تلقائياً ويظهر في ملف PDF.')
+    +' <button class="btn sm alt" onclick="repReset(\''+key+'\')">إعادة كتابته من بيانات البرنامج</button></div>'
+    +'<div class="nar" id="narx" contenteditable="true" oninput="repSave(\''+key+'\')">'+(saved||gen)+'</div>';
 }
 function vReports(){
   const opts=repType==='w'?weekOptions():monthOptions();
@@ -560,7 +561,7 @@ function vReports(){
 }
 /* ---------- تعديل / حذف ---------- */
 let EM=null;
-const NF=()=>[['date','التاريخ','date'],['time','الوقت','time'],['dept','القسم','text'],['reporter','مسؤول الإخطار','text'],['details','تفاصيل العطل','area'],['action','الإجراء المتخذ','area'],['status','الحالة','select',ST],['fixdate','تاريخ الإصلاح','date'],['rep','ممثل الصيانة','text'],['needbuy','يحتاج شراء؟','select',['','نعم','لا']],['prio','الأولوية (فارغ = تلقائي)','select',['',...PR]],['trade','التخصص','select',['',...TRD]],['asset','الأصل (الكود)','text'],['aff','العدد المتأثر (لو الأصل مجموعة)','number'],['cost','تكلفة الإصلاح / الخدمة (ج.م)','number'],['notes','ملاحظات','area'],['cls','التصنيف','text']];
+const NF=()=>[['date','التاريخ','date'],['time','الوقت','time'],['dept','القسم','text'],['reporter','مسؤول الإخطار','text'],['details','تفاصيل العطل','area'],['action','الإجراء المتخذ','area'],['status','الحالة (فارغ = مفتوح)','select',['',...ST]],['fixdate','تاريخ الإصلاح','date'],['rep','ممثل الصيانة','text'],['needbuy','يحتاج شراء؟','select',['','نعم','لا']],['prio','الأولوية (فارغ = تلقائي)','select',['',...PR]],['trade','التخصص','select',['',...TRD]],['asset','الأصل (الكود)','text'],['aff','العدد المتأثر (لو الأصل مجموعة)','number'],['cost','تكلفة الإصلاح / الخدمة (ج.م)','number'],['notes','ملاحظات','area'],['cls','التصنيف','text']];
 function openEdit(kind,id){
   const isN=kind==='notices',row=({notices,purchases,assets,stock,jobsheets}[kind]).find(x=>x.id===id);if(!row)return;
   const F=isN?NF():kind==='assets'?AF():kind==='stock'?SF():kind==='jobsheets'?JF():[['ref','الإخطار','select',['',...notices.slice().sort((a,b)=>a.n-b.n).map(n=>n.ref)]],['rdate','تاريخ الطلب','date'],['item','الصنف','text'],['code','كود الصنف','text'],['qty','الكمية','number'],['price','سعر الشراء الفعلي للوحدة (ج.م) – يُسجل بعد الشراء','number'],['spec','مواصفات إضافية','area'],['status','الحالة','select',PST],['ddate','تاريخ التوريد','date'],['idate','تاريخ التركيب','date'],['notes','ملاحظات','area']];
@@ -770,7 +771,7 @@ function vENotice(){
   <label>التاريخ<input type="date" id="f_date" value="${new Date().toISOString().slice(0,10)}"></label><label>الوقت<input type="time" id="f_time"></label>
   <label>القسم<input id="f_dept"></label><label>مسؤول الإخطار<input id="f_reporter"></label>
   <label>تفاصيل العطل<textarea id="f_details" rows="2" style="width:240px"></textarea></label><label>الإجراء المتخذ<textarea id="f_action" rows="2" style="width:220px"></textarea></label>
-  <label>الحالة<select id="f_status">${ST.map(s=>`<option ${s==='لم يتم الإصلاح'?'selected':''}>${s}</option>`).join('')}</select></label>
+  <label>الحالة<select id="f_status"><option value="" selected>مفتوح</option>${ST.map(s=>`<option>${s}</option>`).join('')}</select></label>
   <label>ممثل الصيانة<input id="f_rep"></label><label>يحتاج شراء؟<select id="f_needbuy"><option>لا</option><option>نعم</option></select></label>
   <label>الأولوية<select id="f_prio"><option value="">تلقائي</option>${PR.map(p=>`<option>${p}</option>`).join('')}</select></label>
   <button class="btn" onclick="eSaveNotice()">إرسال</button></div></div>`;
@@ -824,14 +825,14 @@ let kRange={from:'2026-09-21',to:''};
 const pf=v=>v===null||v===undefined?'—':(Math.round(v*1000)/10)+'%';
 function kpiCalc(from,to){
   const inR=v=>{const x=iso(v);return typeof x==='string'&&x>=from&&x<=to};
-  const ns=notices.filter(n=>inR(n.date)&&n.status),tot=ns.length,cnt=st=>ns.filter(n=>n.status===st).length,closed=ns.filter(n=>n.status==='تم الإصلاح');
+  const ns=notices.filter(n=>inR(n.date)),tot=ns.length,cnt=st=>ns.filter(n=>n.status===st).length,closed=ns.filter(n=>n.status==='تم الإصلاح');
   const pr=purchases.filter(p=>inR(p.rdate)&&p.item),pt=pr.length,PL=['تم الطلب','تم الشراء/التوريد','صرف من المخزن','تم التركيب'],DV=['تم الشراء/التوريد','صرف من المخزن','تم التركيب'];
   const cls=notices.filter(n=>inR(n.date)&&n.cls),today=ymd(new Date());
   const sl=closed.filter(n=>slaInfo(n).txt);
   const k=[
-   {n:1,t:'نسبة إغلاق الإخطارات',h:'تم الإصلاح ÷ الإخطارات التي لها حالة',v:tot?cnt('تم الإصلاح')/tot:null,min:.85},
-   {n:2,t:'نسبة الإصلاحات المؤقتة',h:'إصلاح مؤقت ÷ الإخطارات التي لها حالة',v:tot?cnt('إصلاح مؤقت')/tot:null,max:.1},
-   {n:3,t:'نسبة الإخطارات المفتوحة',h:'(جاري التنفيذ + لم يتم + تم جزئياً) ÷ الإجمالي',v:tot?(cnt('جاري التنفيذ')+cnt('لم يتم الإصلاح')+cnt('تم جزئياً'))/tot:null,max:.15},
+   {n:1,t:'نسبة إغلاق الإخطارات',h:'تم الإصلاح ÷ إجمالي الإخطارات',v:tot?cnt('تم الإصلاح')/tot:null,min:.85},
+   {n:2,t:'نسبة غير القابل للإصلاح (حالة الإخطار)',h:'غير قابل للإصلاح ÷ إجمالي الإخطارات',v:tot?cnt('غير قابل للإصلاح')/tot:null,max:.1},
+   {n:3,t:'نسبة الإخطارات المفتوحة',h:'المفتوحة (بدون حالة) ÷ إجمالي الإخطارات',v:tot?ns.filter(n=>!n.status).length/tot:null,max:.15},
    {n:4,t:'نسبة غير القابل للإصلاح',h:'التصنيف الأصلي غير قابل للإصلاح ÷ الإخطارات ذات تصنيف أصلي',v:cls.length?cls.filter(n=>n.cls==='غير قابل للإصلاح').length/cls.length:null,max:.05},
    {n:5,t:'اكتمال بيانات الإخطارات',h:'الخانات المعبأة (التاريخ، القسم، العطل، الإجراء، ممثل الصيانة) ÷ المطلوب',v:tot?ns.reduce((a,n)=>a+['date','dept','details','action','rep'].filter(f=>n[f]).length,0)/(tot*5):null,min:.9},
    {n:6,t:'توثيق تاريخ الإصلاح للمُغلق',h:'المُغلق وله تاريخ إصلاح ÷ إجمالي المُغلق',v:closed.length?closed.filter(n=>n.fixdate).length/closed.length:null,min:.9},
@@ -854,7 +855,7 @@ function vKPI(){
   <div class="msg" style="margin-top:6px">المؤشر 11 مضاف على نموذجك الأصلي. لا يدخل في حساب تقييم الأداء.</div></div>`;
 }
 const EV=[{a:'الاستجابة للأعطال وإغلاقها',w:40,c:'نسبة إغلاق الإخطارات',f:k=>k[0].v},
- {a:'جودة الإصلاح (حلول نهائية)',w:40,c:'1 − نسبة الإصلاحات المؤقتة',f:k=>k[1].v===null?null:1-k[1].v},
+ {a:'جودة الإصلاح (قابلية الإصلاح)',w:40,c:'1 − نسبة غير القابل للإصلاح',f:k=>k[1].v===null?null:1-k[1].v},
  {a:'إدارة المشتريات والتكاليف',w:10,c:'تقدّم طلبات الشراء',f:k=>k[6].v},
  {a:'التوثيق والتقارير',w:10,c:'متوسط: اكتمال البيانات، توثيق تاريخ الإصلاح',f:k=>{const a=[k[4].v,k[5].v].filter(x=>x!==null);return a.length?a.reduce((s,x)=>s+x,0)/a.length:null}}];
 function saveEv(p){const e=settings.eval=Object.assign({},settings.eval,p);return db.collection('settings').doc('eval').set(e)}
@@ -1358,7 +1359,7 @@ function openNT(id){
   const its=purchases.filter(p=>p.ref===n.ref),si=slaInfo(n),old=document.getElementById('prv');if(old)old.remove();
   const o=document.createElement('div');o.id='prv';
   const ckb=(v)=>v?'☒':'☐',cell=(l,v,cs)=>`<td${cs?` colspan="${cs}"`:''} class="l"><div class="g">${l}</div><div style="min-height:18px;font-weight:700">${esc(v||'')}</div></td>`;
-  const sts=['تم الإصلاح','إصلاح مؤقت','جاري التنفيذ','تم جزئياً','لم يتم الإصلاح','غير قابل للإصلاح'];
+  const sts=['','تم الإصلاح','غير قابل للإصلاح'];
   o.innerHTML=`<div class="prtools"><b>إخطار صيانة ${n.ref} – معاينة قبل الطباعة</b><div class="row" style="margin-top:8px"><button class="btn" onclick="window.print()">طباعة</button><button class="btn alt" onclick="prPdf()">تحميل PDF</button><button class="btn alt" onclick="document.getElementById('prv').remove()">إغلاق</button></div></div>
   <div id="prpages"><div class="prpage rtl">
   <table><tr><td style="width:22%;border:0"></td><td style="border:0"><div class="t">إخطار صيانة</div><div>Maintenance Notice</div></td><td style="width:26%;border:0"><b>مستشفى الابتسامة</b><br>Al Ebtesama Hospital<br>قسم الصيانة</td></tr></table>
@@ -1370,7 +1371,7 @@ function openNT(id){
   <table><tr><td class="l" style="height:70px;vertical-align:top"><div class="g">الإجراء المتخذ</div><div>${esc(n.action)}</div></td></tr>
   <tr><td class="l" style="height:50px;vertical-align:top"><div class="g">القطع / المواد المستخدمة</div><div>${its.map(p=>esc(p.item)+' × '+(p.qty??'')+(p.status==='صرف من المخزن'?' (من المخزن)':'')).join('، ')}</div></td></tr></table>
   <table style="margin-top:4px"><tr>${cell('ممثل الصيانة',n.rep)}${cell('تاريخ الإصلاح',fd(n.fixdate))}${cell('وقت البدء / الانتهاء','')}${cell('التكلفة (ج.م)',noticeCost(n)?money(noticeCost(n)):'')}</tr>
-  <tr><td colspan="4" class="l"><div class="g">الحالة</div><div>${sts.map(s=>ckb(n.status===s)+' '+s).join(' &nbsp;&nbsp; ')} &nbsp;&nbsp; ${ckb(n.needbuy==='نعم')} يحتاج شراء</div></td></tr></table>
+  <tr><td colspan="4" class="l"><div class="g">الحالة</div><div>${sts.map(s=>ckb((n.status||'')===s)+' '+(s||'مفتوح')).join(' &nbsp;&nbsp; ')} &nbsp;&nbsp; ${ckb(n.needbuy==='نعم')} يحتاج شراء</div></td></tr></table>
   <table style="margin-top:8px"><tr><td class="l" style="height:60px;width:33%"><div class="g">توقيع ممثل الصيانة</div></td><td class="l" style="width:33%"><div class="g">اعتماد مدير الصيانة</div></td><td class="l"><div class="g">استلام القسم بعد الإصلاح (الاسم / التوقيع / التاريخ)</div></td></tr></table></div></div>`;
   document.body.appendChild(o);
 }
