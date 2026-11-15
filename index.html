@@ -610,7 +610,7 @@ function vDaily(){
   const today=ymd(new Date());
   const open=notices.filter(n=>n.status!=='تم الإصلاح').sort((a,b)=>PR.indexOf(slaInfo(a).pr)-PR.indexOf(slaInfo(b).pr)||a.n-b.n);
   const overdue=open.filter(n=>slaInfo(n).over).length,critOpen=open.filter(n=>slaInfo(n).pr==='حرج').length;
-  const aAct=assets.filter(a=>a.stat!=='مُكهّن').map(a=>({a,...assetStats(a)})),aBroken=aAct.filter(x=>x.st!=='شغال').length,aRec=aAct.filter(x=>x.lv===2).length;
+  const aAct=assets.filter(a=>a.stat!=='مُكهّن').map(a=>({a,...assetStats(a)})),aBroken=aAct.filter(x=>x.st!=='شغال').length;
   const age=n=>{const x=Math.round((new Date(today)-new Date(iso(n.date)))/864e5);return isNaN(x)?'':x};
   const byS={};open.forEach(n=>{const k=n.status||'بدون حالة';byS[k]=(byS[k]||0)+1});
   const nNew=notices.filter(n=>iso(n.date)===today).length,nCl=notices.filter(n=>n.status==='تم الإصلاح'&&iso(n.fixdate)===today).length;
@@ -635,8 +635,8 @@ function vDaily(){
   <div style="overflow-x:auto"><table><tr>${['الإخطار','القسم / العطل','الصنف','حالة الصنف','هل تم عمل طلب؟','تاريخ الطلب','تاريخ التوريد'].map(x=>`<th>${x}</th>`).join('')}</tr>
   ${list.map(x=>`<tr><td>${x.ref}</td><td class="l">${esc(x.what)}</td><td class="l">${esc(x.item)}</td><td>${esc(x.st)}</td><td class="${x.ok?'s-ok':'s-bad'}">${x.ok?'تم عمل طلب':'لم يتم'}</td><td>${x.rd}</td><td>${x.dd}</td></tr>`).join('')||'<tr><td colspan="7">لا توجد بيانات</td></tr>'}</table></div>`;
   const aTbl=(list,title)=>`<h4>${title} (${list.length})</h4>
-  <div style="overflow-x:auto"><table><tr>${['الكود','الاسم','النوع','الموقع','الحالة','التوصية / السبب','القرار'].map(x=>`<th>${x}</th>`).join('')}</tr>
-  ${list.map(x=>`<tr><td>${esc(x.a.code)}</td><td class="l">${esc(x.a.name)}</td><td>${esc(x.a.type)}</td><td class="l">${esc(x.a.loc)}</td><td class="${x.stc}">${x.st}${x.open.length?'<div class="msg">'+x.open.slice(0,3).map(n=>esc(n.ref)+': '+esc(n.details)).join('<br>')+'</div>':''}</td><td class="${x.lv===2?'s-bad':x.lv===1?'s-warn':''}">${advCell(x)}</td><td>${x.a.dec?esc(x.a.dec):'—'}</td></tr>`).join('')||'<tr><td colspan="7">لا توجد بيانات</td></tr>'}</table></div>`;
+  <div style="overflow-x:auto"><table><tr>${['الكود','الاسم','النوع','الموقع','الحالة','القرار'].map(x=>`<th>${x}</th>`).join('')}</tr>
+  ${list.map(x=>`<tr><td>${esc(x.a.code)}</td><td class="l">${esc(x.a.name)}</td><td>${esc(x.a.type)}</td><td class="l">${esc(x.a.loc)}</td><td class="${x.stc}">${x.st}${x.open.length?'<div class="msg">'+x.open.slice(0,3).map(n=>esc(n.ref)+': '+esc(n.details)).join('<br>')+'</div>':''}</td><td>${x.a.dec?esc(x.a.dec):'—'}</td></tr>`).join('')||'<tr><td colspan="6">لا توجد بيانات</td></tr>'}</table></div>`;
   const DT={
     open:['إخطارات لم يتم إصلاحها',()=>nTbl(open,'الإخطارات التي لم يتم إصلاحها')],
     new:['إخطارات جديدة اليوم',()=>nTbl(notices.filter(n=>iso(n.date)===today),'إخطارات جديدة اليوم')],
@@ -646,15 +646,14 @@ function vDaily(){
     delivered:['تم توريدها ولم تُركَّب',()=>pTbl(rows.filter(x=>['تم الشراء/التوريد','صرف من المخزن'].includes(x.st)),'أصناف تم توريدها ولم تُركَّب')],
     overdue:['متأخرة عن مهلتها',()=>nTbl(open.filter(n=>slaInfo(n).over),'إخطارات متأخرة عن مهلتها')],
     crit:['أعطال حرجة مفتوحة',()=>nTbl(open.filter(n=>slaInfo(n).pr==='حرج'),'أعطال حرجة مفتوحة')],
-    aBroken:['أصول معطلة الآن',()=>aTbl(aAct.filter(x=>x.st!=='شغال'),'أصول معطلة الآن')],
-    aRec:['أصول يُنصح باستبدالها',()=>aTbl(aAct.filter(x=>x.lv===2),'أصول يُنصح باستبدالها')]
+    aBroken:['أصول معطلة الآن',()=>aTbl(aAct.filter(x=>x.st!=='شغال'),'أصول معطلة الآن')]
   };
   const body=dTab&&DT[dTab]?'<div class="row noprint" style="margin:6px 0;align-items:center"><b>المعروض: '+DT[dTab][0]+'</b><button class="btn sm alt" onclick="dTab=\'\';render()">عرض التقرير كاملاً</button></div>'+DT[dTab][1]():nTbl(open,'الإخطارات التي لم يتم إصلاحها')+pTbl(rows,'طلبات الشراء المطلوبة');
   const lb=localStorage.getItem('lastBackup'),bk=(!lb||(new Date(today)-new Date(lb))/864e5>7)?`<div class="card s-warn"><b>⚠ لم تأخذ نسخة احتياطية منذ ${lb?'أكثر من أسبوع ('+dFmt(lb)+')':'البداية'}.</b> <button class="btn sm" onclick="tab='backup';nav();render()">نسخ احتياطي الآن</button></div>`:'';
   return bk+dupBanner()+qa()+`<div class="card"><div class="row"><button class="btn" onclick="pdf('تقرير_المتابعة_اليومي_${today}')">تصدير PDF</button><button class="btn alt" onclick="wordExp('تقرير_المتابعة_اليومي_${today}')">تصدير Word</button><button class="btn alt" onclick="render()">تحديث</button></div></div>
   <div class="card" id="rep"><h3>تقرير متابعة الأعمال اليومي – قسم الصيانة – مستشفى الابتسامة</h3>
   <div class="msg">${day} ${dFmt(today)}</div>
-  <div class="grid" style="margin:8px 0">${dk('open','',open.length,'إخطارات لم يتم إصلاحها')}${dk('new','',nNew,'إخطارات جديدة اليوم')}${dk('closed','',nCl,'تم إصلاحها اليوم')}${dk('notPlaced','',notPlaced,'أصناف لم يتم عمل طلب لها')}${dk('ordered','',ordered,'تم طلبها ولم تُورَّد')}${dk('delivered','',delivered,'تم توريدها ولم تُركَّب')}${dk('overdue',overdue?'s-bad':'',overdue,'متأخرة عن مهلتها')}${dk('crit',critOpen?'s-bad':'',critOpen,'أعطال حرجة مفتوحة')}${dk('aBroken',aBroken?'s-warn':'',aBroken,'أصول معطلة الآن')}${dk('aRec',aRec?'s-bad':'',aRec,'أصول يُنصح باستبدالها')}</div>
+  <div class="grid" style="margin:8px 0">${dk('open','',open.length,'إخطارات لم يتم إصلاحها')}${dk('new','',nNew,'إخطارات جديدة اليوم')}${dk('closed','',nCl,'تم إصلاحها اليوم')}${dk('notPlaced','',notPlaced,'أصناف لم يتم عمل طلب لها')}${dk('ordered','',ordered,'تم طلبها ولم تُورَّد')}${dk('delivered','',delivered,'تم توريدها ولم تُركَّب')}${dk('overdue',overdue?'s-bad':'',overdue,'متأخرة عن مهلتها')}${dk('crit',critOpen?'s-bad':'',critOpen,'أعطال حرجة مفتوحة')}${dk('aBroken',aBroken?'s-warn':'',aBroken,'أصول معطلة الآن')}</div>
   <div class="msg noprint">اضغط على أي مربع لعرض بياناته، واضغط عليه تاني للرجوع للتقرير الكامل.</div>
   <div style="margin:6px 0"><b>الإخطارات المفتوحة حسب الحالة:</b> ${chips}</div>
   <div style="margin:6px 0"><b>مرور اليوم:</b> ${r?(badList.length?'محفوظ – أعطال: '+esc(badList.join('، ')):'محفوظ – لا توجد أعطال'):'لم يُحفظ بعد'}</div>
@@ -883,20 +882,6 @@ function nextCodes(type,n){
   const p=PFX[type]||'OT';let mx=0;assets.forEach(x=>{const m=String(x.code).match(/^([A-Za-z]+)-(\d+)$/);if(m&&m[1].toUpperCase()===p)mx=Math.max(mx,+m[2])});
   const out=[];for(let i=1;i<=n;i++)out.push(p+'-'+String(mx+i).padStart(2,'0'));return out;
 }
-const ADVS=['استبدال / تكهين','مراقبة','سليم – إبقاء'];
-function advCell(x){
-  const a=x.a;if(a.stat==='مُكهّن')return '—';
-  return `<select onchange="advSet('${a.id}','adv',this.value)"><option value="" ${ADVS.includes(a.advOv)?'':'selected'}>تلقائي (${x.autoAdvice})</option>${ADVS.map(o=>`<option ${a.advOv===o?'selected':''}>${o}</option>`).join('')}</select>`
-   +`<textarea rows="2" data-keep="1" placeholder="السبب (اكتب سببك أو اتركه تلقائي)" onchange="advSet('${a.id}','reason',this.value)" style="min-width:140px">${esc(a.reasonOv||'')}</textarea>`
-   +(a.reasonOv?'':`<div class="msg">${esc(x.autoReasons.join('، '))}</div>`)+(x.ov?`<div class="msg">✎ معدّل يدوياً (التلقائي: ${esc(x.autoAdvice)})</div>`:'');
-}
-async function advSet(id,kind,v){
-  const a=assets.find(x=>x.id===id);if(!a)return;
-  const o=kind==='adv'?{advOv:v}:{reasonOv:String(v||'').trim()};
-  Object.assign(a,o);await db.collection('assets').doc(id).update(o);
-  try{await assetLogAdd(a.code,'توصية',kind==='adv'?('تعديل التوصية إلى: '+(v||'تلقائي')):('تعديل سبب التوصية: '+(o.reasonOv||'تلقائي')))}catch(e){}
-  render();
-}
 function assetStats(a){
   const grp=isGrp(a),qty=grp?(+a.qty||1):1,qf=grp?(+a.qtyFix||0):0,qd=grp?(+a.qtyDead||0):0,tv=totVal(a);
   const ns=notices.filter(n=>n.asset&&sameCode(n.asset,a.code)),d1=new Date();d1.setFullYear(d1.getFullYear()-1);const y1=ymd(d1);
@@ -910,21 +895,7 @@ function assetStats(a){
   else if(grp){if(badN>=qty){st='معطل – المجموعة كلها';stc='s-bad'}else if(badN>0){st='معطل جزئياً ('+badN+' من '+qty+')';stc='s-warn'}}
   else if(open.some(n=>n.status==='غير قابل للإصلاح')){st='معطل – غير قابل للإصلاح';stc='s-bad'}
   else if(open.length){st='معطل – تحت الصيانة';stc='s-warn'}
-  const R=[];let lv=0;const bump=(l,t)=>{R.push(t);lv=Math.max(lv,l)};
-  if(a.stat!=='مُكهّن'){
-    if(age!==null){if(age>=life)bump(2,'عمره '+age+' سنة وبلغ العمر الافتراضي ('+life+' سنة)');else if(age>=0.8*life)bump(1,'عمره '+age+' سنة وقارب العمر الافتراضي ('+life+' سنة)')}
-    if(grp){const bad=Math.min(qty,qf+qd),rt=qty>0?bad/qty:0;if(rt>=.5)bump(2,Math.round(rt*100)+'% من القطع معطلة أو تالفة ('+bad+' من '+qty+')');else if(rt>=.3)bump(1,Math.round(rt*100)+'% من القطع معطلة أو تالفة ('+bad+' من '+qty+')')}
-    else{if(r12>=3)bump(2,'تعطّل '+r12+' مرات خلال 12 شهراً');else if(r12===2)bump(1,'تعطّل مرتين خلال 12 شهراً')}
-    if(tv>0){const rt=cost/tv;if(rt>=.5)bump(2,'تكلفة إصلاحه '+Math.round(rt*100)+'% من قيمة استبداله');else if(rt>=.25)bump(1,'تكلفة إصلاحه '+Math.round(rt*100)+'% من قيمة استبداله')}
-    if(!grp&&open.some(n=>n.status==='غير قابل للإصلاح'))bump(2,'فيه عطل مفتوح غير قابل للإصلاح');
-  }
-  const autoAdvice=a.stat==='مُكهّن'?'—':lv===2?'استبدال / تكهين':lv===1?'مراقبة':'سليم – إبقاء',autoReasons=R.slice();
-  let advice=autoAdvice,RR=R;
-  if(a.stat!=='مُكهّن'){
-    if(ADVS.includes(a.advOv)){advice=a.advOv;lv=a.advOv==='استبدال / تكهين'?2:a.advOv==='مراقبة'?1:0}
-    if(a.reasonOv)RR=[a.reasonOv];
-  }
-  return{ns,open,cost,r12,last,age,life,st,stc,lv,advice,reasons:RR,reason:lv===2?RR.join('، '):'',autoAdvice,autoReasons,ov:!!(ADVS.includes(a.advOv)||a.reasonOv),grp,qty,qf,qd};
+  return{ns,open,cost,r12,last,age,life,st,stc,grp,qty,qf,qd};
 }
 function assetLogAdd(code,kind,text){
   const id='al'+Date.now()+'-'+DEV+Math.random().toString(36).slice(2,4),o={code,at:new Date().toISOString(),kind,text,by:window.USER_EMAIL||''};
@@ -932,12 +903,11 @@ function assetLogAdd(code,kind,text){
 }
 function aFilterBar(){
   const sel=(k,l,opts)=>`<label>${l}<select onchange="liveFilter(this,af,'${k}')"><option value="">الكل</option>${opts.map(o=>`<option ${af[k]===o?'selected':''}>${o}</option>`).join('')}</select></label>`;
-  return `<div class="card"><div class="fbar"><label style="flex:2 1 200px">بحث (كود، اسم، موقع، ماركة)<input id="q_a" data-keep="1" value="${esc(af.q)}" oninput="liveFilter(this,af,'q')"></label>${sel('t','النوع',ATY)}${sel('m','الطريقة',['فردي','مجموعة'])}${sel('st','الحالة',['شغال','معطل','مُكهّن'])}${sel('lv','التوصية',['استبدال / تكهين','مراقبة','سليم – إبقاء'])}${sel('dc','القرار',[...DECS,'بدون قرار'])}<button class="btn sm alt" onclick="af={q:'',t:'',m:'',st:'',lv:'',dc:''};render()">مسح الفلاتر</button></div></div>`;
+  return `<div class="card"><div class="fbar"><label style="flex:2 1 200px">بحث (كود، اسم، موقع، ماركة)<input id="q_a" data-keep="1" value="${esc(af.q)}" oninput="liveFilter(this,af,'q')"></label>${sel('t','النوع',ATY)}${sel('m','الطريقة',['فردي','مجموعة'])}${sel('st','الحالة',['شغال','معطل','مُكهّن'])}${sel('dc','القرار',[...DECS,'بدون قرار'])}<button class="btn sm alt" onclick="af={q:'',t:'',m:'',st:'',dc:''};render()">مسح الفلاتر</button></div></div>`;
 }
 function afOK(x){
   const a=x.a;if(af.t&&a.type!==af.t)return false;if(af.m&&(isGrp(a)?'مجموعة':'فردي')!==af.m)return false;
   if(af.st==='شغال'&&x.st!=='شغال')return false;if(af.st==='معطل'&&!x.st.startsWith('معطل'))return false;if(af.st==='مُكهّن'&&x.st!=='مُكهّن')return false;
-  if(af.lv&&x.advice!==af.lv)return false;
   if(af.dc==='بدون قرار'?!!a.dec:(af.dc&&a.dec!==af.dc))return false;
   return !af.q||norm([a.code,a.name,a.loc,a.type,a.brand,a.model].join(' ')).includes(norm(af.q));
 }
@@ -946,8 +916,6 @@ const ATABS={
  act:{l:'أصل في الخدمة',f:x=>x.a.stat!=='مُكهّن'},
  units:{l:'المجموعات (إجمالي القطع)',f:x=>x.a.stat!=='مُكهّن'&&x.grp},
  broken:{l:'معطل الآن',f:x=>x.a.stat!=='مُكهّن'&&x.st!=='شغال'},
- rec2:{l:'يُنصح باستبداله / تكهينه',f:x=>x.a.stat!=='مُكهّن'&&x.lv===2},
- rec1:{l:'تحت المراقبة',f:x=>x.a.stat!=='مُكهّن'&&x.lv===1},
  planned:{l:'قرارات استبدال / تكهين مخططة',f:x=>x.a.stat!=='مُكهّن'&&(x.a.dec==='استبدال'||x.a.dec==='تكهين')},
  pcost:{l:'الاستبدال المخطط (تكلفته)',f:x=>x.a.stat!=='مُكهّن'&&x.a.dec==='استبدال'},
  dead:{l:'مُكهّن / مستبدل',f:x=>x.a.stat==='مُكهّن'},
@@ -955,23 +923,23 @@ const ATABS={
 };
 function vAssets(){
   const list=assets.map(a=>({a,...assetStats(a)})),act=list.filter(x=>x.a.stat!=='مُكهّن'),units=act.reduce((t,x)=>t+x.qty,0),nGrp=act.filter(x=>x.grp).length;
-  const broken=act.filter(x=>x.st!=='شغال').length,rec2=act.filter(x=>x.lv===2).length,rec1=act.filter(x=>x.lv===1).length;
+  const broken=act.filter(x=>x.st!=='شغال').length;
   const planned=act.filter(x=>x.a.dec==='استبدال'||x.a.dec==='تكهين'),plannedCost=planned.filter(x=>x.a.dec==='استبدال').reduce((t,x)=>t+(+x.a.decCost||totVal(x.a)||0),0);
   const acs=assets.filter(a=>a.type==='تكييف'&&a.stat!=='مُكهّن'),acHP=Math.round(acs.filter(a=>a.capu==='حصان').reduce((t,a)=>t+(+a.cap||0),0)*100)/100;
   const tk=(key,cls,val,label)=>`<div class="k tabk ${cls||''} ${aTab===key?'on':''}" role="button" tabindex="0" onclick="aTab=aTab==='${key}'?'':'${key}';render()" title="اضغط لعرض بيانات هذه الحالة">${'<b>'+val+'</b>'}${label}</div>`;
-  let h=`<div class="card"><div class="grid">${tk('act','',act.length,'أصل في الخدمة')}${tk('units','',units,'إجمالي القطع ('+nGrp+' مجموعة)')}${tk('broken',broken?'s-warn':'',broken,'معطل الآن')}${tk('rec2',rec2?'s-bad':'',rec2,'يُنصح باستبداله / تكهينه')}${tk('rec1','',rec1,'تحت المراقبة')}${tk('planned','',planned.length,'قرارات استبدال / تكهين مخططة')}${tk('pcost','',money(plannedCost),'تكلفة الاستبدال المخطط (ج.م)')}${tk('dead','',list.length-act.length,'مُكهّن / مستبدل')}${tk('ac','',acHP+' حصان','قدرة التكييفات ('+acs.length+' وحدة)')}</div>
-  <div class="msg">الحالة بتتحسب تلقائياً من الصيانة العلاجية: لو فيه إخطار مفتوح مربوط بكود الأصل يظهر «معطل»، ولو اتقفل يرجع «شغال». التوصية بتعتمد على: العمر مقابل العمر الافتراضي، وعدد الأعطال في 12 شهر، وتكلفة الإصلاح مقابل قيمة الاستبدال. القرار (إبقاء / مراقبة / استبدال / تكهين) بتحدده إنت وبيدخل في خطة البادجت. <b>اضغط على أي مربع فوق لعرض أصوله، واضغط عليه تاني للرجوع لكل الأصول.</b></div>
+  let h=`<div class="card"><div class="grid">${tk('act','',act.length,'أصل في الخدمة')}${tk('units','',units,'إجمالي القطع ('+nGrp+' مجموعة)')}${tk('broken',broken?'s-warn':'',broken,'معطل الآن')}${tk('planned','',planned.length,'قرارات استبدال / تكهين مخططة')}${tk('pcost','',money(plannedCost),'تكلفة الاستبدال المخطط (ج.م)')}${tk('dead','',list.length-act.length,'مُكهّن / مستبدل')}${tk('ac','',acHP+' حصان','قدرة التكييفات ('+acs.length+' وحدة)')}</div>
+  <div class="msg">الحالة بتتحسب تلقائياً من الصيانة العلاجية: لو فيه إخطار مفتوح مربوط بكود الأصل يظهر «معطل»، ولو اتقفل يرجع «شغال». القرار (إبقاء / مراقبة / استبدال / تكهين) بتحدده إنت من زر «قرار» وبيدخل في خطة البادجت. <b>اضغط على أي مربع فوق لعرض أصوله، واضغط عليه تاني للرجوع لكل الأصول.</b></div>
   <div class="row" style="margin-top:8px"><button class="btn alt" onclick="exportAssets()">تصدير سجل الأصول Excel</button></div></div>`;
   h+=aFilterBar();
-  const rows=list.filter(afOK).filter(x=>!aTab||ATABS[aTab].f(x)).sort((x,y)=>(y.lv-x.lv)||(y.r12-x.r12)||String(x.a.code).localeCompare(String(y.a.code),'en',{numeric:true}));
+  const rows=list.filter(afOK).filter(x=>!aTab||ATABS[aTab].f(x)).sort((x,y)=>(y.r12-x.r12)||String(x.a.code).localeCompare(String(y.a.code),'en',{numeric:true}));
   if(aTab)h+=`<div class="card"><div class="row" style="align-items:center"><b>المعروض: ${ATABS[aTab].l} — ${rows.length} أصل</b><button class="btn sm alt" onclick="aTab='';render()">عرض كل الأصول</button></div></div>`;
-  h+=`<div class="card wrap"><table><tr>${['الكود','الاسم','النوع','الموقع','الحالة','سنة التركيب / العمر','الأعطال (12 شهر / الكل)','التكلفة (ج.م)','التوصية','القرار','إجراءات'].map(x=>`<th>${x}</th>`).join('')}</tr>`;
+  h+=`<div class="card wrap"><table><tr>${['الكود','الاسم','النوع','الموقع','الحالة','سنة التركيب / العمر','الأعطال (12 شهر / الكل)','التكلفة (ج.م)','القرار','إجراءات'].map(x=>`<th>${x}</th>`).join('')}</tr>`;
   rows.forEach(x=>{const a=x.a,yr=yearOf(a.inst),dd=a.dec?(esc(a.dec)+(a.decDone?' ✔ نُفِّذ':'')+(a.decYear?'<div class="msg">'+a.decYear+'</div>':'')):'—';
     h+=`<tr><td><b>${esc(a.code)}</b></td><td class="l">${esc(a.name)}<div class="msg">${[+a.cap?a.cap+' '+(a.capu||''):'',a.brand||''].filter(Boolean).map(esc).join(' · ')}</div>${x.grp?'<div class="msg"><b>مجموعة × '+x.qty+'</b> · سليم '+Math.max(0,x.qty-x.qf-x.qd)+' / إصلاح '+x.qf+' / تالف '+x.qd+'</div>':''}</td><td>${esc(a.type)}</td><td class="l">${esc(a.loc)}</td><td class="${x.stc}">${x.st}${aTab==='broken'&&x.open.length?'<div class="msg">'+x.open.slice(0,3).map(n=>esc(n.ref)+': '+esc(n.details)).join('<br>')+'</div>':''}</td>
     <td class="${x.age!==null&&x.age>=x.life?'s-bad':x.age!==null&&x.age>=0.8*x.life?'s-warn':''}">${yr||'—'}<div class="msg">${x.age!==null?x.age+' من '+x.life+' سنة':''}</div></td><td class="${x.r12>=3?'s-bad':x.r12===2?'s-warn':''}">${x.r12} / ${x.ns.length}</td><td>${money(x.cost)}</td>
-    <td class="${x.lv===2?'s-bad':x.lv===1?'s-warn':a.stat==='مُكهّن'?'':'s-ok'}">${advCell(x)}</td><td class="${a.dec==='استبدال'||a.dec==='تكهين'?'s-warn':''}">${dd}</td>
+    <td class="${a.dec==='استبدال'||a.dec==='تكهين'?'s-warn':''}">${dd}</td>
     <td><div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap"><button class="btn sm alt" onclick="assetDetail('${a.id}')">السجل</button><button class="btn sm" onclick="assetDecide('${a.id}')">قرار</button><button class="btn sm alt" onclick="newFaultFor('${esc(a.code)}')">عطل</button><button class="btn sm alt" onclick="openEdit('assets','${a.id}')">تعديل</button><button class="btn sm" style="background:#b42318" onclick="delItem('assets','${a.id}')">حذف</button></div></td></tr>`});
-  h+=(rows.length?'':'<tr><td colspan="11">لا توجد أصول مطابقة</td></tr>')+'</table></div>';
+  h+=(rows.length?'':'<tr><td colspan="10">لا توجد أصول مطابقة</td></tr>')+'</table></div>';
   h+=vXlImport()+`<div class="card addf"><b>أصل جديد</b><div class="msg">سيب الكود فاضي وهيتولّد تلقائي حسب النوع (مثلاً AC-48 أو DR-07). <b>فردي</b> = كود لكل قطعة، <b>مجموعة</b> = كود واحد لعدد من القطع المتشابهة في مكان واحد (كراسي، ستاير، كشافات...).</div><div class="row" style="margin-top:6px"><label>الكود (اختياري)<input id="as_c" data-keep="1" placeholder="تلقائي"></label><label>الاسم / الطراز<input id="as_n" data-keep="1"></label><label>النوع<select id="as_t" onchange="$('#as_m').value=GRP_TYPES.includes(this.value)?'مجموعة':'فردي'">${ATY.map(t=>`<option>${t}</option>`).join('')}</select></label><label>الطريقة<select id="as_m"><option>فردي</option><option>مجموعة</option></select></label><label>العدد (للمجموعة)<input id="as_q" type="number" min="1" data-keep="1" style="width:90px"></label><label>القدرة<input id="as_cap" type="number" step="0.25" data-keep="1" style="width:90px"></label><label>الوحدة<select id="as_cu">${CAPU.map(u=>`<option>${u}</option>`).join('')}</select></label><label>الماركة<input id="as_b" data-keep="1" style="width:110px"></label><label>سنة التركيب<input id="as_y" type="number" min="1980" max="2100" data-keep="1" style="width:90px"></label><label>الموقع<input id="as_l" data-keep="1"></label><label>قيمة استبدال الوحدة (ج.م)<input id="as_v" type="number" data-keep="1"></label><button class="btn" onclick="assetAdd()">إضافة أصل</button>${assets.length?'':'<button class="btn alt" onclick="seedAssets()">تحميل أصول المبنى الأساسية</button>'}</div></div>
   <div class="card addf"><b>تسجيل أصول بالجملة بأكواد متسلسلة</b><div class="msg">اختار النوع والموقع والعدد، فيتولّد لكل واحد كود مستقل متسلسل (مثلاً 12 باب: DR-01 ... DR-12). بعدها تقدر تعدّل بيانات أي واحد.</div><div class="row" style="margin-top:6px"><label>النوع<select id="bc_t">${ATY.map(t=>`<option>${t}</option>`).join('')}</select></label><label>الاسم الأساسي<input id="bc_n" data-keep="1" placeholder="مثلاً: باب غرفة"></label><label>الموقع<input id="bc_l" data-keep="1" placeholder="مثلاً: الدور الأول – غرف الإقامة"></label><label>العدد<input id="bc_c" type="number" min="1" max="200" value="1" style="width:80px" data-keep="1"></label><label>سنة التركيب<input id="bc_y" type="number" data-keep="1" style="width:90px"></label><label>قيمة استبدال الواحد (ج.م)<input id="bc_v" type="number" data-keep="1"></label><button class="btn" onclick="assetBulkCreate()">إنشاء الأكواد</button></div></div>
   <div class="card addf"><b>حصر التكييفات (${AC_ROWS.length} وحدة)</b><div class="msg">بيضيف أو بيحدّث التكييفات بالكود (AC-01 ... AC-${AC_ROWS.length}) بالدور والمكان والقدرة والماركة والموديل وقيمة الاستبدال وسنة التركيب. الموجود بنفس الكود بيتحدّث.</div><div class="row" style="margin-top:6px"><button class="btn" onclick="acEmbedded()">إضافة / تحديث التكييفات (${AC_ROWS.length})</button><label class="btn alt" style="flex-direction:row">استيراد من ملف إكسل<input type="file" accept=".xlsx" onchange="acImportFile(this.files[0])" hidden></label></div><div id="acmsg" class="msg"></div></div>
@@ -1012,9 +980,8 @@ function assetDetail(id){
   ev.sort((p,q)=>q.d.localeCompare(p.d));
   const d=document.createElement('div');d.id='md';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:60;overflow:auto;padding:12px';
   d.innerHTML=`<div class="card" style="max-width:900px;margin:16px auto"><b style="font-size:16px">${esc(a.code)} – ${esc(a.name)}</b>
-  <div class="grid" style="margin:8px 0"><div class="k ${x.stc}"><b style="font-size:16px">${x.st}</b>الحالة التشغيلية</div><div class="k ${x.lv===2?'s-bad':x.lv===1?'s-warn':'s-ok'}"><b style="font-size:16px">${x.advice}</b>التوصية</div><div class="k"><b>${x.age!==null?x.age+' / '+x.life:'—'}</b>العمر / العمر الافتراضي (سنة)</div><div class="k"><b>${x.r12} / ${x.ns.length}</b>أعطال (12 شهر / الكل)</div><div class="k"><b>${money(x.cost)}</b>إجمالي التكلفة (ج.م)</div><div class="k"><b>${totVal(a)?money(totVal(a)):'—'}</b>قيمة الاستبدال${x.grp?' الإجمالية':''} (ج.م)</div></div>
+  <div class="grid" style="margin:8px 0"><div class="k ${x.stc}"><b style="font-size:16px">${x.st}</b>الحالة التشغيلية</div><div class="k"><b>${x.age!==null?x.age+' / '+x.life:'—'}</b>العمر / العمر الافتراضي (سنة)</div><div class="k"><b>${x.r12} / ${x.ns.length}</b>أعطال (12 شهر / الكل)</div><div class="k"><b>${money(x.cost)}</b>إجمالي التكلفة (ج.م)</div><div class="k"><b>${totVal(a)?money(totVal(a)):'—'}</b>قيمة الاستبدال${x.grp?' الإجمالية':''} (ج.م)</div></div>
   ${x.grp?`<div class="msg" style="margin-top:4px"><b>مجموعة:</b> العدد الكلي ${x.qty} · سليم ${Math.max(0,x.qty-x.qf-x.qd)} · يحتاج إصلاح ${x.qf} · تالف ${x.qd} · قيمة استبدال الوحدة ${money(a.value)} ج.م</div>`:''}<div class="msg">${esc(a.type)} · ${esc(a.loc||'بدون موقع')}${+a.cap?' · '+a.cap+' '+esc(a.capu||''):''}${a.brand?' · '+esc(a.brand):''}${yearOf(a.inst)?' · تركيب '+yearOf(a.inst):''}</div>
-  ${x.reasons.length?`<div style="margin:6px 0"><b>أسباب التوصية:</b> ${x.reasons.map(esc).join(' | ')}</div>`:''}
   <div style="margin:6px 0"><b>القرار:</b> ${a.dec?esc(a.dec)+(a.decDone?' (نُفِّذ)':'')+(a.decYear?' · سنة '+a.decYear:'')+(+a.decCost?' · '+money(a.decCost)+' ج.م':'')+(a.decWhy?' – '+esc(a.decWhy):''):'لم يُحدد'}${a.replacedBy?' · استُبدل بالكود '+esc(a.replacedBy):''}${a.replaces?' · بديل للكود '+esc(a.replaces):''}</div>
   <div class="row" style="margin:8px 0"><button class="btn" onclick="assetDecide('${a.id}')">قرار</button><button class="btn alt" onclick="newFaultFor('${esc(a.code)}')">تسجيل عطل</button><button class="btn alt" onclick="openEdit('assets','${a.id}')">تعديل البيانات</button>${a.stat==='مُكهّن'?`<button class="btn alt" onclick="assetReactivate('${a.id}')">إعادة للخدمة</button>`:''}<button class="btn alt" onclick="closeEdit()">إغلاق</button></div>
   <div class="wrap"><table><tr>${['التاريخ','النوع','التفاصيل','الحالة','التكلفة'].map(t=>`<th>${t}</th>`).join('')}</tr>${ev.map(e=>`<tr><td>${dFmt(e.d)}</td><td>${e.k}</td><td class="l">${esc(e.t)}</td><td>${esc(e.s)}</td><td>${e.c?money(e.c):''}</td></tr>`).join('')||'<tr><td colspan="5">لا توجد أحداث مسجلة</td></tr>'}</table></div></div>`;
@@ -1024,7 +991,6 @@ function assetDecide(id){
   const a=assets.find(x=>x.id===id);if(!a)return;const x=assetStats(a);closeEdit();
   const d=document.createElement('div');d.id='md';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:60;overflow:auto;padding:12px';
   d.innerHTML=`<div class="card" style="max-width:640px;margin:16px auto"><b>قرار بشأن ${esc(a.code)} – ${esc(a.name)}</b>
-  <div class="msg" style="margin:6px 0">التوصية الحالية: <b>${x.advice}</b>${x.reasons.length?' — '+x.reasons.map(esc).join(' | '):''}</div>
   <div class="grid" style="margin-top:8px"><label>القرار<select id="d_dec"><option value="">بدون قرار</option>${DECS.map(o=>`<option ${a.dec===o?'selected':''}>${o}</option>`).join('')}</select></label><label>السنة المخططة للتنفيذ<input id="d_yr" type="number" min="2020" max="2100" value="${a.decYear||thisYear()+1}"></label><label>تكلفة الاستبدال المقدّرة (ج.م)<input id="d_cost" type="number" min="0" value="${+a.decCost||totVal(a)||''}"></label></div>
   <label style="margin-top:8px">سبب القرار<textarea id="d_why" rows="2" style="min-width:0">${esc(a.decWhy||'')}</textarea></label>
   <div class="row" style="margin-top:10px"><button class="btn" onclick="assetDecideSave('${a.id}')">حفظ القرار</button>${a.dec==='استبدال'&&!a.decDone?`<button class="btn alt" onclick="assetExecReplace('${a.id}')">تنفيذ الاستبدال (كود جديد)</button>`:''}${a.dec==='تكهين'&&!a.decDone?`<button class="btn alt" onclick="assetExecScrap('${a.id}')">تنفيذ التكهين</button>`:''}<button class="btn alt" onclick="closeEdit()">إلغاء</button></div>
@@ -1061,22 +1027,21 @@ function planBy(year){
   const by={},list=[],sug=[];
   assets.forEach(a=>{if(a.stat==='مُكهّن')return;const t=TYPE_TRADE[a.type]||'أخرى';
     if(a.dec==='استبدال'&&!a.decDone&&String(a.decYear)===String(year)){const c=+a.decCost||totVal(a)||0;by[t]=(by[t]||0)+c;list.push({a,c,t})}
-    else if(!a.dec){const x=assetStats(a);if(x.lv===2&&totVal(a)>0)sug.push({a,c:totVal(a),t,x})}});
+  });
   return{by,list,sug};
 }
 function planTable(p,year){
-  const tr=l=>l.map(r=>`<tr><td><b>${esc(r.a.code)}</b></td><td class="l">${esc(r.a.name)}</td><td class="l">${esc(r.a.loc)}</td><td>${r.t}</td><td>${money(r.c)}</td>${r.x?`<td class="l">${esc(r.x.reasons[0]||'')}</td>`:`<td class="l">${esc(r.a.decWhy||'')}</td>`}</tr>`).join('');
+  const tr=l=>l.map(r=>`<tr><td><b>${esc(r.a.code)}</b></td><td class="l">${esc(r.a.name)}</td><td class="l">${esc(r.a.loc)}</td><td>${r.t}</td><td>${money(r.c)}</td><td class="l">${esc(r.a.decWhy||'')}</td></tr>`).join('');
   const head=['الكود','الأصل','الموقع','التخصص','التكلفة (ج.م)','السبب'].map(x=>`<th>${x}</th>`).join('');
-  return `<h4>خطة الاستبدال لسنة ${year} (قرارات اتُّخذت): ${money(p.list.reduce((t,r)=>t+r.c,0))} ج.م</h4><div style="overflow-x:auto"><table><tr>${head}</tr>${tr(p.list)||'<tr><td colspan="6">لا توجد قرارات استبدال مخططة لهذه السنة — حددها من «قرار» في سجل الأصول</td></tr>'}</table></div>
-  <h4>أصول يُنصح باستبدالها ولم يُتخذ فيها قرار بعد (${p.sug.length}): ${money(p.sug.reduce((t,r)=>t+r.c,0))} ج.م</h4><div style="overflow-x:auto"><table><tr>${head}</tr>${tr(p.sug.slice(0,30))||'<tr><td colspan="6">لا يوجد</td></tr>'}</table></div>`;
+  return `<h4>خطة الاستبدال لسنة ${year} (قرارات اتُّخذت): ${money(p.list.reduce((t,r)=>t+r.c,0))} ج.م</h4><div style="overflow-x:auto"><table><tr>${head}</tr>${tr(p.list)||'<tr><td colspan="6">لا توجد قرارات استبدال مخططة لهذه السنة — حددها من «قرار» في سجل الأصول</td></tr>'}</table></div>`;
 }
 function exportAssets(){
   if(typeof XLSX==='undefined'){alert('مكتبة الإكسل غير محملة – تأكد من الإنترنت وجرّب تاني');return}
   const list=assets.map(a=>({a,...assetStats(a)})).sort((x,y)=>String(x.a.code).localeCompare(String(y.a.code),'en',{numeric:true}));
-  const head=['الكود','الاسم / الطراز','النوع','القدرة','وحدة القدرة','الماركة','الموديل','الموقع','سنة التركيب','العمر (سنة)','العمر الافتراضي','قيمة الاستبدال (ج.م)','الحالة التشغيلية','عدد الأعطال','أعطال آخر 12 شهراً','تاريخ آخر عطل','إجمالي التكلفة (ج.م)','التوصية','أسباب التوصية','القرار','سبب القرار','سنة التنفيذ المخططة','تكلفة الاستبدال المقدّرة (ج.م)','نُفِّذ؟','ملاحظات','طريقة التسجيل','العدد','يحتاج إصلاح','تالف'];
-  const rows=list.map(x=>[x.a.code,x.a.name||'',x.a.type||'',+x.a.cap||'',x.a.capu||'',x.a.brand||'',x.a.model||'',x.a.loc||'',yearOf(x.a.inst)||'',x.age===null?'':x.age,x.life,+x.a.value||'',x.st,x.ns.length,x.r12,toD(x.last)||'',Math.round(x.cost*100)/100,x.advice,x.reasons.join(' | '),x.a.dec||'',x.a.decWhy||'',x.a.decYear||'',+x.a.decCost||'',x.a.decDone?'نعم':'',x.a.notes||'',isGrp(x.a)?'مجموعة':'فردي',isGrp(x.a)?(+x.a.qty||''):'',isGrp(x.a)?(+x.a.qtyFix||''):'',isGrp(x.a)?(+x.a.qtyDead||''):'']);
+  const head=['الكود','الاسم / الطراز','النوع','القدرة','وحدة القدرة','الماركة','الموديل','الموقع','سنة التركيب','العمر (سنة)','العمر الافتراضي','قيمة الاستبدال (ج.م)','الحالة التشغيلية','عدد الأعطال','أعطال آخر 12 شهراً','تاريخ آخر عطل','إجمالي التكلفة (ج.م)','القرار','سبب القرار','سنة التنفيذ المخططة','تكلفة الاستبدال المقدّرة (ج.م)','نُفِّذ؟','ملاحظات','طريقة التسجيل','العدد','يحتاج إصلاح','تالف'];
+  const rows=list.map(x=>[x.a.code,x.a.name||'',x.a.type||'',+x.a.cap||'',x.a.capu||'',x.a.brand||'',x.a.model||'',x.a.loc||'',yearOf(x.a.inst)||'',x.age===null?'':x.age,x.life,+x.a.value||'',x.st,x.ns.length,x.r12,toD(x.last)||'',Math.round(x.cost*100)/100,x.a.dec||'',x.a.decWhy||'',x.a.decYear||'',+x.a.decCost||'',x.a.decDone?'نعم':'',x.a.notes||'',isGrp(x.a)?'مجموعة':'فردي',isGrp(x.a)?(+x.a.qty||''):'',isGrp(x.a)?(+x.a.qtyFix||''):'',isGrp(x.a)?(+x.a.qtyDead||''):'']);
   const ws=XLSX.utils.aoa_to_sheet([['سجل الأصول – قسم الصيانة – مستشفى الابتسامة'],['تاريخ التصدير: '+dFmt(ymd(new Date()))+' – عدد الأصول: '+assets.length],[],head,...rows],{cellDates:true});
-  ws['!cols']=[10,32,20,9,10,12,12,30,11,10,12,16,24,10,12,13,16,18,40,16,30,12,16,8,28,12,8,12,8].map(w=>({wch:w}));ws['!views']=[{RTL:true}];
+  ws['!cols']=[10,32,20,9,10,12,12,30,11,10,12,16,24,10,12,13,16,16,30,12,16,8,28,12,8,12,8].map(w=>({wch:w}));ws['!views']=[{RTL:true}];
   const wb=XLSX.utils.book_new();wb.Workbook={Views:[{RTL:true}]};XLSX.utils.book_append_sheet(wb,ws,'سجل الأصول');
   const fl=[];list.forEach(x=>x.ns.slice().sort((p,q)=>String(iso(p.date)).localeCompare(String(iso(q.date)))).forEach(n=>fl.push([x.a.code,x.a.name||'',n.ref,toD(n.date)||'',n.details||'',n.status||'',Math.round(noticeCost(n)*100)/100])));
   const w2=XLSX.utils.aoa_to_sheet([['الكود','اسم الأصل','الإخطار','التاريخ','العطل','الحالة','التكلفة (ج.م)'],...fl],{cellDates:true});w2['!cols']=[10,30,10,12,40,16,14].map(w=>({wch:w}));w2['!views']=[{RTL:true}];XLSX.utils.book_append_sheet(wb,w2,'أعطال الأصول');
