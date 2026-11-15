@@ -47,6 +47,7 @@ td.l{text-align:right;white-space:normal;min-width:140px}
 .msg{color:var(--mut);font-size:12px}
 #rep{--card:#fff;--tx:#000;--bd:#999;--ok:#c6efce;--warn:#ffeb9c;--bad:#ffc7ce;--pri:#1f4e79;background:#fff;color:#000}
 
+.k.tabk{cursor:pointer;transition:box-shadow .15s}.k.tabk:hover{box-shadow:0 0 0 2px var(--pri)}.k.tabk.on{outline:3px solid var(--pri);outline-offset:1px}
 /* ---- التقرير السردي ---- */
 .nar{line-height:1.9;font-size:14px}
 .nar p{margin:4px 0}
@@ -901,19 +902,33 @@ function afOK(x){
   if(af.dc==='بدون قرار'?!!a.dec:(af.dc&&a.dec!==af.dc))return false;
   return !af.q||norm([a.code,a.name,a.loc,a.type,a.brand,a.model].join(' ')).includes(norm(af.q));
 }
+let aTab='';
+const ATABS={
+ act:{l:'أصل في الخدمة',f:x=>x.a.stat!=='مُكهّن'},
+ units:{l:'المجموعات (إجمالي القطع)',f:x=>x.a.stat!=='مُكهّن'&&x.grp},
+ broken:{l:'معطل الآن',f:x=>x.a.stat!=='مُكهّن'&&x.st!=='شغال'},
+ rec2:{l:'يُنصح باستبداله / تكهينه',f:x=>x.a.stat!=='مُكهّن'&&x.lv===2},
+ rec1:{l:'تحت المراقبة',f:x=>x.a.stat!=='مُكهّن'&&x.lv===1},
+ planned:{l:'قرارات استبدال / تكهين مخططة',f:x=>x.a.stat!=='مُكهّن'&&(x.a.dec==='استبدال'||x.a.dec==='تكهين')},
+ pcost:{l:'الاستبدال المخطط (تكلفته)',f:x=>x.a.stat!=='مُكهّن'&&x.a.dec==='استبدال'},
+ dead:{l:'مُكهّن / مستبدل',f:x=>x.a.stat==='مُكهّن'},
+ ac:{l:'التكييفات',f:x=>x.a.type==='تكييف'&&x.a.stat!=='مُكهّن'}
+};
 function vAssets(){
   const list=assets.map(a=>({a,...assetStats(a)})),act=list.filter(x=>x.a.stat!=='مُكهّن'),units=act.reduce((t,x)=>t+x.qty,0),nGrp=act.filter(x=>x.grp).length;
   const broken=act.filter(x=>x.st!=='شغال').length,rec2=act.filter(x=>x.lv===2).length,rec1=act.filter(x=>x.lv===1).length;
   const planned=act.filter(x=>x.a.dec==='استبدال'||x.a.dec==='تكهين'),plannedCost=planned.filter(x=>x.a.dec==='استبدال').reduce((t,x)=>t+(+x.a.decCost||totVal(x.a)||0),0);
   const acs=assets.filter(a=>a.type==='تكييف'&&a.stat!=='مُكهّن'),acHP=Math.round(acs.filter(a=>a.capu==='حصان').reduce((t,a)=>t+(+a.cap||0),0)*100)/100;
-  let h=`<div class="card"><div class="grid"><div class="k"><b>${act.length}</b>أصل في الخدمة</div><div class="k"><b>${units}</b>إجمالي القطع (${nGrp} مجموعة)</div><div class="k ${broken?'s-warn':''}"><b>${broken}</b>معطل الآن</div><div class="k ${rec2?'s-bad':''}"><b>${rec2}</b>يُنصح باستبداله / تكهينه</div><div class="k"><b>${rec1}</b>تحت المراقبة</div><div class="k"><b>${planned.length}</b>قرارات استبدال / تكهين مخططة</div><div class="k"><b>${money(plannedCost)}</b>تكلفة الاستبدال المخطط (ج.م)</div><div class="k"><b>${list.length-act.length}</b>مُكهّن / مستبدل</div><div class="k"><b>${acHP} حصان</b>قدرة التكييفات (${acs.length} وحدة)</div></div>
-  <div class="msg">الحالة بتتحسب تلقائياً من الصيانة العلاجية: لو فيه إخطار مفتوح مربوط بكود الأصل يظهر «معطل»، ولو اتقفل يرجع «شغال». التوصية بتعتمد على: العمر مقابل العمر الافتراضي، وعدد الأعطال في 12 شهر، وتكلفة الإصلاح مقابل قيمة الاستبدال. القرار (إبقاء / مراقبة / استبدال / تكهين) بتحدده إنت وبيدخل في خطة البادجت.</div>
+  const tk=(key,cls,val,label)=>`<div class="k tabk ${cls||''} ${aTab===key?'on':''}" role="button" tabindex="0" onclick="aTab=aTab==='${key}'?'':'${key}';render()" title="اضغط لعرض بيانات هذه الحالة">${'<b>'+val+'</b>'}${label}</div>`;
+  let h=`<div class="card"><div class="grid">${tk('act','',act.length,'أصل في الخدمة')}${tk('units','',units,'إجمالي القطع ('+nGrp+' مجموعة)')}${tk('broken',broken?'s-warn':'',broken,'معطل الآن')}${tk('rec2',rec2?'s-bad':'',rec2,'يُنصح باستبداله / تكهينه')}${tk('rec1','',rec1,'تحت المراقبة')}${tk('planned','',planned.length,'قرارات استبدال / تكهين مخططة')}${tk('pcost','',money(plannedCost),'تكلفة الاستبدال المخطط (ج.م)')}${tk('dead','',list.length-act.length,'مُكهّن / مستبدل')}${tk('ac','',acHP+' حصان','قدرة التكييفات ('+acs.length+' وحدة)')}</div>
+  <div class="msg">الحالة بتتحسب تلقائياً من الصيانة العلاجية: لو فيه إخطار مفتوح مربوط بكود الأصل يظهر «معطل»، ولو اتقفل يرجع «شغال». التوصية بتعتمد على: العمر مقابل العمر الافتراضي، وعدد الأعطال في 12 شهر، وتكلفة الإصلاح مقابل قيمة الاستبدال. القرار (إبقاء / مراقبة / استبدال / تكهين) بتحدده إنت وبيدخل في خطة البادجت. <b>اضغط على أي مربع فوق لعرض أصوله، واضغط عليه تاني للرجوع لكل الأصول.</b></div>
   <div class="row" style="margin-top:8px"><button class="btn alt" onclick="exportAssets()">تصدير سجل الأصول Excel</button></div></div>`;
   h+=aFilterBar();
-  const rows=list.filter(afOK).sort((x,y)=>(y.lv-x.lv)||(y.r12-x.r12)||String(x.a.code).localeCompare(String(y.a.code),'en',{numeric:true}));
+  const rows=list.filter(afOK).filter(x=>!aTab||ATABS[aTab].f(x)).sort((x,y)=>(y.lv-x.lv)||(y.r12-x.r12)||String(x.a.code).localeCompare(String(y.a.code),'en',{numeric:true}));
+  if(aTab)h+=`<div class="card"><div class="row" style="align-items:center"><b>المعروض: ${ATABS[aTab].l} — ${rows.length} أصل</b><button class="btn sm alt" onclick="aTab='';render()">عرض كل الأصول</button></div></div>`;
   h+=`<div class="card wrap"><table><tr>${['الكود','الاسم','النوع','الموقع','الحالة','سنة التركيب / العمر','الأعطال (12 شهر / الكل)','التكلفة (ج.م)','التوصية','القرار','إجراءات'].map(x=>`<th>${x}</th>`).join('')}</tr>`;
   rows.forEach(x=>{const a=x.a,yr=yearOf(a.inst),dd=a.dec?(esc(a.dec)+(a.decDone?' ✔ نُفِّذ':'')+(a.decYear?'<div class="msg">'+a.decYear+'</div>':'')):'—';
-    h+=`<tr><td><b>${esc(a.code)}</b></td><td class="l">${esc(a.name)}<div class="msg">${[+a.cap?a.cap+' '+(a.capu||''):'',a.brand||''].filter(Boolean).map(esc).join(' · ')}</div>${x.grp?'<div class="msg"><b>مجموعة × '+x.qty+'</b> · سليم '+Math.max(0,x.qty-x.qf-x.qd)+' / إصلاح '+x.qf+' / تالف '+x.qd+'</div>':''}</td><td>${esc(a.type)}</td><td class="l">${esc(a.loc)}</td><td class="${x.stc}">${x.st}</td>
+    h+=`<tr><td><b>${esc(a.code)}</b></td><td class="l">${esc(a.name)}<div class="msg">${[+a.cap?a.cap+' '+(a.capu||''):'',a.brand||''].filter(Boolean).map(esc).join(' · ')}</div>${x.grp?'<div class="msg"><b>مجموعة × '+x.qty+'</b> · سليم '+Math.max(0,x.qty-x.qf-x.qd)+' / إصلاح '+x.qf+' / تالف '+x.qd+'</div>':''}</td><td>${esc(a.type)}</td><td class="l">${esc(a.loc)}</td><td class="${x.stc}">${x.st}${aTab==='broken'&&x.open.length?'<div class="msg">'+x.open.slice(0,3).map(n=>esc(n.ref)+': '+esc(n.details)).join('<br>')+'</div>':''}</td>
     <td class="${x.age!==null&&x.age>=x.life?'s-bad':x.age!==null&&x.age>=0.8*x.life?'s-warn':''}">${yr||'—'}<div class="msg">${x.age!==null?x.age+' من '+x.life+' سنة':''}</div></td><td class="${x.r12>=3?'s-bad':x.r12===2?'s-warn':''}">${x.r12} / ${x.ns.length}</td><td>${money(x.cost)}</td>
     <td class="${x.lv===2?'s-bad':x.lv===1?'s-warn':a.stat==='مُكهّن'?'':'s-ok'}" title="${esc(x.reasons.join(' | '))}">${x.advice}<div class="msg">${esc(x.reasons[0]||'')}</div></td><td class="${a.dec==='استبدال'||a.dec==='تكهين'?'s-warn':''}">${dd}</td>
     <td><div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap"><button class="btn sm alt" onclick="assetDetail('${a.id}')">السجل</button><button class="btn sm" onclick="assetDecide('${a.id}')">قرار</button><button class="btn sm alt" onclick="newFaultFor('${esc(a.code)}')">عطل</button><button class="btn sm alt" onclick="openEdit('assets','${a.id}')">تعديل</button><button class="btn sm" style="background:#b42318" onclick="delItem('assets','${a.id}')">حذف</button></div></td></tr>`});
