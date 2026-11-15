@@ -420,7 +420,7 @@ function vPurch(){
   <label>الإخطار<select id="p_ref">${notices.slice().reverse().map(n=>`<option value="${n.ref}">${n.ref} – ${esc(n.dept)}</option>`).join('')}</select></label>
   <label>تاريخ الطلب<input type="date" id="p_rdate" value="${new Date().toISOString().slice(0,10)}"></label>
   <label>الصنف<input id="p_item"></label><label>الكمية<input id="p_qty" type="number" value="1" style="width:70px"></label>
-  <button class="btn" onclick="savePurch()">حفظ</button><button class="btn alt" onclick="pdf('طلبات_الشراء')">تصدير PDF</button><button class="btn" onclick="openPR()">طباعة طلب شراء PR (للأصناف المحددة)</button></div></div>
+  <button class="btn" onclick="savePurch()">حفظ</button><button class="btn alt" onclick="pdf('طلبات_الشراء')">تصدير PDF</button><button class="btn alt" onclick="wordExp('طلبات_الشراء')">تصدير Word</button><button class="btn" onclick="openPR()">طباعة طلب شراء PR (للأصناف المحددة)</button></div></div>
   ${pFilterBar()}<div class="card wrap" id="rep"><h3>طلبات الشراء – مستشفى الابتسامة</h3><table><tr><th class="noprint">PR</th>${['م','الإخطار','القسم','الصنف','الكمية','تاريخ الطلب','الحالة','تاريخ التوريد','تاريخ التركيب'].map(x=>`<th>${x}</th>`).join('')}<th class="noprint">إجراءات</th></tr>`;
   purchases.slice().filter(pfOK).sort((a,b)=>(num(a.ref)||1e9)-(num(b.ref)||1e9)||a.k-b.k).forEach(p=>{const n=notices.find(x=>x.ref===p.ref)||{};
     const refSel=`<select onchange="db.collection('purchases').doc('${p.id}').update({ref:this.value})"><option value=""></option>${notices.slice().reverse().map(x=>`<option ${x.ref===p.ref?'selected':''}>${x.ref}</option>`).join('')}</select>`;
@@ -462,7 +462,7 @@ function vSum(){
   const c=s=>notices.filter(n=>n.status===s).length,pc=s=>purchases.filter(p=>p.status===s).length;
   const linked=new Set(purchases.filter(p=>p.ref).map(p=>p.ref)),viaP=notices.filter(n=>n.viaPurchase).length,linkedOpen=[...linked].filter(r=>{const n=notices.find(x=>x.ref===r);return n&&n.status!=='تم الإصلاح'}).length;
   const closed=notices.length?Math.round(100*c('تم الإصلاح')/notices.length):0;
-  return `<div class="card"><button class="btn" onclick="pdf('الملخص')">تصدير PDF</button></div>
+  return `<div class="card"><button class="btn" onclick="pdf('الملخص')">تصدير PDF</button><button class="btn alt" onclick="wordExp('الملخص')">تصدير Word</button></div>
   <div class="card" id="rep"><h3>ملخص الصيانة – مستشفى الابتسامة</h3>
   <div class="grid"><div class="k"><b>${notices.length}</b>إجمالي الإخطارات</div><div class="k"><b>${closed}%</b>نسبة الإغلاق</div><div class="k"><b>${notices.filter(n=>!n.status).length}</b>إخطارات مفتوحة</div><div class="k"><b>${purchases.length}</b>أصناف الشراء</div><div class="k"><b>${linked.size}</b>إخطارات مرتبطة بطلب شراء</div><div class="k"><b>${viaP}</b>أُغلقت بعد شراء وتركيب</div><div class="k"><b>${linkedOpen}</b>مرتبطة بشراء ولم تُغلق</div></div>
   <h4>الصيانة العلاجية حسب الحالة</h4><table><tr><td class="l s-warn">مفتوح</td><td>${notices.filter(n=>!n.status).length}</td></tr>${ST.map(s=>`<tr><td class="l ${stCls(s)}">${s}</td><td>${c(s)}</td></tr>`).join('')}</table>
@@ -539,7 +539,7 @@ function vReports(){
   let h=`<div class="card"><div class="row"><button class="btn ${repType==='w'?'':'alt'}" onclick="repType='w';repSel='';render()">تقرير أسبوعي (السبت – الجمعة)</button><button class="btn ${repType==='m'?'':'alt'}" onclick="repType='m';repSel='';render()">تقرير شهري (حتى آخر خميس)</button></div>`;
   if(!opts.length)return h+`<div class="msg">التقارير تبدأ من السبت ${dFmt(REP_START)}، وستظهر هنا تلقائياً.</div></div>`;
   const cur=opts.find(x=>x.v===repSel)||opts[0];
-  h+=`<div class="row" style="margin-top:8px"><label>الفترة<select onchange="repSel=this.value;render()">${opts.map(o=>`<option value="${o.v}" ${o.v===cur.v?'selected':''}>${dFmt(o.from)} → ${dFmt(o.to)}${o.to>ymd(new Date())?' (جارية)':''}</option>`).join('')}</select></label><button class="btn" onclick="pdf('تقرير_'+(repType==='w'?'أسبوعي':'شهري')+'_'+'${cur.from}')">تصدير PDF</button></div></div>`;
+  h+=`<div class="row" style="margin-top:8px"><label>الفترة<select onchange="repSel=this.value;render()">${opts.map(o=>`<option value="${o.v}" ${o.v===cur.v?'selected':''}>${dFmt(o.from)} → ${dFmt(o.to)}${o.to>ymd(new Date())?' (جارية)':''}</option>`).join('')}</select></label><button class="btn" onclick="pdf('تقرير_'+(repType==='w'?'أسبوعي':'شهري')+'_'+'${cur.from}')">تصدير PDF</button><button class="btn alt" onclick="wordExp('تقرير_'+(repType==='w'?'أسبوعي':'شهري')+'_'+'${cur.from}')">تصدير Word</button></div></div>`;
   const d=repData(cur.from,cur.to);
   const tbl=(hd,rows)=>`<table><tr>${hd.map(x=>`<th>${x}</th>`).join('')}</tr>${rows.length?rows.map(r=>`<tr>${r.map((c,i)=>`<td${i===0?' class="l"':''}>${esc(c)}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${hd.length}">لا يوجد</td></tr>`}</table>`;
   h+=`<div class="card" id="rep"><h3>تقرير ${repType==='w'?'أسبوعي':'شهري'} عن أعمال الصيانة – مستشفى الابتسامة</h3><div class="msg">الفترة: من ${dFmt(cur.from)} إلى ${dFmt(cur.to)}</div>
@@ -627,7 +627,7 @@ function vDaily(){
   const day=DAYS[new Date(today+'T12:00:00').getDay()];
   const chips=Object.entries(byS).map(([k,v])=>`<span class="${stCls(k)}" style="padding:4px 10px;border-radius:6px;display:inline-block;margin:2px"><b>${v}</b> ${esc(k)}</span>`).join('')||'لا توجد إخطارات مفتوحة';
   const lb=localStorage.getItem('lastBackup'),bk=(!lb||(new Date(today)-new Date(lb))/864e5>7)?`<div class="card s-warn"><b>⚠ لم تأخذ نسخة احتياطية منذ ${lb?'أكثر من أسبوع ('+dFmt(lb)+')':'البداية'}.</b> <button class="btn sm" onclick="tab='backup';nav();render()">نسخ احتياطي الآن</button></div>`:'';
-  return bk+dupBanner()+qa()+`<div class="card"><div class="row"><button class="btn" onclick="pdf('تقرير_المتابعة_اليومي_${today}')">تصدير PDF</button><button class="btn alt" onclick="render()">تحديث</button></div></div>
+  return bk+dupBanner()+qa()+`<div class="card"><div class="row"><button class="btn" onclick="pdf('تقرير_المتابعة_اليومي_${today}')">تصدير PDF</button><button class="btn alt" onclick="wordExp('تقرير_المتابعة_اليومي_${today}')">تصدير Word</button><button class="btn alt" onclick="render()">تحديث</button></div></div>
   <div class="card" id="rep"><h3>تقرير متابعة الأعمال اليومي – قسم الصيانة – مستشفى الابتسامة</h3>
   <div class="msg">${day} ${dFmt(today)}</div>
   <div class="grid" style="margin:8px 0"><div class="k"><b>${open.length}</b>إخطارات لم يتم إصلاحها</div><div class="k"><b>${nNew}</b>إخطارات جديدة اليوم</div><div class="k"><b>${nCl}</b>تم إصلاحها اليوم</div><div class="k"><b>${notPlaced}</b>أصناف لم يتم عمل طلب لها</div><div class="k"><b>${ordered}</b>تم طلبها ولم تُورَّد</div><div class="k"><b>${delivered}</b>تم توريدها ولم تُركَّب</div><div class="k ${overdue?'s-bad':''}"><b>${overdue}</b>متأخرة عن مهلتها</div><div class="k ${critOpen?'s-bad':''}"><b>${critOpen}</b>أعطال حرجة مفتوحة</div><div class="k ${aBroken?'s-warn':''}"><b>${aBroken}</b>أصول معطلة الآن</div><div class="k ${aRec?'s-bad':''}"><b>${aRec}</b>أصول يُنصح باستبدالها</div></div>
@@ -742,6 +742,22 @@ async function pdf(name){
   dl(name+'_'+new Date().toISOString().slice(0,10)+'.pdf',doc.output('arraybuffer'));
 }
 
+function wordExp(name){
+  const src=$('#rep');if(!src){alert('لا يوجد تقرير لتصديره');return}
+  const el=src.cloneNode(true);
+  el.querySelectorAll('.noprint,button,script,svg').forEach(x=>{const w=x.tagName==='svg'&&x.parentElement&&x.parentElement!==el?x.parentElement:x;w.remove()});
+  el.querySelectorAll('select').forEach(x=>{const p=document.createElement('span');p.textContent=x.options[x.selectedIndex]?x.options[x.selectedIndex].text:'';x.replaceWith(p)});
+  el.querySelectorAll('input,textarea').forEach(x=>{const p=document.createElement('span');p.textContent=x.type==='checkbox'?(x.checked?'☒':'☐'):x.value;x.replaceWith(p)});
+  el.querySelectorAll('.grid').forEach(g=>{const t=document.createElement('table'),r=t.insertRow();[...g.children].forEach(k=>{const c=r.insertCell();c.innerHTML=k.innerHTML});g.replaceWith(t)});
+  el.querySelectorAll('[contenteditable]').forEach(x=>{x.removeAttribute('contenteditable');x.removeAttribute('id')});
+  const css='@page{size:A4;margin:2cm}body{font-family:Arial,"Traditional Arabic",sans-serif;direction:rtl;text-align:right;font-size:12pt}'
+   +'table{border-collapse:collapse;width:100%}td,th{border:1px solid #888;padding:4px;text-align:center}td.l,th.l{text-align:right}th{background:#1f4e79;color:#fff}'
+   +'h3{color:#1f4e79}h4{color:#1f4e79;border-bottom:1px solid #999}b{font-weight:bold}.s-ok{background:#d9f2e0}.s-warn{background:#fff3cd}.s-bad{background:#f8d7da}.msg{color:#555;font-size:10pt}';
+  const html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>'+esc(name)+'</title>'
+   +'<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]--><style>'+css+'</style></head><body dir="rtl">'+el.innerHTML+'</body></html>';
+  return dl(name+'_'+new Date().toISOString().slice(0,10)+'.doc',new TextEncoder().encode('\ufeff'+html).buffer);
+}
+
 /* ---------- صندوق الوارد (مدخل البيانات) ---------- */
 const doneI=new Set();
 async function procInbox(list){
@@ -849,7 +865,7 @@ function kRangeCard(){return `<div class="card"><div class="row"><label>من<inp
 const kr=()=>({from:kRange.from||'2000-01-01',to:kRange.to||ymd(new Date())});
 function vKPI(){
   const {from,to}=kr(),k=kpiCalc(from,to),ok=k.filter(x=>x.ok===true).length,bad=k.filter(x=>x.ok===false).length,nn=k.filter(x=>x.ok===null).length;
-  return kRangeCard()+`<div class="card"><button class="btn" onclick="pdf('مؤشرات_KPI_'+ymd(new Date()))">تصدير PDF</button></div>
+  return kRangeCard()+`<div class="card"><button class="btn" onclick="pdf('مؤشرات_KPI_'+ymd(new Date()))">تصدير PDF</button><button class="btn alt" onclick="wordExp('مؤشرات_KPI_'+ymd(new Date()))">تصدير Word</button></div>
   <div class="card" id="rep"><h3>مؤشرات الأداء الرئيسية (KPIs) – إدارة الصيانة – مستشفى الابتسامة</h3><div class="msg">الفترة: ${dFmt(from)} → ${dFmt(to)}</div>
   <div class="grid" style="margin:8px 0"><div class="k"><b>${ok}</b>مؤشرات محققة</div><div class="k"><b>${bad}</b>غير محققة</div><div class="k"><b>${nn}</b>لم تُدخل بعد</div><div class="k"><b>${ok+bad?pf(ok/(ok+bad)):'—'}</b>نسبة التحقق (من المُدخل)</div></div>
   <div style="overflow-x:auto"><table><tr>${['#','المؤشر','طريقة الحساب','الحد الأدنى','الحد الأقصى','الفعلي','الحالة'].map(x=>`<th>${x}</th>`).join('')}</tr>
@@ -871,7 +887,7 @@ function vEval(){
   const norm=evW?sum/evW*100:null,cov=evW/totW;
   const grade=norm===null?'لا يوجد تقييم':(norm>=90?'ممتاز':norm>=75?'جيد جداً':norm>=60?'جيد':'يحتاج خطة تحسين')+(cov<1?' (تقييم جزئي)':'');
   const ok=k.filter(x=>x.ok===true).length,bad=k.filter(x=>x.ok===false).length;
-  return kRangeCard()+`<div class="card"><button class="btn" onclick="pdf('تقييم_الأداء_'+ymd(new Date()))">تصدير PDF</button></div>
+  return kRangeCard()+`<div class="card"><button class="btn" onclick="pdf('تقييم_الأداء_'+ymd(new Date()))">تصدير PDF</button><button class="btn alt" onclick="wordExp('تقييم_الأداء_'+ymd(new Date()))">تصدير Word</button></div>
   <div class="card" id="rep"><h3>تقييم أداء مدير الصيانة – محسوب تلقائياً من بيانات المتابعة</h3>
   <div class="grid" style="margin:8px 0"><div class="k"><b>${norm===null?'—':norm.toFixed(1)}</b>الدرجة المعيارية (من 100)</div><div class="k"><b style="font-size:18px">${grade}</b>التقدير العام</div><div class="k"><b>${Math.round(cov*100)}%</b>اكتمال التقييم (وزن المحاور المقيّمة)</div><div class="k"><b>${ok} من ${ok+bad}</b>مؤشرات محققة</div></div>
   <div class="row" style="margin-bottom:8px"><label>اسم المدير<input data-keep="1" value="${esc(ev.name??'م/ محمد خالد المحمدي')}" onchange="saveEv({name:this.value})"></label><label>فترة التقييم<input data-keep="1" value="${esc(ev.period??'من 21/9/2026')}" onchange="saveEv({period:this.value})"></label><label>المقيّم<input data-keep="1" value="${esc(ev.evaluator??'')}" onchange="saveEv({evaluator:this.value})"></label></div>
@@ -1344,7 +1360,7 @@ function vBudget(){
   const totB=TRALL.reduce((a,t)=>a+(+bd[t]||0),0),totS=TRALL.reduce((a,t)=>a+(sp.by[t]||0),0);
   const plan=planBy(bYear),totP=TRALL.reduce((a,t)=>a+(plan.by[t]||0),0);
   const yrs=['2026','2027','2028'];
-  let h=`<div class="card"><div class="row"><label>السنة<select onchange="bYear=this.value;render()">${yrs.map(y=>`<option ${y===bYear?'selected':''}>${y}</option>`).join('')}</select></label><button class="btn" onclick="pdf('التكاليف_والبادجت_'+bYear)">تصدير PDF</button></div>
+  let h=`<div class="card"><div class="row"><label>السنة<select onchange="bYear=this.value;render()">${yrs.map(y=>`<option ${y===bYear?'selected':''}>${y}</option>`).join('')}</select></label><button class="btn" onclick="pdf('التكاليف_والبادجت_'+bYear)">تصدير PDF</button><button class="btn alt" onclick="wordExp('التكاليف_والبادجت_'+bYear)">تصدير Word</button></div>
   <div class="msg">المصروف = تكلفة الإصلاح/الخدمة المسجلة في الإخطارات + (السعر × الكمية) لأصناف الشراء (بدون المصروف من المخزن). أدخل البادجت لكل تخصص. تُسجَّل التكلفة في خانة «التكلفة» بالإخطار وسعر الشراء الفعلي بعد تنفيذ الشراء (من «تعديل» صنف الشراء في طلبات الشراء).</div></div>
   <div class="card" id="rep"><h3>التكاليف مقابل البادجت – ${bYear} – قسم الصيانة</h3>
   <div class="grid" style="margin:8px 0"><div class="k"><b>${money(totB)}</b>إجمالي البادجت (ج.م)</div><div class="k"><b>${money(totS)}</b>المصروف (ج.م)</div><div class="k ${totB&&totS>totB?'s-bad':''}"><b>${money(totB-totS)}</b>المتبقي (ج.م)</div><div class="k"><b>${totB?Math.round(100*totS/totB)+'%':'—'}</b>نسبة الاستهلاك</div><div class="k"><b>${money(totP)}</b>استبدال مخطط من سجل الأصول (ج.م)</div><div class="k ${totB&&totS+totP>totB?'s-bad':''}"><b>${money(totB-totS-totP)}</b>المتبقي بعد المصروف والمخطط</div></div>
