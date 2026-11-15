@@ -312,7 +312,7 @@ function roundTable(d,withOpen){
     h+=`<tr><td class="l"><span>${x.a}</span> <button class="btn sm ${occ?'':'alt'}" onclick="occupy(${i})">${occ?'✔ مشغولة':'مشغولة'}</button></td>`+CATS.map((c,j)=>{const m=d.marks[i+'_'+j]||'✓';
       return `<td class="${m==='✗'?'s-bad':m==='✓'?'s-ok':''}"><select onchange="dSet(${i},${j},this.value)">${['✓','✗','مشغولة','لا يوجد'].map(o=>`<option ${o===m?'selected':''}>${o}</option>`).join('')}</select></td>`}).join('')
       +`<td><textarea rows="1" data-keep="1" oninput="fit(this)" onchange="dNote(${i},this.value)">${esc(d.notes[i])}</textarea></td>`;
-    if(withOpen){const open=notices.filter(n=>n.status!=='تم الإصلاح'&&n.dept&&n.dept.includes(x.a)).length;h+=`<td class="${open?'s-warn':''}">${open||''}</td>`}
+    if(withOpen){const open=notices.filter(n=>n.status!=='تم الإصلاح'&&n.dept&&n.dept.includes(x.a)).length;h+=open?`<td class="s-warn" style="cursor:pointer;text-decoration:underline" title="عرض الإخطارات المفتوحة" onclick="openByPlace(${i})">${open}</td>`:'<td></td>'}
     h+='</tr>';
   });
   return h+'</table></div><div class="card"><button class="btn" onclick="saveRound()">حفظ المرور اليومي</button></div>';
@@ -328,6 +328,8 @@ function copyRound(){
   d.marks={...(r.marks||{})};d.notes={...(r.notes||{})};d.dirty=true;render();
   toast('تم نسخ مرور '+src+' إلى '+rdate+' – راجع ثم اضغط حفظ');
 }
+function openByPlace(i){if(!confirmLeaveRound())return;nf.q=ALL[i].a;nf.st='__open';nf.pr='';nf.late=false;go('notices')}
+function confirmLeaveRound(){const d=getDraft();if(d.dirty&&!confirm('فيه تعديلات غير محفوظة في المرور الحالي. تتجاهلها؟'))return false;if(d.dirty)draft=null;return true}
 function vRound(){return roundTable(getDraft(),true)}
 function vERound(){return roundTable(getDraft(),false)}
 function occupy(i){const d=getDraft();const all=CATS.every((c,j)=>d.marks[i+'_'+j]==='مشغولة');CATS.forEach((c,j)=>d.marks[i+'_'+j]=all?'✓':'مشغولة');d.dirty=true;render()}
