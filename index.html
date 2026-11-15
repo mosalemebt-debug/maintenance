@@ -231,7 +231,7 @@ async function init(){
   db.collection('assets').onSnapshot(s=>{assets=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.code).localeCompare(String(b.code),'en',{numeric:true}));render()});
   db.collection('stock').onSnapshot(s=>{stock=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ar'));render()});
 }
-const NAVG=[['الرئيسية',[['daily','المتابعة اليومية']]],['التشغيل',[['round','المرور اليومي'],['notices','الصيانة العلاجية'],['jobsheets','JobSheet']]],['الأصول والمشتريات',[['purch','طلبات الشراء'],['assets','سجل الأصول'],['stock','المخزن'],['budget','التكاليف والبادجت']]],['التقارير والأداء',[['sum','الملخص'],['reports','التقارير'],['kpi','مؤشرات KPI'],['eval','تقييم الأداء']]],['النظام',[['audit','سجل التعديلات'],['backup','نسخ احتياطي']]]];
+const NAVG=[['الرئيسية',[['daily','المتابعة اليومية']]],['التشغيل',[['round','المرور اليومي'],['notices','الصيانة العلاجية'],['jobsheets','JobSheet']]],['الأصول والمشتريات',[['purch','طلبات الشراء'],['assets','سجل الأصول'],['stock','المخزن'],['budget','التكاليف والبادجت']]],['التقارير',[['sum','الملخص'],['reports','التقارير']]],['النظام',[['audit','سجل التعديلات'],['backup','نسخ احتياطي']]]];
 const lastTab={};
 function badges(){
   const o={};try{o.notices=notices.filter(n=>n.status!=='تم الإصلاح').length;o.stock=stock.filter(x=>+x.qty<=+x.min).length;o.purch=purchases.filter(p=>p.status!=='تم التركيب').length;o.jobsheets=jobsheets.filter(j=>['صادر','قيد التنفيذ'].includes(j.status)).length}catch(e){}
@@ -272,7 +272,7 @@ function render(){
   if(window._lt!==tab){document.body.classList.remove('showf');window._lt=tab}
   const keepV={};document.querySelectorAll('#main input[id],#main select[id],#main textarea[id]').forEach(e=>{if(/^(f|p|pm|as|st|ni|nq)_/.test(e.id)&&e.value!=='')keepV[e.id]=e.value});
   const wy=window.scrollY,ws=[...document.querySelectorAll('.wrap:not(#rep)')].map(w=>[w.scrollTop,w.scrollLeft]);
-  $('#main').innerHTML=({round:vRound,notices:vNotices,purch:vPurch,sum:vSum,reports:vReports,daily:vDaily,backup:vBackup,kpi:vKPI,eval:vEval,audit:vAudit,assets:vAssets,stock:vStock,jobsheets:vJobs,budget:vBudget,e_round:vERound,e_notice:vENotice,e_purch:vEPurch})[tab]();
+  $('#main').innerHTML=({round:vRound,notices:vNotices,purch:vPurch,sum:vSum,reports:vReports,daily:vDaily,backup:vBackup,audit:vAudit,assets:vAssets,stock:vStock,jobsheets:vJobs,budget:vBudget,e_round:vERound,e_notice:vENotice,e_purch:vEPurch})[tab]();
   document.querySelectorAll('textarea').forEach(fit);
   labelize();
   Object.entries(keepV).forEach(([id,v])=>{const e=document.getElementById(id);if(e&&e.tagName!=='BUTTON')e.value=v});
@@ -836,67 +836,6 @@ function vAudit(){
   ${rows.map(a=>`<tr><td>${tm(a.at)}</td><td>${esc(a.by)}</td><td>${SEC[a.col]||a.col}</td><td class="l">${esc(a.label)}</td><td class="${a.action==='حذف'?'s-bad':a.action==='إضافة'?'s-ok':''}">${a.action}</td><td class="l">${a.ch?Object.entries(a.ch).map(([k,v])=>`${FL[k]||k}: ${esc(v[0])||'—'} ← ${esc(v[1])||'—'}`).join('<br>'):''}</td></tr>`).join('')||'<tr><td colspan="6">لا توجد عمليات مسجلة بعد</td></tr>'}</table></div>`;
 }
 let auditF={sec:'',q:''};
-/* ---------- مؤشرات KPI وتقييم الأداء ---------- */
-let kRange={from:'2026-09-21',to:''};
-const pf=v=>v===null||v===undefined?'—':(Math.round(v*1000)/10)+'%';
-function kpiCalc(from,to){
-  const inR=v=>{const x=iso(v);return typeof x==='string'&&x>=from&&x<=to};
-  const ns=notices.filter(n=>inR(n.date)),tot=ns.length,cnt=st=>ns.filter(n=>n.status===st).length,closed=ns.filter(n=>n.status==='تم الإصلاح'),unr=ns.filter(n=>n.status==='غير قابل للإصلاح'),dec=closed.concat(unr),opn=ns.filter(n=>!n.status);
-  const pr=purchases.filter(p=>inR(p.rdate)&&p.item),pt=pr.length,PL=['تم الطلب','تم الشراء/التوريد','صرف من المخزن','تم التركيب'],DV=['تم الشراء/التوريد','صرف من المخزن','تم التركيب'];
-  const cls=notices.filter(n=>inR(n.date)&&n.cls),today=ymd(new Date());
-  const sl=closed.filter(n=>slaInfo(n).txt);
-  const k=[
-   {n:1,t:'نسبة إغلاق الإخطارات',h:'تم الإصلاح ÷ إجمالي الإخطارات',v:tot?cnt('تم الإصلاح')/tot:null,min:.85},
-   {n:2,t:'نسبة غير القابل للإصلاح من المحسوم',h:'غير قابل للإصلاح ÷ (تم الإصلاح + غير قابل للإصلاح)',v:dec.length?unr.length/dec.length:null,max:.1},
-   {n:3,t:'نسبة الإخطارات المفتوحة',h:'المفتوحة (بدون حالة) ÷ إجمالي الإخطارات',v:tot?opn.length/tot:null,max:.15},
-   {n:4,t:'نسبة غير القابل للإصلاح',h:'التصنيف الأصلي غير قابل للإصلاح ÷ الإخطارات ذات تصنيف أصلي',v:cls.length?cls.filter(n=>n.cls==='غير قابل للإصلاح').length/cls.length:null,max:.05},
-   {n:5,t:'اكتمال بيانات الإخطارات',h:'الخانات المعبأة (التاريخ، القسم، العطل، الإجراء، ممثل الصيانة) ÷ المطلوب',v:tot?ns.reduce((a,n)=>a+['date','dept','details','action','rep'].filter(f=>n[f]).length,0)/(tot*5):null,min:.9},
-   {n:6,t:'توثيق تاريخ الإصلاح للمُغلق',h:'المُغلق وله تاريخ إصلاح ÷ إجمالي المُغلق',v:closed.length?closed.filter(n=>n.fixdate).length/closed.length:null,min:.9},
-   {n:7,t:'تقدّم طلبات الشراء',h:'(تم الطلب + التوريد + التركيب) ÷ إجمالي الأصناف',v:pt?pr.filter(p=>PL.includes(p.status)).length/pt:null,min:.8},
-   {n:8,t:'تنفيذ الشراء والتوريد',h:'(تم الشراء/التوريد + تم التركيب) ÷ إجمالي الأصناف',v:pt?pr.filter(p=>DV.includes(p.status)).length/pt:null,min:.6},
-   {n:10,t:'إخطارات تحتاج شراء بلا صنف مسجل',h:'عدد',cnt:true,v:notices.filter(n=>inR(n.date)&&n.needbuy==='نعم'&&!purchases.some(p=>p.ref===n.ref)).length,max:0},
-   {n:11,t:'الإغلاق ضمن المهلة (مضاف)',h:'المُغلق ضمن مهلة أولويته ÷ المُغلق',v:sl.length?sl.filter(n=>slaInfo(n).txt==='ضمن المهلة').length/sl.length:null,min:.8},
-   {n:9,t:'المفتوح المتأخر عن مهلة أولويته',h:'المفتوح (بدون حالة) وتجاوز المهلة ÷ إجمالي المفتوح',v:tot?(opn.length?opn.filter(n=>slaInfo(n).over).length/opn.length:0):null,max:.2},
-   {n:12,t:'قرار الاستبدال لغير القابل للإصلاح',h:'غير قابل للإصلاح وله «يحتاج شراء = نعم» أو طلب شراء مرتبط ÷ إجمالي غير القابل للإصلاح',v:unr.length?unr.filter(n=>n.needbuy==='نعم'||purchases.some(p=>p.ref===n.ref)).length/unr.length:null,min:.8}];
-  k.forEach(x=>{x.ok=x.v===null?null:((x.min===undefined||x.v>=x.min)&&(x.max===undefined||x.v<=x.max))});
-  return k;
-}
-function kRangeCard(){return `<div class="card"><div class="row"><label>من<input type="date" value="${kRange.from}" onchange="kRange.from=this.value;render()"></label><label>إلى (فارغ = اليوم)<input type="date" value="${kRange.to}" onchange="kRange.to=this.value;render()"></label></div></div>`}
-const kr=()=>({from:kRange.from||'2000-01-01',to:kRange.to||ymd(new Date())});
-function vKPI(){
-  const {from,to}=kr(),k=kpiCalc(from,to),ok=k.filter(x=>x.ok===true).length,bad=k.filter(x=>x.ok===false).length,nn=k.filter(x=>x.ok===null).length;
-  return kRangeCard()+`<div class="card"><button class="btn" onclick="pdf('مؤشرات_KPI_'+ymd(new Date()))">تصدير PDF</button><button class="btn alt" onclick="wordExp('مؤشرات_KPI_'+ymd(new Date()))">تصدير Word</button></div>
-  <div class="card" id="rep"><h3>مؤشرات الأداء الرئيسية (KPIs) – إدارة الصيانة – مستشفى الابتسامة</h3><div class="msg">الفترة: ${dFmt(from)} → ${dFmt(to)}</div>
-  <div class="grid" style="margin:8px 0"><div class="k"><b>${ok}</b>مؤشرات محققة</div><div class="k"><b>${bad}</b>غير محققة</div><div class="k"><b>${nn}</b>لم تُدخل بعد</div><div class="k"><b>${ok+bad?pf(ok/(ok+bad)):'—'}</b>نسبة التحقق (من المُدخل)</div></div>
-  <div style="overflow-x:auto"><table><tr>${['#','المؤشر','طريقة الحساب','الحد الأدنى','الحد الأقصى','الفعلي','الحالة'].map(x=>`<th>${x}</th>`).join('')}</tr>
-  ${k.map(x=>`<tr><td>${x.n}</td><td class="l">${x.t}</td><td class="l">${x.h}</td><td>${x.min!==undefined?pf(x.min):''}</td><td>${x.max!==undefined?(x.cnt?x.max:pf(x.max)):''}</td><td><b>${x.cnt?x.v:pf(x.v)}</b></td><td class="${x.ok===true?'s-ok':x.ok===false?'s-bad':''}">${x.ok===true?'محقق':x.ok===false?'غير محقق':'—'}</td></tr>`).join('')}</table></div>
-  <div class="msg" style="margin-top:6px">المؤشر 11 مضاف على نموذجك الأصلي. لا يدخل في حساب تقييم الأداء.</div></div>`;
-}
-const avgN=a=>{a=a.filter(x=>x!==null&&x!==undefined);return a.length?a.reduce((t,x)=>t+x,0)/a.length:null};
-const EV=[{a:'الاستجابة وحسم الأعطال',w:40,c:'متوسط: (1 − نسبة المفتوح) و(1 − نسبة المفتوح المتأخر عن المهلة)',f:k=>avgN([k[2].v===null?null:1-k[2].v,k[10].v===null?null:1-k[10].v])},
- {a:'جودة الإصلاح (قابلية الإصلاح)',w:40,c:'نجاح الإصلاح = تم الإصلاح ÷ (تم الإصلاح + غير قابل للإصلاح)',f:k=>k[1].v===null?null:1-k[1].v},
- {a:'إدارة المشتريات والتكاليف',w:10,c:'متوسط: تقدّم طلبات الشراء، وقرار الاستبدال لغير القابل للإصلاح',f:k=>avgN([k[6].v,k[11].v])},
- {a:'التوثيق والتقارير',w:10,c:'متوسط: اكتمال البيانات، توثيق تاريخ الإصلاح',f:k=>avgN([k[4].v,k[5].v])}];
-function saveEv(p){const e=settings.eval=Object.assign({},settings.eval,p);return db.collection('settings').doc('eval').set(e)}
-function evAdj(i,v){const a=Object.assign({},(settings.eval||{}).adj);if(v==='')delete a[i];else a[i]=+v;saveEv({adj:a})}
-function evNote(i,v){const a=Object.assign({},(settings.eval||{}).notes);a[i]=v;saveEv({notes:a})}
-function vEval(){
-  const {from,to}=kr(),k=kpiCalc(from,to),ev=settings.eval||{},adj=ev.adj||{},nt=ev.notes||{};
-  const rows=EV.map((x,i)=>{const auto=x.f(k),ap=adj[i]!==undefined&&adj[i]!==''?adj[i]/100:auto;return{...x,auto,ap,sc:ap===null?null:x.w*ap}});
-  const totW=EV.reduce((a,x)=>a+x.w,0),evW=rows.filter(r=>r.ap!==null).reduce((a,r)=>a+r.w,0),sum=rows.reduce((a,r)=>a+(r.sc||0),0);
-  const norm=evW?sum/evW*100:null,cov=evW/totW;
-  const grade=norm===null?'لا يوجد تقييم':(norm>=90?'ممتاز':norm>=75?'جيد جداً':norm>=60?'جيد':'يحتاج خطة تحسين')+(cov<1?' (تقييم جزئي)':'');
-  const ok=k.filter(x=>x.ok===true).length,bad=k.filter(x=>x.ok===false).length;
-  return kRangeCard()+`<div class="card"><button class="btn" onclick="pdf('تقييم_الأداء_'+ymd(new Date()))">تصدير PDF</button><button class="btn alt" onclick="wordExp('تقييم_الأداء_'+ymd(new Date()))">تصدير Word</button></div>
-  <div class="card" id="rep"><h3>تقييم أداء مدير الصيانة – محسوب تلقائياً من بيانات المتابعة</h3>
-  <div class="grid" style="margin:8px 0"><div class="k"><b>${norm===null?'—':norm.toFixed(1)}</b>الدرجة المعيارية (من 100)</div><div class="k"><b style="font-size:18px">${grade}</b>التقدير العام</div><div class="k"><b>${Math.round(cov*100)}%</b>اكتمال التقييم (وزن المحاور المقيّمة)</div><div class="k"><b>${ok} من ${ok+bad}</b>مؤشرات محققة</div></div>
-  <div class="row" style="margin-bottom:8px"><label>اسم المدير<input data-keep="1" value="${esc(ev.name??'م/ محمد خالد المحمدي')}" onchange="saveEv({name:this.value})"></label><label>فترة التقييم<input data-keep="1" value="${esc(ev.period??'من 21/9/2026')}" onchange="saveEv({period:this.value})"></label><label>المقيّم<input data-keep="1" value="${esc(ev.evaluator??'')}" onchange="saveEv({evaluator:this.value})"></label></div>
-  <div style="overflow-x:auto"><table><tr>${['المحور','الدرجة','المؤشر','النسبة التلقائية','تعديل النسبة (%)','النسبة المعتمدة','الدرجة المحققة','ملاحظات'].map(x=>`<th>${x}</th>`).join('')}</tr>
-  ${rows.map((r,i)=>`<tr><td class="l">${r.a}</td><td>${r.w}</td><td class="l">${r.c}</td><td>${pf(r.auto)}</td><td><input type="number" min="0" max="100" data-keep="1" value="${adj[i]??''}" style="width:80px" onchange="evAdj(${i},this.value)"></td><td>${pf(r.ap)}</td><td><b>${r.sc===null?'—':r.sc.toFixed(1)}</b></td><td class="l"><input data-keep="1" value="${esc(nt[i]||'')}" onchange="evNote(${i},this.value)"></td></tr>`).join('')}
-  <tr><td class="l"><b>الإجمالي</b></td><td><b>${totW}</b></td><td class="l">${rows.filter(r=>r.ap!==null).length} من ${EV.length} محاور مقيّمة</td><td></td><td></td><td></td><td><b>${sum.toFixed(1)}</b></td><td></td></tr></table></div>
-  <div class="msg" style="margin-top:6px">سلّم التقدير (على الدرجة المعيارية): 90 فأكثر ممتاز · 75–89 جيد جداً · 60–74 جيد · أقل من 60 يحتاج خطة تحسين.<br>الدرجة الحالية من 100: ${sum.toFixed(1)} · الدرجة المعيارية = الدرجة المحققة ÷ وزن المحاور المقيّمة.</div>
-  <div style="display:flex;justify-content:space-between;margin-top:24px"><span>توقيع المدير: ____________</span><span>المقيّم: ${esc(ev.evaluator||'____________')}</span><span>اعتماد الإدارة العليا: ____________</span></div></div>`;
-}
 /* ---------- التخصصات والتكاليف ---------- */
 const TRD=['كهرباء','سباكة','تكييف','نجارة','نقاشة','ألومنيوم','مدني','أخرى'],TRALL=[...TRD,'غير مصنف'];
 const TRMAP={'كهرباء':'كهرباء','سباكة':'سباكة','نجارة':'نجارة','نقاشة':'نقاشة','ألومنيوم':'ألومنيوم','شاشة':'أخرى','التكييف':'تكييف'};
