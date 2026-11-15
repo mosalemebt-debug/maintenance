@@ -466,7 +466,7 @@ function vSum(){
   <div class="card" id="rep"><h3>ملخص الصيانة – مستشفى الابتسامة</h3>
   <div class="grid"><div class="k"><b>${notices.length}</b>إجمالي الإخطارات</div><div class="k"><b>${closed}%</b>نسبة الإغلاق</div><div class="k"><b>${notices.filter(n=>!n.status).length}</b>إخطارات مفتوحة</div><div class="k"><b>${purchases.length}</b>أصناف الشراء</div><div class="k"><b>${linked.size}</b>إخطارات مرتبطة بطلب شراء</div><div class="k"><b>${viaP}</b>أُغلقت بعد شراء وتركيب</div><div class="k"><b>${linkedOpen}</b>مرتبطة بشراء ولم تُغلق</div></div>
   <h4>الصيانة العلاجية حسب الحالة</h4><table><tr><td class="l s-warn">مفتوح</td><td>${notices.filter(n=>!n.status).length}</td></tr>${ST.map(s=>`<tr><td class="l ${stCls(s)}">${s}</td><td>${c(s)}</td></tr>`).join('')}</table>
-  <h4>الرسوم البيانية</h4>${sumCharts()}<h4>طلبات الشراء</h4><table>${PST.map(s=>`<tr><td class="l">${s}</td><td>${pc(s)}</td></tr>`).join('')}</table></div>`;
+  <h4>طلبات الشراء</h4><table>${PST.map(s=>`<tr><td class="l">${s}</td><td>${pc(s)}</td></tr>`).join('')}</table></div>`;
 }
 /* ---------- التقارير الأسبوعية والشهرية ---------- */
 const REP_START='2026-11-07'; // السبت: بداية العمل بالتقارير
@@ -546,7 +546,6 @@ function vReports(){
   ${repStory(cur.from,cur.to,repType,d)}
   <h4 style="margin-top:18px">ملحق: الأرقام والإحصائيات</h4>
   <div class="grid" style="margin:8px 0"><div class="k"><b>${d.days}/${d.span}</b>أيام مرور محفوظة</div><div class="k"><b>${d.bad}</b>خانات ✗ في المرور</div><div class="k"><b>${d.nNew.length}</b>إخطارات جديدة</div><div class="k"><b>${d.nClosed.length}</b>إخطارات تم إصلاحها</div><div class="k"><b>${d.avg===null?'—':d.avg.toFixed(1)}</b>متوسط زمن الإصلاح (يوم)</div><div class="k"><b>${d.openNow}</b>مفتوحة حالياً</div><div class="k"><b>${d.nClosed.length?Math.round(100*d.slaOk/d.nClosed.length)+'%':'—'}</b>إغلاق ضمن المهلة</div></div>
-  <h4>الرسوم البيانية</h4>${repCharts(cur.from,cur.to,repType)}
   <h4>أكثر الأماكن أعطالاً (من المرور)</h4>${tbl(['المكان','عدد ✗'],d.byA)}
   <h4>أكثر التخصصات أعطالاً</h4>${tbl(['التخصص','عدد ✗'],d.byC)}
   <h4>أعطال متكررة (نفس المكان والتخصص أكثر من مرة)</h4>${tbl(['المكان – التخصص','مرات التكرار'],d.rec)}
@@ -844,28 +843,6 @@ function tradeOf(n){if(n.trade)return n.trade;if(TRMAP[n.cat])return TRMAP[n.cat
 const partsCost=ref=>purchases.filter(p=>p.ref===ref&&p.status!=='صرف من المخزن').reduce((a,p)=>a+(+p.price||0)*(+p.qty||0),0);
 const noticeCost=n=>(+n.cost||0)+partsCost(n.ref);
 const money=v=>(Math.round((+v||0)*100)/100).toLocaleString('en-US');
-/* ---------- رسوم بيانية (SVG) ---------- */
-function barChart(title,rows,unit){
-  unit=unit||'';
-  if(!rows.length||rows.every(r=>!r[1]))return `<div class="msg">${title}: لا توجد بيانات</div>`;
-  const max=Math.max(...rows.map(r=>r[1]),1),W=520,rh=24,H=rows.length*rh+34,lw=140;
-  let b=`<div style="background:#fff;border-radius:8px;padding:6px;margin:6px 0;overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:580px;height:auto" xmlns="http://www.w3.org/2000/svg"><text x="${W}" y="16" text-anchor="end" font-size="13" font-weight="700" fill="#1f4e79">${esc(title)}</text>`;
-  rows.forEach((r,i)=>{const y=28+i*rh,w=(W-lw-70)*r[1]/max;b+=`<text x="${W}" y="${y+14}" text-anchor="end" font-size="11" fill="#222">${esc(r[0])}</text><rect x="${W-lw-w}" y="${y+2}" width="${Math.max(w,1)}" height="${rh-8}" fill="#1f4e79" rx="3"/><text x="${W-lw-w-4}" y="${y+14}" text-anchor="end" font-size="11" fill="#222">${money(r[1])}${unit}</text>`});
-  return b+'</svg></div>';
-}
-function sumCharts(){
-  const bt={};notices.forEach(n=>{const t=tradeOf(n);bt[t]=(bt[t]||0)+1});
-  const rows=[];for(let i=5;i>=0;i--){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');rows.push([k,notices.filter(n=>String(iso(n.date)).startsWith(k)).length])}
-  return barChart('الأعطال حسب التخصص',Object.entries(bt).sort((a,b)=>b[1]-a[1]))+barChart('الأعطال حسب الشهر (آخر 6 شهور)',rows);
-}
-function repCharts(from,to,type){
-  const ns=notices.filter(n=>{const x=iso(n.date);return typeof x==='string'&&x>=from&&x<=to});
-  const bt={};ns.forEach(n=>{const t=tradeOf(n);bt[t]=(bt[t]||0)+1});
-  const rows=[];let x=new Date(from+'T12:00:00');
-  if(type==='w'){for(let i=0;i<7;i++){const d=ymd(x);rows.push([DAYS[x.getDay()]+' '+d.slice(8)+'/'+d.slice(5,7),ns.filter(n=>iso(n.date)===d).length]);x.setDate(x.getDate()+1)}}
-  else{while(ymd(x)<=to){const e=new Date(x);e.setDate(e.getDate()+((5-e.getDay()+7)%7));const end=ymd(e)>to?to:ymd(e),st=ymd(x);rows.push([dFmt(st).slice(0,5)+' → '+dFmt(end).slice(0,5),ns.filter(n=>{const d=iso(n.date);return d>=st&&d<=end}).length]);x=new Date(e);x.setDate(x.getDate()+1)}}
-  return barChart('الأعطال حسب التخصص',Object.entries(bt).sort((a,b)=>b[1]-a[1]))+barChart(type==='w'?'الأعطال حسب اليوم':'الأعطال حسب الأسبوع',rows);
-}
 /* ---------- سجل الأصول ---------- */
 const ATY=['تكييف','مولد','لوحة كهرباء','موتور مياه','مصعد','محطة غازات','غسالة / مجفف / مكواة','سخان مياه','نظام نداء ممرضات','نظام إنذار حريق','UPS','ثلاجة','تلفزيون','شفاط','مخرج غاز طبي','حضانة أطفال','باب','شباك','حوض','قاعدة','خلاط','كشاف','كرسي','كنب','سرير','دولاب','مكتب','ترابيزة','ستارة','أخرى'],CAPU=['حصان','BTU','طن تبريد','kVA','كيلووات','كجم','لتر','أمبير'];
 const AF=()=>[['code','الكود','text'],['name','الاسم / الطراز','text'],['type','النوع','select',['',...ATY]],['mode','طريقة التسجيل','select',['فردي','مجموعة']],['qty','العدد الكلي (للمجموعة)','number'],['qtyFix','منها يحتاج إصلاح (للمجموعة)','number'],['qtyDead','منها تالف (للمجموعة)','number'],['cap','القدرة','number'],['capu','وحدة القدرة','select',['',...CAPU]],['loc','الموقع','text'],['value','قيمة استبدال الوحدة التقريبية (ج.م)','number'],['brand','الماركة','text'],['model','الموديل / الشكل','text'],['inst','سنة التركيب','number'],['life','العمر الافتراضي (سنة)','number'],['notes','ملاحظات','area']];
@@ -1307,8 +1284,7 @@ function vBudget(){
   ${TRALL.map(t=>{const b=+bd[t]||0,s=sp.by[t]||0,p=b?s/b:null;return `<tr><td class="l">${t}</td><td>${t==='غير مصنف'?'—':`<input type="number" min="0" data-keep="1" value="${b||''}" style="width:110px" onchange="bSet('${t}',this.value)">`}</td><td>${money(s)}</td><td class="${b&&s>b?'s-bad':''}">${t==='غير مصنف'?'—':money(b-s)}</td><td class="${p===null?'':p>1?'s-bad':p>.8?'s-warn':'s-ok'}">${p===null?'—':Math.round(p*100)+'%'}</td><td>${money(plan.by[t]||0)}</td><td class="${b&&(s+(plan.by[t]||0))>b?'s-bad':''}">${t==='غير مصنف'?'—':money(b-s-(plan.by[t]||0))}</td></tr>`}).join('')}
   <tr><td class="l"><b>الإجمالي</b></td><td><b>${money(totB)}</b></td><td><b>${money(totS)}</b></td><td><b>${money(totB-totS)}</b></td><td></td><td><b>${money(totP)}</b></td><td><b>${money(totB-totS-totP)}</b></td></tr></table></div>
   ${planTable(plan,bYear)}
-  ${barChart('المصروف حسب التخصص (ج.م)',TRALL.map(t=>[t,Math.round(sp.by[t]||0)]).filter(r=>r[1]).sort((a,b)=>b[1]-a[1]))}
-  ${barChart('المصروف حسب الشهر (ج.م)',sp.mo.map((v,i)=>[String(i+1).padStart(2,'0')+'/'+bYear,Math.round(v)]).filter(r=>r[1]))}</div>`;
+  </div>`;
   return h;
 }
 /* ---------- طباعة إخطار صيانة ---------- */
