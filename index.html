@@ -301,6 +301,7 @@ function roundTable(d,withOpen){
   const stCls2=d.dirty?'s-warn':(d.saved&&withOpen)?'s-ok':'';
   let h=`<div class="card"><div class="row"><button class="btn alt" onclick="shiftDay(-1)">◀ اليوم السابق</button><button class="btn alt" onclick="goDay(ymd(new Date()))">اليوم</button><button class="btn alt" onclick="shiftDay(1)">اليوم التالي ▶</button>
   <label>التاريخ (${DAYS[new Date(rdate+'T12:00:00').getDay()]})<input type="date" value="${rdate}" onchange="goDay(this.value)"></label></div>
+  ${withOpen?`<div class="row" style="margin-top:8px"><label>نسخ المرور من يوم<input type="date" value="${rcopySrc()}" onchange="rcopy=this.value"></label><button class="btn alt" onclick="copyRound()">📋 انسخ إلى ${rdate}</button></div>`:''}
   <div class="row" style="margin-top:8px"><span class="${stCls2}" style="padding:6px 10px;border-radius:6px"><b>${stTxt}</b></span><span><b>الأعطال المحددة: ${bad}</b></span><button class="btn" onclick="saveRound()">حفظ المرور اليومي</button></div>
   <div class="msg">كل الخانات سليمة ✓ افتراضياً؛ غيّر الخانات اللي فيها مشكلة فقط (✗) واكتب الملاحظة، ثم اضغط حفظ مرة واحدة. الأعطال بتتسجل في الصيانة العلاجية عند الحفظ.</div></div>
   <div class="card wrap"><table><tr><th>المكان</th>${CATS.map(c=>`<th>${c}</th>`).join('')}<th>ملاحظات</th>${withOpen?'<th>مفتوح بالعلاجية</th>':''}</tr>`;
@@ -315,6 +316,17 @@ function roundTable(d,withOpen){
     h+='</tr>';
   });
   return h+'</table></div><div class="card"><button class="btn" onclick="saveRound()">حفظ المرور اليومي</button></div>';
+}
+let rcopy='';
+function rcopySrc(){return rcopy||ymd(new Date(new Date(rdate+'T12:00:00').getTime()-864e5))}
+function copyRound(){
+  const src=rcopySrc(),r=rounds[src];
+  if(src===rdate){alert('اختار يوم مختلف عن اليوم الحالي');return}
+  if(!r){alert('لا يوجد مرور محفوظ بتاريخ '+src);return}
+  const d=getDraft();
+  if((d.saved||d.dirty)&&!confirm('اليوم '+rdate+' فيه بيانات مرور. استبدالها بمرور '+src+'؟'))return;
+  d.marks={...(r.marks||{})};d.notes={...(r.notes||{})};d.dirty=true;render();
+  toast('تم نسخ مرور '+src+' إلى '+rdate+' – راجع ثم اضغط حفظ');
 }
 function vRound(){return roundTable(getDraft(),true)}
 function vERound(){return roundTable(getDraft(),false)}
