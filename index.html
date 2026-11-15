@@ -311,6 +311,7 @@ function roundTable(d,withOpen){
   let h=`<div class="card"><div class="row"><button class="btn alt" onclick="shiftDay(-1)">◀ اليوم السابق</button><button class="btn alt" onclick="goDay(ymd(new Date()))">اليوم</button><button class="btn alt" onclick="shiftDay(1)">اليوم التالي ▶</button>
   <label>التاريخ (${DAYS[new Date(rdate+'T12:00:00').getDay()]})<input type="date" value="${rdate}" onchange="goDay(this.value)"></label></div>
   <div class="row" style="margin-top:8px"><span class="${stCls2}" style="padding:6px 10px;border-radius:6px"><b>${stTxt}</b></span><span><b>الأعطال المحددة: ${bad}</b></span><button class="btn" onclick="saveRound()">حفظ المرور اليومي</button></div>
+  <div class="row" style="margin-top:8px"><label>تاريخ النسخ<input type="date" id="cpd" value="${cpVal()}" onchange="cpDate=this.value"></label><button class="btn alt" onclick="copyRoundTo()">📋 انسخ اليوم ده إلى التاريخ</button><button class="btn alt" onclick="copyRoundFrom()">📥 انسخ من التاريخ إلى اليوم ده</button></div>
   <div class="msg">كل الخانات سليمة ✓ افتراضياً؛ غيّر الخانات اللي فيها مشكلة فقط (✗) واكتب الملاحظة، ثم اضغط حفظ مرة واحدة. الأعطال بتتسجل في الصيانة العلاجية عند الحفظ.</div></div>
   <div class="card wrap"><table><tr><th>المكان</th>${CATS.map(c=>`<th>${c}</th>`).join('')}<th>ملاحظات</th>${withOpen?'<th>مفتوح بالعلاجية</th>':''}</tr>`;
   let last='';
@@ -324,6 +325,26 @@ function roundTable(d,withOpen){
     h+='</tr>';
   });
   return h+'</table></div><div class="card"><button class="btn" onclick="saveRound()">حفظ المرور اليومي</button></div>';
+}
+let cpDate='';
+function cpVal(){return cpDate||ymd(new Date(new Date(rdate+'T12:00:00').getTime()+864e5))}
+function copyRoundTo(){
+  const t=document.getElementById('cpd').value;
+  if(!t||t===rdate){toast('اختار تاريخ مختلف عن اليوم الحالي');return}
+  if(rounds[t]&&!confirm('يوم '+t+' فيه مرور محفوظ. هيتستبدل بنسخة اليوم الحالي عند الحفظ. تكمل؟'))return;
+  const s=getDraft();
+  draft={date:t,dirty:true,saved:!!rounds[t],marks:{...fullMarks(s)},notes:{...s.notes}};
+  rdate=t;cpDate='';toast('اتنسخ إلى '+t+' – راجع واضغط حفظ');render();
+}
+function copyRoundFrom(){
+  const t=document.getElementById('cpd').value;
+  if(!t||t===rdate){toast('اختار تاريخ مختلف عن اليوم الحالي');return}
+  const r=rounds[t];
+  if(!r){toast('مفيش مرور محفوظ في '+t);return}
+  const d=getDraft();
+  if((d.dirty||d.saved)&&!confirm('هتستبدل بيانات اليوم الحالي بمرور '+t+'. تكمل؟'))return;
+  draft={date:rdate,dirty:true,saved:!!rounds[rdate],marks:{...(r.marks||{})},notes:{...(r.notes||{})}};
+  toast('اتنسخ من '+t+' – راجع واضغط حفظ');render();
 }
 function vRound(){return roundTable(getDraft(),true)}
 function vERound(){return roundTable(getDraft(),false)}
