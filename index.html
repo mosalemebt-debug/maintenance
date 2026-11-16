@@ -234,7 +234,7 @@ async function init(){
   db.collection('assets').onSnapshot(s=>{assets=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.code).localeCompare(String(b.code),'en',{numeric:true}));render()});
   db.collection('stock').onSnapshot(s=>{stock=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ar'));render()});
 }
-const NAVG=[['الرئيسية',[['daily','المتابعة اليومية']]],['التشغيل',[['round','المرور اليومي'],['notices','الصيانة العلاجية'],['jobsheets','JobSheet']]],['الأصول والمشتريات',[['purch','طلبات الشراء'],['assets','سجل الأصول'],['stock','المخزن'],['budget','التكاليف والبادجت']]],['التقارير',[['sum','الملخص'],['reports','التقارير']]],['النظام',[['audit','سجل التعديلات'],['backup','نسخ احتياطي']]]];
+const NAVG=[['الرئيسية',[['daily','المتابعة اليومية']]],['التشغيل',[['round','المرور اليومي'],['notices','الصيانة العلاجية'],['jobsheets','JobSheet']]],['الأصول والمشتريات',[['purch','طلبات الشراء'],['assets','سجل الأصول'],['stock','المخزن'],['budget','التكاليف والبادجت']]],['التقارير',[['sum','الملخص'],['reports','التقارير'],['capexrep','حصر الأصول والبادجت']]],['النظام',[['audit','سجل التعديلات'],['backup','نسخ احتياطي']]]];
 const lastTab={};
 function badges(){
   const o={};try{o.notices=notices.filter(n=>n.status!=='تم الإصلاح').length;o.stock=stock.filter(x=>+x.qty<=+x.min).length;o.purch=purchases.filter(p=>p.status!=='تم التركيب').length;o.jobsheets=jobsheets.filter(j=>['صادر','قيد التنفيذ'].includes(j.status)).length}catch(e){}
@@ -277,7 +277,7 @@ function render(){
   if(window._lt!==tab){document.body.classList.remove('showf');window._lt=tab}
   const keepV={};document.querySelectorAll('#main input[id],#main select[id],#main textarea[id]').forEach(e=>{if(/^(f|p|pm|as|st|ni|nq)_/.test(e.id)&&e.value!=='')keepV[e.id]=e.value});
   const wy=window.scrollY,ws=[...document.querySelectorAll('.wrap:not(#rep)')].map(w=>[w.scrollTop,w.scrollLeft]);
-  $('#main').innerHTML=({round:vRound,notices:vNotices,purch:vPurch,sum:vSum,reports:vReports,daily:vDaily,backup:vBackup,audit:vAudit,assets:vAssets,stock:vStock,jobsheets:vJobs,budget:vBudget,e_round:vERound,e_notice:vENotice,e_purch:vEPurch})[tab]();
+  $('#main').innerHTML=({round:vRound,notices:vNotices,purch:vPurch,sum:vSum,reports:vReports,daily:vDaily,backup:vBackup,audit:vAudit,assets:vAssets,stock:vStock,jobsheets:vJobs,budget:vBudget,capexrep:vCapexRep,e_round:vERound,e_notice:vENotice,e_purch:vEPurch})[tab]();
   document.querySelectorAll('textarea').forEach(fit);
   labelize();
   Object.entries(keepV).forEach(([id,v])=>{const e=document.getElementById(id);if(e&&e.tagName!=='BUTTON')e.value=v});
@@ -1438,6 +1438,73 @@ function vBudget(){
   <tr><td class="l"><b>الإجمالي</b></td><td><b>${money(totB)}</b></td><td><b>${money(totS)}</b></td><td><b>${money(totB-totS)}</b></td><td></td><td><b>${money(totP)}</b></td><td><b>${money(totB-totS-totP)}</b></td></tr></table></div>
   ${planTable(plan,bYear)}
   </div>`;
+  return h;
+}
+
+/* ---------- تقرير حصر الأصول والبادجت (خطة CAPEX/OPEX + حصر الأصول) ---------- */
+const cpList=y=>((settings.capexPlan||{})[y])||[];
+const cpTot=r=>(+r.qty||0)*(+r.price||0);
+const cpSave=(y,l)=>saveSet('capexPlan',{[y]:l});
+const CP_KINDS=['','CAPEX','OPEX'];
+function cpSeed2027(){
+  const m=(g,trade,kind,item,qty,price)=>({g,trade,kind,item,qty,price});
+  const T='تكيفات',E='كهرباء',C='أعمال مدني',O='أساس مكتبي';
+  return[
+  m(T,'تكييف','CAPEX','اسبلت 2.25 hp – غرفة 206',1,31000),m(T,'تكييف','CAPEX','اسبلت 2.25 hp – غرفة 108',1,31000),m(T,'تكييف','CAPEX','اسبلت 3 hp – عيادة 3',1,39000),
+  m(T,'تكييف','CAPEX','اسبلت 5 hp – الريسبشن',2,80000),m(T,'تكييف','CAPEX','اسبلت 1.5 hp – غرفة 205',2,25000),m(T,'تكييف','CAPEX','اسبلت 2.25 hp – مخزن الأدوية',2,31000),m(T,'تكييف','CAPEX','ماكينة تفريغ',1,12000),
+  m(T,'تكييف','OPEX','كباس 2.25 hp',2,15000),m(T,'تكييف','OPEX','موتور مروحة خارجية 2.25 hp',1,5000),m(T,'تكييف','OPEX','موتور مروحة داخلية 2.25 hp',1,5000),
+  m(T,'تكييف','OPEX','كباس 1.5 hp',2,15000),m(T,'تكييف','OPEX','موتور مروحة خارجية 1.5 hp',1,5000),m(T,'تكييف','OPEX','موتور مروحة داخلية 1.5 hp',1,3000),
+  m(T,'تكييف','OPEX','مواسير نحاس أقطار مختلفة (متر)',50,900),m(T,'تكييف','OPEX','فريون أنواع مختلفة (اسطوانة)',4,4500),
+  m(E,'كهرباء','','كشافات ليد',80,2000),m(E,'كهرباء','','كشافات خارجية',5,4000),m(E,'كهرباء','','ترانس الكشافات',80,90),m(E,'كهرباء','','لمبات ليد أنواع مختلفة',70,45),
+  m(E,'كهرباء','','كابلات بأقطار مختلفة (لفة)',15,14500),m(E,'كهرباء','','مفاتيح كهرباء',80,165),m(E,'كهرباء','','لوحات كهرباء مختلفة',15,16000),m(E,'كهرباء','','خامات كهرباء مختلفة',1,50000),
+  m(C,'نقاشة','','رفع كفاءة الواجهة الخارجية – أعمال دهان',1,51600),m(C,'سباكة','','رفع كفاءة أعمال السباكة',1,20000),m(C,'نجارة','','أعمال نجارة وأبواب',1,15000),m(C,'ألومنيوم','','أعمال الألوميتال',1,10000),
+  m(O,'أخرى','','كراسي موظف',23,1500),m(O,'نجارة','','مكتب تمريض + وحدة أدراج',0,2000),m(O,'نجارة','','دولاب',18,4000),m(O,'أخرى','','كراسي استقبال',80,1500),
+  m(O,'نجارة','','مكتب',23,0),m(O,'أخرى','','تلفزيون',21,11000),m(O,'أخرى','','رسيفر',0,400),m(O,'أخرى','','ثلاجة ميني بار',18,11000),m(O,'أخرى','','مبرد مياه',3,5000),m(O,'أخرى','','كنب',31,2500)];
+}
+function cpLoadSeed(){
+  const y=bYear;if(y!=='2027')return;
+  if(cpList(y).length&&!confirm('فيه خطة محفوظة لسنة '+y+'. تحميل الشيت هيستبدلها. تكمل؟'))return;
+  cpSave(y,cpSeed2027());toast('اتحملت خطة 2027 من الشيت ✓');
+}
+function cpAdd(){
+  const g=$('#cp_g').value.trim(),item=$('#cp_i').value.trim();if(!g||!item){alert('اكتب المجموعة والبند');return}
+  const l=cpList(bYear).slice();l.push({g,item,trade:$('#cp_t').value,kind:$('#cp_k').value,qty:+$('#cp_q').value||0,price:+$('#cp_p').value||0});
+  cpSave(bYear,l);['cp_i','cp_q','cp_p'].forEach(k=>$('#'+k).value='');toast('اتضاف البند ✓');
+}
+function cpKind(i,v){const l=cpList(bYear).map(r=>Object.assign({},r));if(!l[i])return;l[i].kind=v;cpSave(bYear,l)}
+function cpDel(i){const l=cpList(bYear).slice(),r=l[i];if(!r||!confirm('حذف «'+r.item+'»؟'))return;l.splice(i,1);cpSave(bYear,l)}
+function vCapexRep(){
+  const y=bYear,cp=cpList(y),sp=spendBy(y),bd=(settings.budget||{})[y]||{},rp=planBy(y);
+  const pl={};cp.forEach(r=>{pl[r.trade]=(pl[r.trade]||0)+cpTot(r)});
+  const sum=f=>TRALL.reduce((t,k)=>t+f(k),0);
+  const totB=sum(k=>+bd[k]||0),totS=sum(k=>sp.by[k]||0),totC=cp.reduce((t,r)=>t+cpTot(r),0),totR=sum(k=>rp.by[k]||0);
+  const byK=k=>cp.filter(r=>(r.kind||'')===k).reduce((t,r)=>t+cpTot(r),0);
+  const groups=[];cp.forEach((r,i)=>{let g=groups.find(x=>x.g===r.g);if(!g)groups.push(g={g:r.g,rows:[]});g.rows.push({r,i})});
+  const opt=(arr,v)=>arr.map(x=>`<option value="${esc(x)}" ${x===v?'selected':''}>${esc(x||'غير محدد')}</option>`).join('');
+  let h=`<div class="card"><div class="row"><label>السنة<select onchange="bYear=this.value;render()">${['2026','2027','2028'].map(x=>`<option ${x===y?'selected':''}>${x}</option>`).join('')}</select></label><button class="btn" onclick="pdf('حصر_الأصول_والبادجت_'+bYear)">تصدير PDF</button><button class="btn alt" onclick="wordExp('حصر_الأصول_والبادجت_'+bYear)">تصدير Word</button>${y==='2027'?'<button class="btn alt" onclick="cpLoadSeed()">تحميل خطة 2027 من الشيت</button>':''}</div>
+  <div class="msg hint">البادجت بيتدخل من صفحة «التكاليف والبادجت». خطة المشتريات هنا بتتحط يدويًا أو من الشيت، وبتتقارن بالبادجت والمصروف الفعلي. سجّل نوع كل بند (CAPEX/OPEX) من القائمة جوه الجدول.</div>
+  <div class="row" style="margin-top:6px"><label>المجموعة<input id="cp_g" data-keep="1" placeholder="مثلاً: كهرباء" style="width:120px"></label><label>البند<input id="cp_i" data-keep="1"></label><label>التخصص<select id="cp_t" data-keep="1">${opt(TRD,'أخرى')}</select></label><label>النوع<select id="cp_k" data-keep="1">${opt(CP_KINDS,'')}</select></label><label>العدد<input id="cp_q" type="number" min="0" data-keep="1" style="width:80px"></label><label>سعر الوحدة<input id="cp_p" type="number" min="0" data-keep="1" style="width:100px"></label><button class="btn" onclick="cpAdd()">إضافة بند للخطة</button></div></div>
+  <div class="card" id="rep"><h3>تقرير حصر الأصول والبادجت – ${y} – مستشفى الابتسامة – قسم الصيانة</h3>
+  <div class="grid" style="margin:8px 0"><div class="k"><b>${money(totB)}</b>إجمالي البادجت (ج.م)</div><div class="k"><b>${money(totC)}</b>خطة المشتريات والاستبدال</div><div class="k"><b>${money(byK('CAPEX'))}</b>منها CAPEX</div><div class="k"><b>${money(byK('OPEX'))}</b>منها OPEX</div><div class="k"><b>${money(byK(''))}</b>منها غير مصنف</div><div class="k"><b>${money(totS)}</b>المصروف الفعلي</div><div class="k ${totB&&totS+totC>totB?'s-bad':''}"><b>${money(totB-totS-totC)}</b>المتبقي بعد الخطة والمصروف</div></div>
+  <h4>أولًا: البادجت مقابل الخطة والمصروف حسب التخصص</h4><div style="overflow-x:auto"><table><tr>${['التخصص','البادجت','خطة المشتريات','المصروف الفعلي','المتبقي','استبدال من سجل الأصول'].map(x=>`<th>${x}</th>`).join('')}</tr>
+  ${TRALL.filter(t=>(+bd[t]||0)||(pl[t]||0)||(sp.by[t]||0)||(rp.by[t]||0)).map(t=>{const b=+bd[t]||0,c=pl[t]||0,s=sp.by[t]||0;return `<tr><td class="l">${t}</td><td>${money(b)}</td><td>${money(c)}</td><td>${money(s)}</td><td class="${b&&s+c>b?'s-bad':''}">${t==='غير مصنف'?'—':money(b-s-c)}</td><td>${money(rp.by[t]||0)}</td></tr>`}).join('')||'<tr><td colspan="6">لا توجد بيانات لهذه السنة</td></tr>'}
+  <tr><td class="l"><b>الإجمالي</b></td><td><b>${money(totB)}</b></td><td><b>${money(totC)}</b></td><td><b>${money(totS)}</b></td><td><b>${money(totB-totS-totC)}</b></td><td><b>${money(totR)}</b></td></tr></table></div>
+  <div class="msg">ملحوظة: عمود «استبدال من سجل الأصول» للمقارنة فقط، وغير مخصوم من المتبقي عشان ما يتحسبش مرتين مع خطة المشتريات.</div>
+  <h4>ثانيًا: خطة المشتريات والاستبدال ${y}: ${money(totC)} ج.م</h4><div style="overflow-x:auto"><table><tr>${['البند','التخصص','النوع','العدد','سعر الوحدة','الإجمالي',''].map(x=>`<th>${x}</th>`).join('')}</tr>
+  ${groups.map(g=>`<tr><td class="l" colspan="7"><b>${esc(g.g)}</b></td></tr>`+g.rows.map(({r,i})=>{const t=cpTot(r);return `<tr><td class="l">${esc(r.item)}</td><td>${esc(r.trade)}</td><td><select data-keep="1" onchange="cpKind(${i},this.value)">${opt(CP_KINDS,r.kind||'')}</select></td><td>${r.qty||0}</td><td>${money(r.price)}</td><td class="${t?'':'s-warn'}">${t?money(t):'⚠ ناقص عدد أو سعر'}</td><td><button class="btn sm noprint" style="background:#b42318" onclick="cpDel(${i})">حذف</button></td></tr>`}).join('')+`<tr><td class="l" colspan="5"><b>إجمالي ${esc(g.g)}</b></td><td colspan="2"><b>${money(g.rows.reduce((t,x)=>t+cpTot(x.r),0))}</b></td></tr>`).join('')||`<tr><td colspan="7">لا توجد خطة لسنة ${y}${y==='2027'?' — اضغط «تحميل خطة 2027 من الشيت»':''}</td></tr>`}</table></div>`;
+  // ثالثًا: حصر الأصول
+  const al=assets.map(a=>({a,...assetStats(a)})).sort((x,z)=>String(x.a.code).localeCompare(String(z.a.code),'en',{numeric:true}));
+  const ty={};al.forEach(x=>{const k=x.a.type||'غير محدد',o=ty[k]||(ty[k]={n:0,val:0,bad:0,out:0,old:0,cost:0});
+    o.n+=x.qty;o.val+=totVal(x.a);o.cost+=x.cost;
+    if(x.a.stat==='مُكهّن')o.out+=x.qty;else o.bad+=x.grp?Math.min(x.qty,x.qf+x.qd):(x.st!=='شغال'?1:0);
+    if(x.age!==null&&x.age>=x.life)o.old+=x.qty});
+  const T=Object.values(ty).reduce((t,o)=>({n:t.n+o.n,val:t.val+o.val,bad:t.bad+o.bad,out:t.out+o.out,old:t.old+o.old,cost:t.cost+o.cost}),{n:0,val:0,bad:0,out:0,old:0,cost:0});
+  h+=`<h4>ثالثًا: حصر الأصول المسجلة (${al.length} بند / ${T.n} قطعة) – إجمالي قيمة الاستبدال ${money(T.val)} ج.م</h4>
+  <div style="overflow-x:auto"><table><tr>${['النوع','عدد القطع','قيمة الاستبدال','معطل / يحتاج إصلاح','مُكهّن','تجاوز العمر الافتراضي','تكلفة الصيانة المتراكمة'].map(x=>`<th>${x}</th>`).join('')}</tr>
+  ${Object.entries(ty).sort((p,q)=>q[1].val-p[1].val).map(([k,o])=>`<tr><td class="l">${esc(k)}</td><td>${o.n}</td><td>${money(o.val)}</td><td>${o.bad}</td><td>${o.out}</td><td>${o.old}</td><td>${money(o.cost)}</td></tr>`).join('')||'<tr><td colspan="7">سجل الأصول فاضي</td></tr>'}
+  <tr><td class="l"><b>الإجمالي</b></td><td><b>${T.n}</b></td><td><b>${money(T.val)}</b></td><td><b>${T.bad}</b></td><td><b>${T.out}</b></td><td><b>${T.old}</b></td><td><b>${money(T.cost)}</b></td></tr></table></div>
+  <h4>تفصيل الأصول</h4><div style="overflow-x:auto"><table><tr>${['الكود','الأصل','النوع','الموقع','العدد','الحالة','العمر / الافتراضي','قيمة الاستبدال','تكلفة الصيانة','القرار'].map(x=>`<th>${x}</th>`).join('')}</tr>
+  ${al.map(x=>`<tr><td><b>${esc(x.a.code)}</b></td><td class="l">${esc(x.a.name)}</td><td>${esc(x.a.type||'')}</td><td class="l">${esc(x.a.loc||'')}</td><td>${x.qty}</td><td class="${x.stc}">${esc(x.st)}</td><td class="${x.age!==null&&x.age>=x.life?'s-bad':''}">${x.age===null?'—':x.age}/${x.life}</td><td>${money(totVal(x.a))}</td><td>${x.cost?money(x.cost):''}</td><td>${esc(x.a.dec?x.a.dec+(x.a.decYear?' '+x.a.decYear:''):'')}</td></tr>`).join('')||'<tr><td colspan="10">سجل الأصول فاضي</td></tr>'}</table></div></div>`;
   return h;
 }
 /* ---------- طباعة إخطار صيانة ---------- */
