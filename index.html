@@ -325,7 +325,7 @@ function roundTable(d,withOpen){
     h+=`<tr><td class="l"><span>${x.a}</span> <button class="btn sm ${occ?'':'alt'}" onclick="occupy(${i})">${occ?'✔ مشغولة':'مشغولة'}</button></td>`+CATS.map((c,j)=>{const m=d.marks[i+'_'+j]||'✓';
       return `<td class="${m==='✗'?'s-bad':m==='✓'?'s-ok':''}"><select onchange="dSet(${i},${j},this.value)">${['✓','✗','مشغولة','لا يوجد'].map(o=>`<option ${o===m?'selected':''}>${o}</option>`).join('')}</select></td>`}).join('')
       +`<td><textarea rows="1" data-keep="1" oninput="fit(this)" onchange="dNote(${i},this.value)">${esc(d.notes[i])}</textarea></td>`;
-    if(withOpen){const open=notices.filter(n=>n.status!=='تم الإصلاح'&&n.dept&&n.dept.includes(x.a)).length;h+=`<td class="${open?'s-warn':''}">${open||''}</td>`}
+    if(withOpen){const open=notices.filter(n=>n.dept&&n.dept.includes(x.a)&&iso(n.date)<=rdate&&(n.status!=='تم الإصلاح'||(n.fixdate&&iso(n.fixdate)>rdate)));h+=`<td class="${open.length?'s-warn':''}">${open.map(n=>`<button class="btn sm alt" style="margin:1px" title="${esc(n.details||'')}" onclick="openEdit('notices','${n.id}')">${esc(n.ref)}</button>`).join(' ')}</td>`}
     h+='</tr>';
   });
   return h+'</table></div><div class="card"><button class="btn" onclick="saveRound()">حفظ المرور اليومي</button></div>';
