@@ -8,6 +8,8 @@
 <meta name="theme-color" content="#1f4e79">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
+nav select{padding:8px;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--tx);font:inherit;flex:0 0 auto}nav select.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+.hint{display:none}body.hints .hint{display:block}
 :root{--bg:#f5f6f8;--card:#fff;--tx:#1b2430;--mut:#667085;--pri:#1f4e79;--bd:#d0d5dd;--ok:#c6efce;--warn:#ffeb9c;--bad:#ffc7ce;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14181f;--card:#1e2530;--tx:#e8ecf2;--mut:#98a2b3;--pri:#6fa8dc;--bd:#394150;--ok:#1e4d2b;--warn:#5c4b13;--bad:#5c2229}}
 :root[data-theme="dark"]{--bg:#14181f;--card:#1e2530;--tx:#e8ecf2;--mut:#98a2b3;--pri:#6fa8dc;--bd:#394150;--ok:#1e4d2b;--warn:#5c4b13;--bad:#5c2229}
@@ -152,7 +154,7 @@ table.compact th:nth-child(1),table.compact td:nth-child(1),table.compact th:nth
 </style>
 </head>
 <body>
-<header><span id="hdate" style="float:left;font-weight:400;font-size:12px;opacity:.85"></span><span id="net" style="float:left;margin-inline-end:10px;font-weight:400;font-size:12px;background:rgba(255,255,255,.18);border-radius:6px;padding:1px 8px"></span><button id="digtog" style="float:left;margin-inline-end:10px;background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.5);border-radius:6px;padding:0 8px;font-size:12px;cursor:pointer"></button>برنامج الصيانة – مستشفى الابتسامة – مصر الجديدة <small style="opacity:.7;font-weight:400">(إصدار 4-11 – س)</small></header>
+<header><button onclick="document.body.classList.toggle('hints')" style="float:left;margin-inline-end:10px;background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.5);border-radius:6px;padding:0 8px;font-size:12px;cursor:pointer">؟ شرح</button><span id="hdate" style="float:left;font-weight:400;font-size:12px;opacity:.85"></span><span id="net" style="float:left;margin-inline-end:10px;font-weight:400;font-size:12px;background:rgba(255,255,255,.18);border-radius:6px;padding:1px 8px"></span><button id="digtog" style="float:left;margin-inline-end:10px;background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.5);border-radius:6px;padding:0 8px;font-size:12px;cursor:pointer"></button>برنامج الصيانة – مستشفى الابتسامة – مصر الجديدة <small style="opacity:.7;font-weight:400">(إصدار 4-11 – س)</small></header>
 <nav id="nav"></nav>
 <main id="main"></main>
 <button id="fab" title="إضافة جديد" onclick="toggleForm()">＋</button>
@@ -241,9 +243,11 @@ function badges(){
 function nav(){
   const hd=document.getElementById('hdate');if(hd)hd.textContent=DAYS[new Date().getDay()]+' '+dFmt(ymd(new Date()));
   if(window.ROLE==='entry'){$('#nav').innerHTML='<div class="nt">'+[['e_round','مرور يومي'],['e_notice','إخطار جديد'],['e_purch','طلب شراء']].map(([k,v])=>`<button class="${tab===k?'on':''}" onclick="tab='${k}';nav();render();window.scrollTo(0,0)">${v}</button>`).join('')+'</div>';return}
-  const bd=badges();let gi=NAVG.findIndex(g=>g[1].some(t=>t[0]===tab));if(gi<0)gi=0;lastTab[gi]=tab;
-  const bg=n=>n?`<span class="bg">${n}</span>`:'';
-  $('#nav').innerHTML=`<div class="ng">${NAVG.map(([n,l],k)=>`<button class="${k===gi?'on':''}" onclick="goGroup(${k})">${n}${bg(l.reduce((a,t)=>a+(bd[t[0]]||0),0))}</button>`).join('')}</div><div class="nt">${NAVG[gi][1].map(([k,v])=>`<button class="${tab===k?'on':''}" onclick="tab='${k}';nav();render();window.scrollTo(0,0)">${v}${bg(bd[k])}</button>`).join('')}</div>`;
+  const bd=badges();const bg=n=>n?`<span class="bg">${n}</span>`:'';
+  const MAIN=['daily','round','notices','purch','assets','stock'],NM={};
+  NAVG.forEach(([g,l])=>l.forEach(([k,v])=>NM[k]=v));
+  const more=Object.keys(NM).filter(k=>!MAIN.includes(k));
+  $('#nav').innerHTML=`<div class="nt">${MAIN.map(k=>`<button class="${tab===k?'on':''}" onclick="go('${k}')">${NM[k]}${bg(bd[k])}</button>`).join('')}<select class="${more.includes(tab)?'on':''}" onchange="if(this.value)go(this.value)"><option value="">المزيد ▾</option>${more.map(k=>`<option value="${k}" ${tab===k?'selected':''}>${NM[k]}${bd[k]?' ('+bd[k]+')':''}</option>`).join('')}</select></div>`;
 }
 function goGroup(i){tab=lastTab[i]||NAVG[i][1][0][0];nav();render();window.scrollTo(0,0)}
 function go(t){tab=t;nav();render();window.scrollTo(0,0)}
@@ -312,7 +316,7 @@ function roundTable(d,withOpen){
   <label>التاريخ (${DAYS[new Date(rdate+'T12:00:00').getDay()]})<input type="date" value="${rdate}" onchange="goDay(this.value)"></label></div>
   <div class="row" style="margin-top:8px"><span class="${stCls2}" style="padding:6px 10px;border-radius:6px"><b>${stTxt}</b></span><span><b>الأعطال المحددة: ${bad}</b></span><button class="btn" onclick="saveRound()">حفظ المرور اليومي</button></div>
   <div class="row" style="margin-top:8px"><label>تاريخ النسخ<input type="date" id="cpd" value="${cpVal()}" onchange="cpDate=this.value"></label><button class="btn alt" onclick="copyRoundTo()">📋 انسخ اليوم ده إلى التاريخ</button><button class="btn alt" onclick="copyRoundFrom()">📥 انسخ من التاريخ إلى اليوم ده</button></div>
-  <div class="msg">كل الخانات سليمة ✓ افتراضياً؛ غيّر الخانات اللي فيها مشكلة فقط (✗) واكتب الملاحظة، ثم اضغط حفظ مرة واحدة. الأعطال بتتسجل في الصيانة العلاجية عند الحفظ.</div></div>
+  <div class="msg hint">كل الخانات سليمة ✓ افتراضياً؛ غيّر الخانات اللي فيها مشكلة فقط (✗) واكتب الملاحظة، ثم اضغط حفظ مرة واحدة. الأعطال بتتسجل في الصيانة العلاجية عند الحفظ.</div></div>
   <div class="card wrap"><table><tr><th>المكان</th>${CATS.map(c=>`<th>${c}</th>`).join('')}<th>ملاحظات</th>${withOpen?'<th>مفتوح بالعلاجية</th>':''}</tr>`;
   let last='';
   ALL.forEach((x,i)=>{
@@ -432,7 +436,7 @@ function vPurch(){
   const need=notices.filter(n=>n.needbuy==='نعم'&&n.status!=='تم الإصلاح').sort((a,b)=>a.n-b.n);
   const undef=need.filter(n=>!purchases.some(p=>p.ref===n.ref)).length;
   const needCard=`<div class="card"><b>إخطارات الصيانة العلاجية التي تحتاج شراء (${need.length}) – غير محدد لها صنف: ${undef}</b>
-  <div class="msg">مرتبة بترتيب الإخطارات. اكتب الصنف والكمية واضغط إضافة، ويمكن إضافة أكثر من صنف لنفس الإخطار. (تظهر هنا الإخطارات المفتوحة فقط التي اخترت لها «يحتاج شراء = نعم»؛ بعد «تم الإصلاح» بتختفي من هنا.)</div>
+  <div class="msg hint">مرتبة بترتيب الإخطارات. اكتب الصنف والكمية واضغط إضافة، ويمكن إضافة أكثر من صنف لنفس الإخطار. (تظهر هنا الإخطارات المفتوحة فقط التي اخترت لها «يحتاج شراء = نعم»؛ بعد «تم الإصلاح» بتختفي من هنا.)</div>
   <div class="wrap"><table><tr>${['الإخطار','القسم','وصف العطل','حالة الإخطار','الأصناف المسجلة','صنف جديد','الكمية',''].map(x=>`<th>${x}</th>`).join('')}</tr>
   ${need.map(n=>{const its=purchases.filter(p=>p.ref===n.ref);return `<tr><td>${n.ref}</td><td class="l">${esc(n.dept)}</td><td class="l">${esc(n.details)}</td><td class="${stCls(n.status)}">${esc(n.status)}</td>
   <td class="l ${its.length?'':'s-warn'}">${its.length?its.map(p=>esc(p.item)+' × '+(p.qty??'')+' ('+esc(p.status)+')').join('<br>'):'لم يُحدد صنف'}</td>
@@ -443,7 +447,7 @@ function vPurch(){
   <label>تاريخ الطلب<input type="date" id="p_rdate" value="${new Date().toISOString().slice(0,10)}"></label>
   <label>الصنف<input id="p_item"></label><label>الكمية<input id="p_qty" type="number" value="1" style="width:70px"></label>
   <button class="btn" onclick="savePurch()">حفظ</button><button class="btn alt" onclick="pdf('طلبات_الشراء')">تصدير PDF</button><button class="btn alt" onclick="wordExp('طلبات_الشراء')">تصدير Word</button><button class="btn" onclick="openPR()">طباعة طلب شراء PR (للأصناف المحددة)</button></div></div>
-  ${pFilterBar()}<div class="card wrap" id="rep"><h3>طلبات الشراء – مستشفى الابتسامة</h3><table><tr><th class="noprint">PR</th>${['م','الإخطار','القسم','الصنف','الكمية','تاريخ الطلب','الحالة','تاريخ التوريد','تاريخ التركيب'].map(x=>`<th>${x}</th>`).join('')}<th class="noprint">إجراءات</th></tr>`;
+  ${pFilterBar()}${prBar()}<div class="card wrap" id="rep"><h3>طلبات الشراء – مستشفى الابتسامة</h3><table><tr><th class="noprint"><input type="checkbox" title="تحديد الكل" onchange="selAllPR(this.checked)"></th>${['م','الإخطار','القسم','الصنف','الكمية','تاريخ الطلب','الحالة','تاريخ التوريد','تاريخ التركيب'].map(x=>`<th>${x}</th>`).join('')}<th class="noprint">إجراءات</th></tr>`;
   purchases.slice().filter(pfOK).sort((a,b)=>(num(a.ref)||1e9)-(num(b.ref)||1e9)||a.k-b.k).forEach(p=>{const n=notices.find(x=>x.ref===p.ref)||{};
     const refSel=`<select onchange="db.collection('purchases').doc('${p.id}').update({ref:this.value})"><option value=""></option>${notices.slice().reverse().map(x=>`<option ${x.ref===p.ref?'selected':''}>${x.ref}</option>`).join('')}</select>`;
     h+=`<tr><td class="noprint"><input type="checkbox" ${prSel.has(p.id)?'checked':''} onchange="togglePR('${p.id}',this.checked)"></td><td>${p.k}</td><td>${refSel}</td><td class="l">${esc(n.dept||p.notes)}</td><td class="l">${esc(p.item)}</td><td>${p.qty??''}</td><td>${fd(p.rdate)}</td>
@@ -701,7 +705,7 @@ function vBackup(){
   <div class="row" style="margin-top:8px"><button class="btn" onclick="backupJSON()">تحميل نسخة كاملة (JSON)</button><button class="btn alt" onclick="backupXlsx()">تحميل Excel (للقراءة والتحليل)</button>
   <label class="btn alt" style="flex-direction:row">استعادة من ملف JSON<input type="file" accept=".json" onchange="restoreJSON(this.files[0])" hidden></label></div>
   <div id="bkmsg" class="msg"></div></div>
-  <div class="card"><div class="msg">ملف JSON يحتوي كل البيانات (الإخطارات وطلبات الشراء والمرور اليومي والمهام الوقائية وسجل تنفيذها) وهو الذي تُجرى منه الاستعادة. الاستعادة تضيف وتحدّث السجلات الموجودة في الملف ولا تحذف ما غيره.</div></div>`;
+  <div class="card"><div class="msg hint">ملف JSON يحتوي كل البيانات (الإخطارات وطلبات الشراء والمرور اليومي والمهام الوقائية وسجل تنفيذها) وهو الذي تُجرى منه الاستعادة. الاستعادة تضيف وتحدّث السجلات الموجودة في الملف ولا تحذف ما غيره.</div></div>`;
 }
 const bkData=()=>({app:'maintenance',v:1,at:new Date().toISOString(),notices,purchases,rounds,settings,assets,stock,jobsheets,assetLog,audit:auditLog});
 function backupJSON(){const d=bkData();dl('نسخة_احتياطية_'+ymd(new Date())+'.json',new Blob([JSON.stringify(d)],{type:'application/json'}));localStorage.setItem('lastBackup',ymd(new Date()));render()}
@@ -727,7 +731,20 @@ async function restoreJSON(f){
 }
 /* ---------- نموذج طلب الشراء PR ---------- */
 let prSel=new Set(),PRS=null;
-function togglePR(id,on){on?prSel.add(id):prSel.delete(id)}
+function togglePR(id,on){on?prSel.add(id):prSel.delete(id);const c=document.getElementById('prc');if(c)c.textContent=prSel.size}
+function prBar(){return `<div class="card"><div class="fbar qa"><b>تجميع طلبات الشراء في PR واحد: <span id="prc">${prSel.size}</span> صنف محدد</b>
+  <button class="btn alt sm" onclick="selAllPR(true)">تحديد الكل (المعروض)</button><button class="btn alt sm" onclick="selPend()">تحديد غير المطلوب بعد</button><button class="btn alt sm" onclick="selAllPR(false)">إلغاء التحديد</button>
+  <button class="btn" onclick="openPR()">🖨️ طباعة / إرسال للمالية</button><button class="btn alt" onclick="markReq()">تعليم المحدد «تم الطلب»</button></div>
+  <div class="msg">علّم الأصناف من خانة الاختيار أول كل صف (أو استخدم أزرار التحديد)، ثم اضغط «طباعة / إرسال للمالية». ممكن تختار أصناف من إخطارات مختلفة وتطلع في نموذج PR واحد.</div></div>`}
+function selAllPR(on){purchases.filter(pfOK).forEach(p=>on?prSel.add(p.id):prSel.delete(p.id));render()}
+function selPend(){prSel.clear();purchases.filter(pfOK).filter(p=>['لم يُطلب','جاري إعداد الطلب'].includes(p.status)).forEach(p=>prSel.add(p.id));render()}
+async function markReq(){
+  const ids=[...prSel].filter(i=>{const p=purchases.find(x=>x.id===i);return p&&['لم يُطلب','جاري إعداد الطلب'].includes(p.status)});
+  if(!ids.length){alert('مفيش أصناف محددة حالتها «جاري إعداد الطلب» أو «لم يُطلب»');return}
+  if(!confirm('تغيير حالة '+ids.length+' صنف إلى «تم الطلب»؟'))return;
+  for(const i of ids)await setPurchStatus(i,'تم الطلب');
+  prSel.clear();toast('تم تحديث الحالة ✓');render();
+}
 function openPR(ref){
   const items=(ref?purchases.filter(p=>p.ref===ref):[...prSel].map(i=>purchases.find(p=>p.id===i)).filter(Boolean)).sort((a,b)=>(num(a.ref)||1e9)-(num(b.ref)||1e9)||a.k-b.k);
   if(!items.length){alert('حدّد صنفاً واحداً على الأقل من عمود PR، أو أضف أصنافاً للإخطار أولاً');return}
@@ -742,7 +759,7 @@ function prShow(){
   const f=(k,l,t)=>`<label>${l}<input value="${esc(PRS[k])}" oninput="PRS.${k}=this.value;prRender()"></label>`;
   const sel=(k,l)=>`<label>${l}<select onchange="PRS.${k}=this.value;prRender()">${['','نعم','لا'].map(v=>`<option ${v===PRS[k]?'selected':''}>${v}</option>`).join('')}</select></label>`;
   o.innerHTML=`<div class="prtools"><b>طلب شراء PR – معاينة قبل الطباعة</b><div class="row" style="margin-top:6px">${f('no','رقم طلب الشراء')}${f('by','الجهة الطالبة')}${f('head','اسم مدير الصيانة')}${sel('isNew','صنف جديد؟')}${sel('repl','يحل محل صنف مستخدم؟')}${sel('budget','ضمن الموازنة والخطط؟')}<label style="flex:2 1 300px">المواصفات / سبب الطلب<textarea rows="2" style="min-width:0" oninput="PRS.spec=this.value;prRender()">${esc(PRS.spec)}</textarea></label></div>
-  <div class="row" style="margin-top:8px"><button class="btn" onclick="window.print()">طباعة</button><button class="btn alt" onclick="prPdf()">تحميل PDF</button><button class="btn alt" onclick="document.getElementById('prv').remove()">إغلاق</button></div></div><div id="prpages"></div>`;
+  <div class="row" style="margin-top:8px"><button class="btn" onclick="window.print()">طباعة</button><button class="btn alt" onclick="prPdf()">تحميل PDF</button><button class="btn alt" onclick="prPdf(true)">📤 مشاركة PDF للمالية</button><button class="btn alt" onclick="document.getElementById('prv').remove()">إغلاق</button></div></div><div id="prpages"></div>`;
   document.body.appendChild(o);prRender();
 }
 const ck=v=>v?'☒':'☐';
@@ -768,11 +785,13 @@ function prRender(){
     <table style="margin-top:6px">${hd}${sig('Maintenance Manager','مدير الصيانة',PRS.head)}${sig('Hospital Manager','مدير المستشفى','')}${sig('Finance Department','الإدارة المالية','')}</table>
     <table style="margin-top:6px"><tr><td style="text-align:left;height:34px">${bi('Received Date With Required Authorization By Supply Chain','تم الاستلام بالتاريخ والاعتمادات المطلوبة في')}<div style="margin-top:6px">By: ____________ &nbsp;&nbsp; On: ____________ &nbsp;&nbsp; At: ____________</div></td></tr></table></div>`}).join('');
 }
-async function prPdf(){
+async function prPdf(share){
   const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:'p',unit:'pt',format:'a4'}),W=doc.internal.pageSize.getWidth()-30,Hh=doc.internal.pageSize.getHeight()-30;
   const els=[...document.querySelectorAll('#prpages .prpage')];
   for(let i=0;i<els.length;i++){const cv=await html2canvas(els[i],{scale:2,backgroundColor:'#ffffff'});let h=cv.height*W/cv.width,w=W;if(h>Hh){w=W*Hh/h;h=Hh}if(i)doc.addPage();doc.addImage(cv.toDataURL('image/jpeg',.95),'JPEG',15,15,w,h)}
-  dl('طلب_شراء_PR_'+ymd(new Date())+'.pdf',doc.output('arraybuffer'));
+  const nm='طلب_شراء_PR_'+ymd(new Date())+'.pdf',buf=doc.output('arraybuffer');
+  if(share&&navigator.canShare){const f=new File([buf],nm,{type:'application/pdf'});if(navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:'طلب شراء PR'});return}catch(e){if(e.name==='AbortError')return}}}
+  dl(nm,buf);
 }
 async function pdf(name){
   const el=$('#rep');document.body.classList.add('pdfing');const cv=await html2canvas(el,{scale:2,backgroundColor:'#ffffff'});document.body.classList.remove('pdfing');
@@ -871,7 +890,7 @@ function wrapDb(raw){
 function vAudit(){
   const f=auditF,rows=auditLog.filter(a=>(!f.sec||a.col===f.sec)&&(!f.q||(a.label+' '+a.by+' '+JSON.stringify(a.ch||'')).includes(f.q))).slice(0,300);
   const tm=t=>{const d=new Date(t);return isNaN(d)?'':d.toLocaleString('en-GB',{hour12:false}).replace(',','')};
-  return `<div class="card"><div class="row"><label>القسم<select onchange="auditF.sec=this.value;render()"><option value="">الكل</option>${Object.entries(SEC).map(([k,v])=>`<option value="${k}" ${f.sec===k?'selected':''}>${v}</option>`).join('')}</select></label><label>بحث (اضغط Enter)<input data-keep="1" value="${esc(f.q)}" onchange="auditF.q=this.value;render()"></label></div><div class="msg">يُسجَّل تلقائياً كل إضافة وتعديل وحذف في الإخطارات وطلبات الشراء والمهام الوقائية وحفظ المرور. أحدث 300 عملية.</div></div>
+  return `<div class="card"><div class="row"><label>القسم<select onchange="auditF.sec=this.value;render()"><option value="">الكل</option>${Object.entries(SEC).map(([k,v])=>`<option value="${k}" ${f.sec===k?'selected':''}>${v}</option>`).join('')}</select></label><label>بحث (اضغط Enter)<input data-keep="1" value="${esc(f.q)}" onchange="auditF.q=this.value;render()"></label></div><div class="msg hint">يُسجَّل تلقائياً كل إضافة وتعديل وحذف في الإخطارات وطلبات الشراء والمهام الوقائية وحفظ المرور. أحدث 300 عملية.</div></div>
   <div class="card wrap"><table><tr>${['الوقت','المستخدم','القسم','البند','الإجراء','التغييرات'].map(x=>`<th>${x}</th>`).join('')}</tr>
   ${rows.map(a=>`<tr><td>${tm(a.at)}</td><td>${esc(a.by)}</td><td>${SEC[a.col]||a.col}</td><td class="l">${esc(a.label)}</td><td class="${a.action==='حذف'?'s-bad':a.action==='إضافة'?'s-ok':''}">${a.action}</td><td class="l">${a.ch?Object.entries(a.ch).map(([k,v])=>`${FL[k]||k}: ${esc(v[0])||'—'} ← ${esc(v[1])||'—'}`).join('<br>'):''}</td></tr>`).join('')||'<tr><td colspan="6">لا توجد عمليات مسجلة بعد</td></tr>'}</table></div>`;
 }
@@ -949,7 +968,7 @@ function vAssets(){
   const acs=assets.filter(a=>a.type==='تكييف'&&a.stat!=='مُكهّن'),acHP=Math.round(acs.filter(a=>a.capu==='حصان').reduce((t,a)=>t+(+a.cap||0),0)*100)/100;
   const tk=(key,cls,val,label)=>`<div class="k tabk ${cls||''} ${aTab===key?'on':''}" role="button" tabindex="0" onclick="aTab=aTab==='${key}'?'':'${key}';render()" title="اضغط لعرض بيانات هذه الحالة">${'<b>'+val+'</b>'}${label}</div>`;
   let h=`<div class="card"><div class="grid">${tk('act','',act.length,'أصل في الخدمة')}${tk('units','',units,'إجمالي القطع ('+nGrp+' مجموعة)')}${tk('broken',broken?'s-warn':'',broken,'معطل الآن')}${tk('planned','',planned.length,'قرارات استبدال / تكهين مخططة')}${tk('pcost','',money(plannedCost),'تكلفة الاستبدال المخطط (ج.م)')}${tk('dead','',list.length-act.length,'مُكهّن / مستبدل')}${tk('ac','',acHP+' حصان','قدرة التكييفات ('+acs.length+' وحدة)')}</div>
-  <div class="msg">الحالة بتتحسب تلقائياً من الصيانة العلاجية: لو فيه إخطار مفتوح مربوط بكود الأصل يظهر «معطل»، ولو اتقفل يرجع «شغال». القرار (إبقاء / مراقبة / استبدال / تكهين) بتحدده إنت من زر «قرار» وبيدخل في خطة البادجت. <b>اضغط على أي مربع فوق لعرض أصوله، واضغط عليه تاني للرجوع لكل الأصول.</b></div>
+  <div class="msg hint">الحالة بتتحسب تلقائياً من الصيانة العلاجية: لو فيه إخطار مفتوح مربوط بكود الأصل يظهر «معطل»، ولو اتقفل يرجع «شغال». القرار (إبقاء / مراقبة / استبدال / تكهين) بتحدده إنت من زر «قرار» وبيدخل في خطة البادجت. <b>اضغط على أي مربع فوق لعرض أصوله، واضغط عليه تاني للرجوع لكل الأصول.</b></div>
   <div class="row" style="margin-top:8px"><button class="btn alt" onclick="exportAssets()">تصدير سجل الأصول Excel</button></div></div>`;
   h+=aFilterBar();
   const rows=list.filter(afOK).filter(x=>!aTab||ATABS[aTab].f(x)).sort((x,y)=>(y.r12-x.r12)||String(x.a.code).localeCompare(String(y.a.code),'en',{numeric:true}));
@@ -961,12 +980,12 @@ function vAssets(){
     <td class="${a.dec==='استبدال'||a.dec==='تكهين'?'s-warn':''}">${dd}</td>
     <td><div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap"><button class="btn sm alt" onclick="assetDetail('${a.id}')">السجل</button><button class="btn sm" onclick="assetDecide('${a.id}')">قرار</button><button class="btn sm alt" onclick="newFaultFor('${esc(a.code)}')">عطل</button><button class="btn sm alt" onclick="openEdit('assets','${a.id}')">تعديل</button><button class="btn sm" style="background:#b42318" onclick="delItem('assets','${a.id}')">حذف</button></div></td></tr>`});
   h+=(rows.length?'':'<tr><td colspan="10">لا توجد أصول مطابقة</td></tr>')+'</table></div>';
-  h+=vXlImport()+`<div class="card addf"><b>أصل جديد</b><div class="msg">سيب الكود فاضي وهيتولّد تلقائي حسب النوع (مثلاً AC-48 أو DR-07). <b>فردي</b> = كود لكل قطعة، <b>مجموعة</b> = كود واحد لعدد من القطع المتشابهة في مكان واحد (كراسي، ستاير، كشافات...).</div><div class="row" style="margin-top:6px"><label>الكود (اختياري)<input id="as_c" data-keep="1" placeholder="تلقائي"></label><label>الاسم / الطراز<input id="as_n" data-keep="1"></label><label>النوع<select id="as_t" onchange="$('#as_m').value=GRP_TYPES.includes(this.value)?'مجموعة':'فردي'">${ATY.map(t=>`<option>${t}</option>`).join('')}</select></label><label>الطريقة<select id="as_m"><option>فردي</option><option>مجموعة</option></select></label><label>العدد (للمجموعة)<input id="as_q" type="number" min="1" data-keep="1" style="width:90px"></label><label>القدرة<input id="as_cap" type="number" step="0.25" data-keep="1" style="width:90px"></label><label>الوحدة<select id="as_cu">${CAPU.map(u=>`<option>${u}</option>`).join('')}</select></label><label>الماركة<input id="as_b" data-keep="1" style="width:110px"></label><label>سنة التركيب<input id="as_y" type="number" min="1980" max="2100" data-keep="1" style="width:90px"></label><label>الموقع<input id="as_l" data-keep="1"></label><label>قيمة استبدال الوحدة (ج.م)<input id="as_v" type="number" data-keep="1"></label><button class="btn" onclick="assetAdd()">إضافة أصل</button>${assets.length?'':'<button class="btn alt" onclick="seedAssets()">تحميل أصول المبنى الأساسية</button>'}</div></div>
-  <div class="card addf"><b>تسجيل أصول بالجملة بأكواد متسلسلة</b><div class="msg">اختار النوع والموقع والعدد، فيتولّد لكل واحد كود مستقل متسلسل (مثلاً 12 باب: DR-01 ... DR-12). بعدها تقدر تعدّل بيانات أي واحد.</div><div class="row" style="margin-top:6px"><label>النوع<select id="bc_t">${ATY.map(t=>`<option>${t}</option>`).join('')}</select></label><label>الاسم الأساسي<input id="bc_n" data-keep="1" placeholder="مثلاً: باب غرفة"></label><label>الموقع<input id="bc_l" data-keep="1" placeholder="مثلاً: الدور الأول – غرف الإقامة"></label><label>العدد<input id="bc_c" type="number" min="1" max="200" value="1" style="width:80px" data-keep="1"></label><label>سنة التركيب<input id="bc_y" type="number" data-keep="1" style="width:90px"></label><label>قيمة استبدال الواحد (ج.م)<input id="bc_v" type="number" data-keep="1"></label><button class="btn" onclick="assetBulkCreate()">إنشاء الأكواد</button></div></div>
-  <div class="card addf"><b>حصر التكييفات (${AC_ROWS.length} وحدة)</b><div class="msg">بيضيف أو بيحدّث التكييفات بالكود (AC-01 ... AC-${AC_ROWS.length}) بالدور والمكان والقدرة والماركة والموديل وقيمة الاستبدال وسنة التركيب. الموجود بنفس الكود بيتحدّث.</div><div class="row" style="margin-top:6px"><button class="btn" onclick="acEmbedded()">إضافة / تحديث التكييفات (${AC_ROWS.length})</button><label class="btn alt" style="flex-direction:row">استيراد من ملف إكسل<input type="file" accept=".xlsx" onchange="acImportFile(this.files[0])" hidden></label></div><div id="acmsg" class="msg"></div></div>
-  <div class="card addf"><b>إنشاء أصول من ملف حصر المحتويات (اختياري)</b><div class="msg">لو عندك ملف حصر بالأعداد، بيحوّل كل وحدة لأصل بكود مستقل (باب، شباك، حوض، قاعدة، كشاف، كرسي...). علّم الأصناف اللي عايزها بس.</div><div class="row" style="margin-top:6px"><label class="btn alt" style="flex-direction:row">اختيار الملف<input type="file" accept=".xlsx" onchange="invLoad(this.files[0])" hidden></label></div>
+  h+=vXlImport()+`<div class="card addf"><b>أصل جديد</b><div class="msg hint">سيب الكود فاضي وهيتولّد تلقائي حسب النوع (مثلاً AC-48 أو DR-07). <b>فردي</b> = كود لكل قطعة، <b>مجموعة</b> = كود واحد لعدد من القطع المتشابهة في مكان واحد (كراسي، ستاير، كشافات...).</div><div class="row" style="margin-top:6px"><label>الكود (اختياري)<input id="as_c" data-keep="1" placeholder="تلقائي"></label><label>الاسم / الطراز<input id="as_n" data-keep="1"></label><label>النوع<select id="as_t" onchange="$('#as_m').value=GRP_TYPES.includes(this.value)?'مجموعة':'فردي'">${ATY.map(t=>`<option>${t}</option>`).join('')}</select></label><label>الطريقة<select id="as_m"><option>فردي</option><option>مجموعة</option></select></label><label>العدد (للمجموعة)<input id="as_q" type="number" min="1" data-keep="1" style="width:90px"></label><label>القدرة<input id="as_cap" type="number" step="0.25" data-keep="1" style="width:90px"></label><label>الوحدة<select id="as_cu">${CAPU.map(u=>`<option>${u}</option>`).join('')}</select></label><label>الماركة<input id="as_b" data-keep="1" style="width:110px"></label><label>سنة التركيب<input id="as_y" type="number" min="1980" max="2100" data-keep="1" style="width:90px"></label><label>الموقع<input id="as_l" data-keep="1"></label><label>قيمة استبدال الوحدة (ج.م)<input id="as_v" type="number" data-keep="1"></label><button class="btn" onclick="assetAdd()">إضافة أصل</button>${assets.length?'':'<button class="btn alt" onclick="seedAssets()">تحميل أصول المبنى الأساسية</button>'}</div></div>
+  <div class="card addf"><b>تسجيل أصول بالجملة بأكواد متسلسلة</b><div class="msg hint">اختار النوع والموقع والعدد، فيتولّد لكل واحد كود مستقل متسلسل (مثلاً 12 باب: DR-01 ... DR-12). بعدها تقدر تعدّل بيانات أي واحد.</div><div class="row" style="margin-top:6px"><label>النوع<select id="bc_t">${ATY.map(t=>`<option>${t}</option>`).join('')}</select></label><label>الاسم الأساسي<input id="bc_n" data-keep="1" placeholder="مثلاً: باب غرفة"></label><label>الموقع<input id="bc_l" data-keep="1" placeholder="مثلاً: الدور الأول – غرف الإقامة"></label><label>العدد<input id="bc_c" type="number" min="1" max="200" value="1" style="width:80px" data-keep="1"></label><label>سنة التركيب<input id="bc_y" type="number" data-keep="1" style="width:90px"></label><label>قيمة استبدال الواحد (ج.م)<input id="bc_v" type="number" data-keep="1"></label><button class="btn" onclick="assetBulkCreate()">إنشاء الأكواد</button></div></div>
+  <div class="card addf"><b>حصر التكييفات (${AC_ROWS.length} وحدة)</b><div class="msg hint">بيضيف أو بيحدّث التكييفات بالكود (AC-01 ... AC-${AC_ROWS.length}) بالدور والمكان والقدرة والماركة والموديل وقيمة الاستبدال وسنة التركيب. الموجود بنفس الكود بيتحدّث.</div><div class="row" style="margin-top:6px"><button class="btn" onclick="acEmbedded()">إضافة / تحديث التكييفات (${AC_ROWS.length})</button><label class="btn alt" style="flex-direction:row">استيراد من ملف إكسل<input type="file" accept=".xlsx" onchange="acImportFile(this.files[0])" hidden></label></div><div id="acmsg" class="msg"></div></div>
+  <div class="card addf"><b>إنشاء أصول من ملف حصر المحتويات (اختياري)</b><div class="msg hint">لو عندك ملف حصر بالأعداد، بيحوّل كل وحدة لأصل بكود مستقل (باب، شباك، حوض، قاعدة، كشاف، كرسي...). علّم الأصناف اللي عايزها بس.</div><div class="row" style="margin-top:6px"><label class="btn alt" style="flex-direction:row">اختيار الملف<input type="file" accept=".xlsx" onchange="invLoad(this.files[0])" hidden></label></div>
   ${inv?`<div style="margin-top:8px"><b>الأصناف في الملف (العدد):</b></div><div class="row" style="margin-top:4px">${Object.entries(inv.types).map(([k,v])=>`<label style="flex-direction:row;align-items:center;gap:4px;flex:0 0 auto"><input type="checkbox" style="width:auto;min-height:0" ${inv.sel[k]?'checked':''} onchange="inv.sel['${k}']=this.checked"> ${k} (${v})</label>`).join('')}</div><div class="row" style="margin-top:8px"><button class="btn" onclick="invImport()">استيراد الأصناف المحددة</button></div>`:''}<div id="invmsg" class="msg"></div></div>
-  <div class="card addf"><b>تعيين القدرة لمجموعة أصول دفعة واحدة</b><div class="row" style="margin-top:6px"><label>من كود<input id="bk_f" data-keep="1" placeholder="AC-05"></label><label>إلى كود<input id="bk_t" data-keep="1" placeholder="AC-41"></label><label>القدرة<input id="bk_c" type="number" step="0.25" data-keep="1" style="width:90px"></label><label>الوحدة<select id="bk_u">${CAPU.map(u=>`<option>${u}</option>`).join('')}</select></label><button class="btn" onclick="assetBulkCap()">تطبيق</button></div><div class="msg">مثال: من AC-05 إلى AC-20 بقدرة 2.25 حصان. الأكواد لازم تكون بنفس البادئة.</div></div>`;
+  <div class="card addf"><b>تعيين القدرة لمجموعة أصول دفعة واحدة</b><div class="row" style="margin-top:6px"><label>من كود<input id="bk_f" data-keep="1" placeholder="AC-05"></label><label>إلى كود<input id="bk_t" data-keep="1" placeholder="AC-41"></label><label>القدرة<input id="bk_c" type="number" step="0.25" data-keep="1" style="width:90px"></label><label>الوحدة<select id="bk_u">${CAPU.map(u=>`<option>${u}</option>`).join('')}</select></label><button class="btn" onclick="assetBulkCap()">تطبيق</button></div><div class="msg hint">مثال: من AC-05 إلى AC-20 بقدرة 2.25 حصان. الأكواد لازم تكون بنفس البادئة.</div></div>`;
   return h;
 }
 async function assetBulkCreate(){
@@ -1015,7 +1034,7 @@ function assetDecide(id){
   <div class="grid" style="margin-top:8px"><label>القرار<select id="d_dec"><option value="">بدون قرار</option>${DECS.map(o=>`<option ${a.dec===o?'selected':''}>${o}</option>`).join('')}</select></label><label>السنة المخططة للتنفيذ<input id="d_yr" type="number" min="2020" max="2100" value="${a.decYear||thisYear()+1}"></label><label>تكلفة الاستبدال المقدّرة (ج.م)<input id="d_cost" type="number" min="0" value="${+a.decCost||totVal(a)||''}"></label></div>
   <label style="margin-top:8px">سبب القرار<textarea id="d_why" rows="2" style="min-width:0">${esc(a.decWhy||'')}</textarea></label>
   <div class="row" style="margin-top:10px"><button class="btn" onclick="assetDecideSave('${a.id}')">حفظ القرار</button>${a.dec==='استبدال'&&!a.decDone?`<button class="btn alt" onclick="assetExecReplace('${a.id}')">تنفيذ الاستبدال (كود جديد)</button>`:''}${a.dec==='تكهين'&&!a.decDone?`<button class="btn alt" onclick="assetExecScrap('${a.id}')">تنفيذ التكهين</button>`:''}<button class="btn alt" onclick="closeEdit()">إلغاء</button></div>
-  <div class="msg" style="margin-top:6px">«تنفيذ الاستبدال» بيقفل الأصل القديم (مُكهّن) وبينشئ أصل جديد بكود جديد وسنة تركيب الحالية. «تنفيذ التكهين» بيخرج الأصل من الخدمة.</div></div>`;
+  <div class="msg hint" style="margin-top:6px">«تنفيذ الاستبدال» بيقفل الأصل القديم (مُكهّن) وبينشئ أصل جديد بكود جديد وسنة تركيب الحالية. «تنفيذ التكهين» بيخرج الأصل من الخدمة.</div></div>`;
   document.body.appendChild(d);
 }
 async function assetDecideSave(id){
@@ -1223,7 +1242,7 @@ async function xlLoad(f){
 }
 function xlCancel(){xi=null;render()}
 function vXlImport(){
-  let h=`<div class="card addf"><b>استيراد من نموذج Excel (أصول فردية ومجموعات + مخزن)</b><div class="msg">حمّل النموذج، املأه بره البرنامج، وارفعه هنا. هتشوف معاينة قبل أي حفظ.</div><div class="row" style="margin-top:6px"><button class="btn alt" onclick="tplDownload()">تحميل النموذج</button><label class="btn" style="flex-direction:row">اختيار الملف المملوء<input type="file" accept=".xlsx" onchange="xlLoad(this.files[0]);this.value=''" hidden></label></div>`;
+  let h=`<div class="card addf"><b>استيراد من نموذج Excel (أصول فردية ومجموعات + مخزن)</b><div class="msg hint">حمّل النموذج، املأه بره البرنامج، وارفعه هنا. هتشوف معاينة قبل أي حفظ.</div><div class="row" style="margin-top:6px"><button class="btn alt" onclick="tplDownload()">تحميل النموذج</button><label class="btn" style="flex-direction:row">اختيار الملف المملوء<input type="file" accept=".xlsx" onchange="xlLoad(this.files[0]);this.value=''" hidden></label></div>`;
   if(xi){
     const cr=xi.rows.filter(r=>r.action==='create'),up=xi.rows.filter(r=>r.action==='update'),sk=xi.rows.filter(r=>r.action==='skip');
     const nInd=cr.filter(r=>r.mode==='فردي').reduce((t,r)=>t+r.n,0),nGrp=cr.filter(r=>r.mode==='مجموعة').length;
@@ -1233,7 +1252,7 @@ function vXlImport(){
     if(xi.err.length||xi.stErr.length)h+=`<div class="card s-bad" style="margin-bottom:8px"><b>أخطاء (الأسطر دي مش هتتستورد):</b><br>${xi.err.slice(0,30).map(e=>'الأصول – سطر '+e.row+': '+esc(e.msg)).concat(xi.stErr.slice(0,20).map(e=>'المخزن – سطر '+e.row+': '+esc(e.msg))).join('<br>')}${xi.err.length>30?'<br>… وأخطاء أخرى':''}</div>`;
     const show=xi.rows.filter(r=>r.action!=='skip').slice(0,40);
     if(show.length)h+=`<div class="wrap" style="max-height:260px"><table><tr>${['سطر','الإجراء','الكود','النوع','الاسم','الطريقة','العدد','الموقع'].map(x=>`<th>${x}</th>`).join('')}</tr>${show.map(r=>`<tr><td>${r.row}</td><td class="${r.action==='create'?'s-ok':''}">${r.action==='create'?'جديد':'تحديث'}</td><td>${esc(r.code||'تلقائي')}</td><td>${esc(r.type)}</td><td class="l">${esc(r.name)}</td><td>${r.mode}</td><td>${r.mode==='مجموعة'?r.qty:r.n||1}</td><td class="l">${esc(r.loc)}</td></tr>`).join('')}</table></div>${xi.rows.filter(r=>r.action!=='skip').length>40?'<div class="msg">معروض أول 40 سطر فقط.</div>':''}`;
-    h+=`<div class="msg" style="margin-top:6px">التحديث بيغيّر الخانات المكتوبة فقط ولا يمسح الفاضي. رصيد المخزن الموجود بيتحدّث بالقيمة اللي في الملف.</div><div class="row" style="margin-top:8px"><button class="btn" ${can?'':'disabled'} onclick="xlApply()">تأكيد الاستيراد</button><button class="btn alt" onclick="xlCancel()">إلغاء</button></div>`;
+    h+=`<div class="msg hint" style="margin-top:6px">التحديث بيغيّر الخانات المكتوبة فقط ولا يمسح الفاضي. رصيد المخزن الموجود بيتحدّث بالقيمة اللي في الملف.</div><div class="row" style="margin-top:8px"><button class="btn" ${can?'':'disabled'} onclick="xlApply()">تأكيد الاستيراد</button><button class="btn alt" onclick="xlCancel()">إلغاء</button></div>`;
   }
   return h+`<div id="xlmsg" class="msg"></div></div>`;
 }
@@ -1285,7 +1304,7 @@ async function stockCheck(o){
 }
 function vStock(){
   const low=stock.filter(x=>+x.qty<=+x.min);
-  let h=`<div class="card"><div class="grid"><div class="k"><b>${stock.length}</b>صنف في المخزن</div><div class="k ${low.length?'s-bad':''}"><b>${low.length}</b>عند أو تحت الحد الأدنى</div></div><div class="msg">عند إضافة صنف لطلب شراء بنفس اسم صنف موجود هنا، يسألك البرنامج هل تصرفه من المخزن بدلاً من الشراء، ويخصم الرصيد تلقائياً.</div></div>
+  let h=`<div class="card"><div class="grid"><div class="k"><b>${stock.length}</b>صنف في المخزن</div><div class="k ${low.length?'s-bad':''}"><b>${low.length}</b>عند أو تحت الحد الأدنى</div></div><div class="msg hint">عند إضافة صنف لطلب شراء بنفس اسم صنف موجود هنا، يسألك البرنامج هل تصرفه من المخزن بدلاً من الشراء، ويخصم الرصيد تلقائياً.</div></div>
   <div class="card addf"><div class="row"><label>الصنف<input id="st_n" data-keep="1"></label><label>الرصيد<input id="st_q" type="number" value="0" data-keep="1" style="width:90px"></label><label>الحد الأدنى<input id="st_m" type="number" value="1" data-keep="1" style="width:90px"></label><label>الوحدة<input id="st_u" data-keep="1" value="قطعة"></label><label>سعر الوحدة<input id="st_c" type="number" data-keep="1"></label><button class="btn" onclick="stockAdd()">إضافة</button></div></div>
   <div class="card wrap"><table><tr>${['الصنف','الرصيد','الحد الأدنى','الوحدة','سعر الوحدة','الحالة','إجراءات'].map(x=>`<th>${x}</th>`).join('')}</tr>`;
   stock.forEach(x=>{const st=+x.qty<=0?'نفد':+x.qty<=+x.min?'منخفض':'متوفر';
@@ -1317,7 +1336,7 @@ function vBudget(){
   const plan=planBy(bYear),totP=TRALL.reduce((a,t)=>a+(plan.by[t]||0),0);
   const yrs=['2026','2027','2028'];
   let h=`<div class="card"><div class="row"><label>السنة<select onchange="bYear=this.value;render()">${yrs.map(y=>`<option ${y===bYear?'selected':''}>${y}</option>`).join('')}</select></label><button class="btn" onclick="pdf('التكاليف_والبادجت_'+bYear)">تصدير PDF</button><button class="btn alt" onclick="wordExp('التكاليف_والبادجت_'+bYear)">تصدير Word</button></div>
-  <div class="msg">المصروف = تكلفة الإصلاح/الخدمة المسجلة في الإخطارات + (السعر × الكمية) لأصناف الشراء (بدون المصروف من المخزن). أدخل البادجت لكل تخصص. تُسجَّل التكلفة في خانة «التكلفة» بالإخطار وسعر الشراء الفعلي بعد تنفيذ الشراء (من «تعديل» صنف الشراء في طلبات الشراء).</div></div>
+  <div class="msg hint">المصروف = تكلفة الإصلاح/الخدمة المسجلة في الإخطارات + (السعر × الكمية) لأصناف الشراء (بدون المصروف من المخزن). أدخل البادجت لكل تخصص. تُسجَّل التكلفة في خانة «التكلفة» بالإخطار وسعر الشراء الفعلي بعد تنفيذ الشراء (من «تعديل» صنف الشراء في طلبات الشراء).</div></div>
   <div class="card" id="rep"><h3>التكاليف مقابل البادجت – ${bYear} – قسم الصيانة</h3>
   <div class="grid" style="margin:8px 0"><div class="k"><b>${money(totB)}</b>إجمالي البادجت (ج.م)</div><div class="k"><b>${money(totS)}</b>المصروف (ج.م)</div><div class="k ${totB&&totS>totB?'s-bad':''}"><b>${money(totB-totS)}</b>المتبقي (ج.م)</div><div class="k"><b>${totB?Math.round(100*totS/totB)+'%':'—'}</b>نسبة الاستهلاك</div><div class="k"><b>${money(totP)}</b>استبدال مخطط من سجل الأصول (ج.م)</div><div class="k ${totB&&totS+totP>totB?'s-bad':''}"><b>${money(totB-totS-totP)}</b>المتبقي بعد المصروف والمخطط</div></div>
   <div style="overflow-x:auto"><table><tr>${['التخصص','البادجت (ج.م)','المصروف','المتبقي','نسبة الاستهلاك','استبدال مخطط','المتبقي بعد المخطط'].map(x=>`<th>${x}</th>`).join('')}</tr>
@@ -1355,7 +1374,7 @@ const JF=()=>[['no','الرقم','text'],['contractor','الشركة المنف�
 let lastJ=0;const nextJ=()=>(lastJ=Math.max(lastJ,...jobsheets.map(j=>num(j.no)))+1),jno=n=>'JS-'+String(n).padStart(3,'0');
 const lastContractor=()=>localStorage.getItem('js_contractor')||'GHD';
 function vJobs(){
-  let h=`<div class="card addf"><b>إصدار JobSheet جديد</b><div class="msg">يمكنك أيضاً إنشاءه من زر «JobSheet» بجانب أي إخطار في الصيانة العلاجية فيتعبّى منه تلقائياً.</div><div class="row" style="margin-top:6px"><label>الشركة المنفذة<input id="j_c" value="${esc(lastContractor())}" data-keep="1"></label><label>التاريخ<input id="j_d" type="date" value="${ymd(new Date())}"></label>
+  let h=`<div class="card addf"><b>إصدار JobSheet جديد</b><div class="msg hint">يمكنك أيضاً إنشاءه من زر «JobSheet» بجانب أي إخطار في الصيانة العلاجية فيتعبّى منه تلقائياً.</div><div class="row" style="margin-top:6px"><label>الشركة المنفذة<input id="j_c" value="${esc(lastContractor())}" data-keep="1"></label><label>التاريخ<input id="j_d" type="date" value="${ymd(new Date())}"></label>
   <label>الإخطارات (ع-..، افصل بفاصلة)<input id="j_r" list="jnlist" data-keep="1"></label><datalist id="jnlist">${notices.filter(n=>n.status!=='تم الإصلاح').map(n=>`<option value="${n.ref}">${esc(n.dept)}</option>`).join('')}</datalist>
   <label>الموقع / القسم<input id="j_p" data-keep="1"></label><label>الأصل (الكود)<input id="j_a" list="assetlist" data-keep="1"></label><datalist id="assetlist">${assets.map(a=>`<option value="${esc(a.code)}">${esc(a.name)}</option>`).join('')}</datalist>
   <label style="flex:2 1 260px">نطاق العمل<textarea id="j_s" rows="2" data-keep="1" style="min-width:0"></textarea></label><button class="btn" onclick="jsAdd()">إصدار</button></div></div>
