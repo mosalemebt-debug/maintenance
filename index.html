@@ -234,7 +234,7 @@ async function init(){
   db.collection('assets').onSnapshot(s=>{assets=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.code).localeCompare(String(b.code),'en',{numeric:true}));render()});
   db.collection('stock').onSnapshot(s=>{stock=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ar'));render()});
 }
-const NAVG=[['الرئيسية',[['daily','المتابعة اليومية']]],['التشغيل',[['round','المرور اليومي'],['notices','الصيانة العلاجية'],['jobsheets','JobSheet']]],['الأصول والمشتريات',[['purch','طلبات الشراء'],['assets','سجل الأصول'],['stock','المخزن']]],['التقارير',[['reports','التقارير']]],['النظام',[['audit','سجل التعديلات'],['backup','نسخ احتياطي']]]];
+const NAVG=[['الرئيسية',[['daily','المتابعة اليومية']]],['التشغيل',[['round','المرور اليومي'],['notices','الصيانة العلاجية'],['jobsheets','JobSheet']]],['الأصول والمشتريات',[['purch','طلبات الشراء'],['adash','لوحة الأصول'],['assets','سجل الأصول'],['stock','المخزن']]],['التقارير',[['reports','التقارير']]],['النظام',[['audit','سجل التعديلات'],['backup','نسخ احتياطي']]]];
 const lastTab={};
 function badges(){
   const o={};try{o.notices=notices.filter(n=>n.status!=='تم الإصلاح').length;o.stock=stock.filter(x=>+x.qty<=+x.min).length;o.purch=purchases.filter(p=>p.status!=='تم التركيب').length;o.jobsheets=jobsheets.filter(j=>['صادر','قيد التنفيذ'].includes(j.status)).length}catch(e){}
@@ -277,7 +277,7 @@ function render(){
   if(window._lt!==tab){document.body.classList.remove('showf');window._lt=tab}
   const keepV={};document.querySelectorAll('#main input[id],#main select[id],#main textarea[id]').forEach(e=>{if(/^(f|p|pm|as|st|ni|nq)_/.test(e.id)&&e.value!=='')keepV[e.id]=e.value});
   const wy=window.scrollY,ws=[...document.querySelectorAll('.wrap:not(#rep)')].map(w=>[w.scrollTop,w.scrollLeft]);
-  $('#main').innerHTML=({round:vRound,notices:vNotices,purch:vPurch,reports:vReports,daily:vDaily,backup:vBackup,audit:vAudit,assets:vAssets,stock:vStock,jobsheets:vJobs,e_round:vERound,e_notice:vENotice,e_purch:vEPurch})[tab]();
+  $('#main').innerHTML=({round:vRound,notices:vNotices,purch:vPurch,reports:vReports,daily:vDaily,backup:vBackup,audit:vAudit,adash:vADash,assets:vAssets,stock:vStock,jobsheets:vJobs,e_round:vERound,e_notice:vENotice,e_purch:vEPurch})[tab]();
   document.querySelectorAll('textarea').forEach(fit);
   labelize();
   Object.entries(keepV).forEach(([id,v])=>{const e=document.getElementById(id);if(e&&e.tagName!=='BUTTON')e.value=v});
@@ -1038,6 +1038,28 @@ async function assetPieces(id){const a=assets.find(x=>x.id===id);if(!a)return;
   if(a.pieces&&!confirm('القطع مرقّمة بالفعل. إعادة الترقيم؟'))return;
   a.pieces=Array.from({length:+a.qty},(_,i)=>a.code+'-'+String(i+1).padStart(2,'0'));
   await db.collection('assets').doc(id).update({pieces:a.pieces});await assetLogAdd(a.code,'ترقيم','ترقيم '+a.qty+' قطعة');assetDetail(id)}
+/* ===== لوحة تحكم الأصول ===== */
+let dsh={t:'',lc:'',cd:'',d1:'',d2:''};
+function vADash(){
+  const inP=d=>{d=String(iso(d));return(!dsh.d1||d>=dsh.d1)&&(!dsh.d2||d<=dsh.d2)};
+  const all=assets.filter(a=>a.stat!=='مُكهّن').map(a=>({a,...assetStats(a)}));
+  const L=all.filter(x=>(!dsh.t||x.a.type===dsh.t)&&(!dsh.lc||x.a.f===dsh.lc||String(x.a.loc||'').includes(dsh.lc))&&(!dsh.cd||effCond(x)===dsh.cd));
+  const q=x=>isGrp(x.a)?(+x.a.qty||1):1,sum=l=>l.reduce((t,x)=>t+q(x),0);
+  const eng=L.filter(x=>secOf(x.a.type)==='هندسي'),fur=L.filter(x=>secOf(x.a.type)==='تجهيزات');
+  const cnd=c=>L.filter(x=>effCond(x)===c),good=cnd(CONDS[0]),need=cnd(CONDS[1]),bad=L.filter(x=>CONDS.indexOf(effCond(x))>=2);
+  const pmL=L.filter(x=>pmState(x.a)==='متأخرة'),pmD=L.filter(x=>pmState(x.a)==='مستحقة');
+  const ns=L.flatMap(x=>x.ns).filter(n=>inP(n.date)),op=ns.filter(n=>n.status!=='تم الإصلاح').length,cl=ns.length-op;
+  const cost=ns.reduce((t,n)=>t+noticeCost(n),0);
+  const cand=L.filter(x=>(x.a.dec==='استبدال'&&!x.a.decDone)||effCond(x)===CONDS[3]||(x.age!==null&&x.age>=x.life));
+  const k=(v,l,c)=>`<div class="k ${c||''}"><b>${v}</b>${l}</div>`;
+  const sel=(key,l,o)=>`<label>${l}<select onchange="liveFilter(this,dsh,'${key}')"><option value="">الكل</option>${o.map(v=>`<option ${dsh[key]===v?'selected':''}>${v}</option>`).join('')}</select></label>`;
+  const grp={};L.forEach(x=>{const a=x.a,key=[a.b,a.f,a.d].filter(Boolean).join(' › ')||(a.loc?'(نص حر) '+a.loc.split(' – ')[0]:'بدون موقع');const g=grp[key]=grp[key]||{e:0,f:0,w:0};secOf(a.type)==='هندسي'?g.e+=q(x):g.f+=q(x);if(CONDS.indexOf(effCond(x))>=1)g.w+=q(x)});
+  const rows=Object.entries(grp).sort((p,r)=>(r[1].e+r[1].f)-(p[1].e+p[1].f));
+  const why=x=>[x.a.dec==='استبدال'&&!x.a.decDone?'قرار استبدال':'',effCond(x)===CONDS[3]?'تالف ويحتاج إحلال':'',x.age!==null&&x.age>=x.life?'تجاوز العمر ('+x.age+'/'+x.life+')':''].filter(Boolean).join(' · ');
+  return `<div class="card"><b>لوحة تحكم الأصول</b><div class="fbar">${sel('t','النوع',ATY)}${sel('lc','الدور',[...new Set(locRows().map(r=>r.f))])}${sel('cd','الحالة',CONDS)}<label>أعطال من<input type="date" value="${dsh.d1}" onchange="liveFilter(this,dsh,'d1')"></label><label>إلى<input type="date" value="${dsh.d2}" onchange="liveFilter(this,dsh,'d2')"></label><button class="btn sm alt" onclick="dsh={t:'',lc:'',cd:'',d1:'',d2:''};render()">مسح</button></div><div class="msg hint">الفترة بتأثر على الأعطال والتكاليف فقط. الأصول المُكهّنة مش محسوبة.</div></div>
+  <div class="card"><div class="grid">${k(sum(eng),'أصول هندسية ('+eng.length+' بند)')}${k(sum(fur),'تجهيزات وأثاث ('+fur.length+' بند)')}${k(sum(good),'جيد ويعمل','')}${k(sum(need),'يعمل ويحتاج صيانة',need.length?'s-warn':'')}${k(sum(bad),'متوقف أو تالف',bad.length?'s-bad':'')}${k(pmL.length,'وقائية متأخرة',pmL.length?'s-bad':'')}${k(pmD.length,'وقائية مستحقة (7 أيام)',pmD.length?'s-warn':'')}${k(op,'أعطال مفتوحة',op?'s-warn':'')}${k(cl,'أعطال مغلقة')}${k(money(cost),'تكلفة الصيانة والإصلاح (ج.م)')}${k(cand.length,'مرشحة للإحلال',cand.length?'s-warn':'')}</div></div>
+  <div class="card wrap"><b>التوزيع حسب المبنى › الدور › القسم (بالقطع)</b><table><tr><th>الموقع</th><th>هندسي</th><th>تجهيزات</th><th>تحتاج صيانة أو أسوأ</th></tr>${rows.map(([n,g])=>`<tr><td class="l">${esc(n)}</td><td>${g.e}</td><td>${g.f}</td><td class="${g.w?'s-warn':''}">${g.w}</td></tr>`).join('')||'<tr><td colspan="4">لا توجد بيانات</td></tr>'}</table></div>
+  <div class="card wrap"><b>الأصول المرشحة للإحلال والاستبدال</b><table><tr><th>الكود</th><th>الاسم</th><th>الموقع</th><th>السبب</th><th>تكلفة مقدّرة</th></tr>${cand.slice(0,30).map(x=>`<tr><td><a href="#" onclick="assetDetail('${x.a.id}');return false">${esc(x.a.code)}</a></td><td class="l">${esc(x.a.name)}</td><td class="l">${esc(x.a.loc||'—')}</td><td class="l">${why(x)}</td><td>${(+x.a.decCost||totVal(x.a))?money(+x.a.decCost||totVal(x.a)):'—'}</td></tr>`).join('')||'<tr><td colspan="5">لا توجد أصول مرشحة</td></tr>'}</table></div>`}
 function vAssetLists(){
   const c=settings.assetLists||{},ts=c.types||[],us=c.units||[];
   const chip=(txt,fn)=>`<span style="display:inline-flex;gap:4px;align-items:center;background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:2px 4px 2px 10px;margin:2px">${esc(txt)}<button class="btn sm alt" style="padding:0 6px;min-height:0" title="حذف" onclick="${fn}">✕</button></span>`;
