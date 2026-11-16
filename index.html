@@ -234,7 +234,7 @@ async function init(){
   db.collection('assets').onSnapshot(s=>{assets=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.code).localeCompare(String(b.code),'en',{numeric:true}));render()});
   db.collection('stock').onSnapshot(s=>{stock=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ar'));render()});
 }
-const NAVG=[['الرئيسية',[['daily','المتابعة اليومية']]],['التشغيل',[['round','المرور اليومي'],['notices','الصيانة العلاجية'],['jobsheets','JobSheet']]],['الأصول والمشتريات',[['purch','طلبات الشراء'],['assets','سجل الأصول'],['stock','المخزن']]],['التقارير',[['sum','الملخص'],['reports','التقارير']]],['النظام',[['audit','سجل التعديلات'],['backup','نسخ احتياطي']]]];
+const NAVG=[['الرئيسية',[['daily','المتابعة اليومية']]],['التشغيل',[['round','المرور اليومي'],['notices','الصيانة العلاجية'],['jobsheets','JobSheet']]],['الأصول والمشتريات',[['purch','طلبات الشراء'],['assets','سجل الأصول'],['stock','المخزن']]],['التقارير',[['reports','التقارير']]],['النظام',[['audit','سجل التعديلات'],['backup','نسخ احتياطي']]]];
 const lastTab={};
 function badges(){
   const o={};try{o.notices=notices.filter(n=>n.status!=='تم الإصلاح').length;o.stock=stock.filter(x=>+x.qty<=+x.min).length;o.purch=purchases.filter(p=>p.status!=='تم التركيب').length;o.jobsheets=jobsheets.filter(j=>['صادر','قيد التنفيذ'].includes(j.status)).length}catch(e){}
@@ -277,7 +277,7 @@ function render(){
   if(window._lt!==tab){document.body.classList.remove('showf');window._lt=tab}
   const keepV={};document.querySelectorAll('#main input[id],#main select[id],#main textarea[id]').forEach(e=>{if(/^(f|p|pm|as|st|ni|nq)_/.test(e.id)&&e.value!=='')keepV[e.id]=e.value});
   const wy=window.scrollY,ws=[...document.querySelectorAll('.wrap:not(#rep)')].map(w=>[w.scrollTop,w.scrollLeft]);
-  $('#main').innerHTML=({round:vRound,notices:vNotices,purch:vPurch,sum:vSum,reports:vReports,daily:vDaily,backup:vBackup,audit:vAudit,assets:vAssets,stock:vStock,jobsheets:vJobs,e_round:vERound,e_notice:vENotice,e_purch:vEPurch})[tab]();
+  $('#main').innerHTML=({round:vRound,notices:vNotices,purch:vPurch,reports:vReports,daily:vDaily,backup:vBackup,audit:vAudit,assets:vAssets,stock:vStock,jobsheets:vJobs,e_round:vERound,e_notice:vENotice,e_purch:vEPurch})[tab]();
   document.querySelectorAll('textarea').forEach(fit);
   labelize();
   Object.entries(keepV).forEach(([id,v])=>{const e=document.getElementById(id);if(e&&e.tagName!=='BUTTON')e.value=v});
@@ -485,17 +485,6 @@ async function savePurch(){
   await db.collection('purchases').doc(uid('p',k)).set(o);
   $('#p_item').value='';$('#p_qty').value=1;
   toast('تمت الإضافة ✓');
-}
-/* ---------- الملخص ---------- */
-function vSum(){
-  const c=s=>notices.filter(n=>n.status===s).length,pc=s=>purchases.filter(p=>p.status===s).length;
-  const linked=new Set(purchases.filter(p=>p.ref).map(p=>p.ref)),viaP=notices.filter(n=>n.viaPurchase).length,linkedOpen=[...linked].filter(r=>{const n=notices.find(x=>x.ref===r);return n&&n.status!=='تم الإصلاح'}).length;
-  const closed=notices.length?Math.round(100*c('تم الإصلاح')/notices.length):0;
-  return `<div class="card"><button class="btn" onclick="pdf('الملخص')">تصدير PDF</button><button class="btn alt" onclick="wordExp('الملخص')">تصدير Word</button></div>
-  <div class="card" id="rep"><h3>ملخص الصيانة – مستشفى الابتسامة</h3>
-  <div class="grid"><div class="k"><b>${notices.length}</b>إجمالي الإخطارات</div><div class="k"><b>${closed}%</b>نسبة الإغلاق</div><div class="k"><b>${notices.filter(n=>!n.status).length}</b>إخطارات مفتوحة</div><div class="k"><b>${purchases.length}</b>أصناف الشراء</div><div class="k"><b>${linked.size}</b>إخطارات مرتبطة بطلب شراء</div><div class="k"><b>${viaP}</b>أُغلقت بعد شراء وتركيب</div><div class="k"><b>${linkedOpen}</b>مرتبطة بشراء ولم تُغلق</div></div>
-  <h4>الصيانة العلاجية حسب الحالة</h4><table><tr><td class="l s-warn">مفتوح</td><td>${notices.filter(n=>!n.status).length}</td></tr>${ST.map(s=>`<tr><td class="l ${stCls(s)}">${s}</td><td>${c(s)}</td></tr>`).join('')}</table>
-  <h4>طلبات الشراء</h4><table>${PST.map(s=>`<tr><td class="l">${s}</td><td>${pc(s)}</td></tr>`).join('')}</table></div>`;
 }
 /* ---------- التقارير الأسبوعية والشهرية ---------- */
 const REP_START='2026-11-07'; // السبت: بداية العمل بالتقارير
