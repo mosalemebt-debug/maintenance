@@ -374,7 +374,7 @@ async function saveRound(){
 const FLD=['date','time','dept','reporter','details','action','status','fixdate','rep','needbuy','notes','cls'];
 function vNotices(){
   let h=`<div class="card addf"><b>إخطار جديد</b><div class="row">
-  <label>التاريخ<input type="date" id="f_date" value="${new Date().toISOString().slice(0,10)}"></label>
+  <label>التاريخ<input type="date" id="f_date" value="${ymd(new Date())}"></label>
   <label>الوقت<input type="time" id="f_time"></label>
   <label>القسم<input id="f_dept"></label><label>مسؤول الإخطار<input id="f_reporter"></label>
   <label>تفاصيل العطل<input id="f_details" style="width:220px"></label><label>الإجراء المتخذ<input id="f_action" style="width:200px"></label>
@@ -398,7 +398,7 @@ function vNotices(){
   return h+'</table></div>';
 }
 const upd=(id,o)=>db.collection('notices').doc(id).update(o);
-function setStatus(id,s){const o={status:s};if(s==='تم الإصلاح')o.fixdate=new Date().toISOString().slice(0,10);upd(id,o)}
+function setStatus(id,s){const o={status:s};if(s==='تم الإصلاح')o.fixdate=ymd(new Date());upd(id,o)}
 async function saveNotice(){
   const o={};['date','time','dept','reporter','details','action','status','rep','needbuy','prio'].forEach(k=>o[k]=$('#f_'+k).value);
   ['trade','asset','cost','aff'].forEach(k=>{const e=$('#f_'+k);if(e)o[k]=(k==='cost'||k==='aff')?(+e.value||0):e.value});
@@ -417,7 +417,7 @@ async function exportXlsx(){
   const ws=XLSX.utils.aoa_to_sheet([['سجل الصيانة العلاجية (إخطارات الصيانة) – مستشفى الابتسامة'],[],head,...rows],{cellDates:true});
   ws['!cols']=[5,11,12,9,22,14,40,35,15,12,16,10,11,17,30,24].map(w=>({wch:w}));ws['!views']=[{RTL:true}];
   const wb=XLSX.utils.book_new();wb.Workbook={Views:[{RTL:true}]};XLSX.utils.book_append_sheet(wb,ws,'الصيانة العلاجية');
-  dl('الصيانة_العلاجية_'+new Date().toISOString().slice(0,10)+'.xlsx',XLSX.write(wb,{type:'array',bookType:'xlsx',cellDates:true}));
+  dl('الصيانة_العلاجية_'+ymd(new Date())+'.xlsx',XLSX.write(wb,{type:'array',bookType:'xlsx',cellDates:true}));
 }
 async function importXlsx(f){
   if(!f)return;const wb=XLSX.read(await f.arrayBuffer(),{cellDates:true});
@@ -444,7 +444,7 @@ function vPurch(){
   <td><button class="btn sm" onclick="addItemFor('${n.ref}','${n.id}')">إضافة</button> <button class="btn sm alt" onclick="openPR('${n.ref}')">طباعة PR</button></td></tr>`}).join('')||'<tr><td colspan="8">لا توجد إخطارات تحتاج شراء</td></tr>'}</table></div></div>`;
   let h=needCard+`<div class="card addf"><b>صنف شراء جديد</b><div class="row">
   <label>الإخطار<select id="p_ref">${notices.slice().reverse().map(n=>`<option value="${n.ref}">${n.ref} – ${esc(n.dept)}</option>`).join('')}</select></label>
-  <label>تاريخ الطلب<input type="date" id="p_rdate" value="${new Date().toISOString().slice(0,10)}"></label>
+  <label>تاريخ الطلب<input type="date" id="p_rdate" value="${ymd(new Date())}"></label>
   <label>الصنف<input id="p_item"></label><label>الكمية<input id="p_qty" type="number" value="1" style="width:70px"></label>
   <button class="btn" onclick="savePurch()">حفظ</button><button class="btn alt" onclick="pdf('طلبات_الشراء')">تصدير PDF</button><button class="btn alt" onclick="wordExp('طلبات_الشراء')">تصدير Word</button><button class="btn" onclick="openPR()">طباعة طلب شراء PR (للأصناف المحددة)</button></div></div>
   ${pFilterBar()}${prBar()}<div class="card wrap" id="rep"><h3>طلبات الشراء – مستشفى الابتسامة</h3><table><tr><th class="noprint"><input type="checkbox" title="تحديد الكل" onchange="selAllPR(this.checked)"></th>${['م','الإخطار','القسم','الصنف','الكمية','رقم PR','تاريخ الطلب','الحالة','تاريخ التوريد','تاريخ التركيب'].map(x=>`<th>${x}</th>`).join('')}<th class="noprint">إجراءات</th></tr>`;
@@ -466,7 +466,7 @@ async function addItemFor(ref,id){
 }
 async function setPurchStatus(id,v){
   const p=purchases.find(x=>x.id===id);if(!p)return;
-  const today=new Date().toISOString().slice(0,10);
+  const today=ymd(new Date());
   const o={status:v,ddate:(v==='تم الشراء/التوريد'||v==='صرف من المخزن'||v==='تم التركيب')?(p.ddate||today):'',idate:v==='تم التركيب'?today:''};
   Object.assign(p,o);await db.collection('purchases').doc(id).update(o);
   if(v!=='تم التركيب'||!p.ref)return;
@@ -823,7 +823,7 @@ async function pdf(name){
   const {jsPDF}=window.jspdf;const doc=new jsPDF({orientation:'l',unit:'pt',format:'a4'});
   const W=doc.internal.pageSize.getWidth()-40,H=doc.internal.pageSize.getHeight()-40,ih=cv.height*W/cv.width;
   let y=0;while(y<ih){doc.addImage(cv.toDataURL('image/jpeg',.92),'JPEG',20,20-y,W,ih);y+=H;if(y<ih)doc.addPage()}
-  dl(name+'_'+new Date().toISOString().slice(0,10)+'.pdf',doc.output('arraybuffer'));
+  dl(name+'_'+ymd(new Date())+'.pdf',doc.output('arraybuffer'));
 }
 
 function wordExp(name){
@@ -839,7 +839,7 @@ function wordExp(name){
    +'h3{color:#1f4e79}h4{color:#1f4e79;border-bottom:1px solid #999}b{font-weight:bold}.s-ok{background:#d9f2e0}.s-warn{background:#fff3cd}.s-bad{background:#f8d7da}.msg{color:#555;font-size:10pt}';
   const html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>'+esc(name)+'</title>'
    +'<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]--><style>'+css+'</style></head><body dir="rtl">'+el.innerHTML+'</body></html>';
-  return dl(name+'_'+new Date().toISOString().slice(0,10)+'.doc',new TextEncoder().encode('\ufeff'+html).buffer);
+  return dl(name+'_'+ymd(new Date())+'.doc',new TextEncoder().encode('\ufeff'+html).buffer);
 }
 
 /* ---------- صندوق الوارد (مدخل البيانات) ---------- */
@@ -868,7 +868,7 @@ function toast(t){if(/^(تمت الإضافة|تم إصدار|تم تسجيل|ت
 async function send(o){const id='i'+Date.now()+Math.random().toString(36).slice(2,6);await db.collection('inbox').doc(id).set({...o,by:window.USER_EMAIL,at:new Date().toISOString()});toast(navigator.onLine?'تم الإرسال ✓':'تم الحفظ على الجهاز – هيتبعت لما الإنترنت يرجع')}
 function vENotice(){
   return `<div class="card"><b>إخطار جديد</b><div class="row">
-  <label>التاريخ<input type="date" id="f_date" value="${new Date().toISOString().slice(0,10)}"></label><label>الوقت<input type="time" id="f_time"></label>
+  <label>التاريخ<input type="date" id="f_date" value="${ymd(new Date())}"></label><label>الوقت<input type="time" id="f_time"></label>
   <label>القسم<input id="f_dept"></label><label>مسؤول الإخطار<input id="f_reporter"></label>
   <label>تفاصيل العطل<textarea id="f_details" rows="2" style="width:240px"></textarea></label><label>الإجراء المتخذ<textarea id="f_action" rows="2" style="width:220px"></textarea></label>
   <label>الحالة<select id="f_status"><option value="" selected>مفتوح</option>${ST.map(s=>`<option>${s}</option>`).join('')}</select></label>
@@ -886,7 +886,7 @@ async function eSaveNotice(){
 }
 function vEPurch(){
   return `<div class="card"><b>طلب شراء جديد</b><div class="row">
-  <label>تاريخ الطلب<input type="date" id="p_rdate" value="${new Date().toISOString().slice(0,10)}"></label>
+  <label>تاريخ الطلب<input type="date" id="p_rdate" value="${ymd(new Date())}"></label>
   <label>الصنف<input id="p_item"></label><label>الكمية<input id="p_qty" type="number" value="1" style="width:70px"></label>
   <label>المرتبط بالعطل (القسم/العطل)<input id="p_rel" style="width:240px"></label><button class="btn" onclick="eSavePurch()">إرسال</button></div></div>`;
 }
@@ -1552,6 +1552,39 @@ function noLog(fn){return async function(...a){window.NOLOG=true;try{return awai
   walk(document.body);mo.observe(document.body,{childList:true,subtree:true,characterData:true});
   const _al=window.alert.bind(window),_cf=window.confirm.bind(window);
   window.alert=m=>_al(cv(m));window.confirm=m=>_cf(cv(m));
+})();
+/* ---------- حقول التاريخ: يوم/شهر/سنة ---------- */
+(function(){
+  const pad=n=>String(n).padStart(2,'0');
+  const toDisp=v=>{const m=/^(\d{4})-(\d\d)-(\d\d)$/.exec(v||'');return m?m[3]+'/'+m[2]+'/'+m[1]:''};
+  const parse=t=>{t=String(t).replace(/[٠-٩]/g,c=>'٠١٢٣٤٥٦٧٨٩'.indexOf(c)).trim();
+    const m=/^(\d{1,2})\D+(\d{1,2})\D+(\d{4})$/.exec(t)||/^(\d{2})(\d{2})(\d{4})$/.exec(t);if(!m)return null;
+    const d=+m[1],mo=+m[2],y=+m[3],dt=new Date(Date.UTC(y,mo-1,d));
+    if(dt.getUTCMonth()!==mo-1||dt.getUTCDate()!==d)return null;return y+'-'+pad(mo)+'-'+pad(d)};
+  const vd=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value');
+  function enhance(inp){
+    if(inp._ard)return;inp._ard=1;
+    const w=document.createElement('span');w.style.cssText='position:relative;display:inline-flex;gap:4px;align-items:center';
+    const t=document.createElement('input');t.type='text';t.inputMode='numeric';t.placeholder='يوم/شهر/سنة';t.maxLength=10;t.dir='ltr';t.style.cssText='width:112px;min-width:0;text-align:center';
+    const b=document.createElement('button');b.type='button';b.textContent='📅';b.tabIndex=-1;b.className='btn sm alt';b.style.cssText='padding:4px 8px';
+    inp.parentNode.insertBefore(w,inp);w.append(t,b,inp);
+    inp.style.cssText='position:absolute;left:0;bottom:0;width:1px;height:1px;min-width:0;opacity:0;pointer-events:none;border:0;padding:0';
+    Object.defineProperty(inp,'value',{get(){return vd.get.call(inp)},set(v){vd.set.call(inp,v);t.value=toDisp(v)},configurable:true});
+    t.value=toDisp(vd.get.call(inp));
+    b.onclick=()=>{try{inp.showPicker()}catch(e){inp.focus();inp.click()}};
+    inp.addEventListener('change',()=>{t.value=toDisp(vd.get.call(inp))});
+    t.addEventListener('input',e=>{if(e.inputType==='insertText'&&(/^\d{2}$/.test(t.value)||/^\d{2}\/\d{2}$/.test(t.value)))t.value+='/'});
+    t.addEventListener('change',()=>{
+      const raw=t.value.trim();
+      if(!raw){vd.set.call(inp,'');inp.dispatchEvent(new Event('change',{bubbles:true}));return}
+      const v=parse(raw);
+      if(v){vd.set.call(inp,v);t.value=toDisp(v);inp.dispatchEvent(new Event('change',{bubbles:true}))}
+      else{alert('اكتب التاريخ بالشكل يوم/شهر/سنة، مثال: 25/10/2026');t.value=toDisp(vd.get.call(inp))}
+    });
+  }
+  const scan=n=>{if(n.nodeType!==1)return;if(n.matches&&n.matches('input[type=date]'))enhance(n);n.querySelectorAll&&n.querySelectorAll('input[type=date]').forEach(enhance)};
+  scan(document.body);
+  new MutationObserver(ms=>{for(const m of ms)m.addedNodes.forEach(scan)}).observe(document.body,{childList:true,subtree:true});
 })();
 /* ---------- الاتصال والمزامنة ---------- */
 function syncUI(){
