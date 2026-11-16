@@ -1494,17 +1494,19 @@ function vCapexRep(){
   ${groups.map(g=>`<tr><td class="l" colspan="7"><b>${esc(g.g)}</b></td></tr>`+g.rows.map(({r,i})=>{const t=cpTot(r);return `<tr><td class="l">${esc(r.item)}</td><td>${esc(r.trade)}</td><td><select data-keep="1" onchange="cpKind(${i},this.value)">${opt(CP_KINDS,r.kind||'')}</select></td><td>${r.qty||0}</td><td>${money(r.price)}</td><td class="${t?'':'s-warn'}">${t?money(t):'⚠ ناقص عدد أو سعر'}</td><td><button class="btn sm noprint" style="background:#b42318" onclick="cpDel(${i})">حذف</button></td></tr>`}).join('')+`<tr><td class="l" colspan="5"><b>إجمالي ${esc(g.g)}</b></td><td colspan="2"><b>${money(g.rows.reduce((t,x)=>t+cpTot(x.r),0))}</b></td></tr>`).join('')||`<tr><td colspan="7">لا توجد خطة لسنة ${y}${y==='2027'?' — اضغط «تحميل خطة 2027 من الشيت»':''}</td></tr>`}</table></div>`;
   // ثالثًا: حصر الأصول
   const al=assets.map(a=>({a,...assetStats(a)})).sort((x,z)=>String(x.a.code).localeCompare(String(z.a.code),'en',{numeric:true}));
-  const ty={};al.forEach(x=>{const k=x.a.type||'غير محدد',o=ty[k]||(ty[k]={n:0,val:0,bad:0,out:0,old:0,cost:0});
-    o.n+=x.qty;o.val+=totVal(x.a);o.cost+=x.cost;
+  const cx=a=>(a.stat!=='مُكهّن'&&a.dec==='استبدال'&&!a.decDone&&String(a.decYear)===String(y))?(+a.decCost||totVal(a)||0):0;
+  const ty={};al.forEach(x=>{const k=x.a.type||'غير محدد',o=ty[k]||(ty[k]={n:0,val:0,bad:0,out:0,old:0,cost:0,cx:0});
+    o.n+=x.qty;o.val+=totVal(x.a);o.cost+=x.cost;o.cx+=cx(x.a);
     if(x.a.stat==='مُكهّن')o.out+=x.qty;else o.bad+=x.grp?Math.min(x.qty,x.qf+x.qd):(x.st!=='شغال'?1:0);
     if(x.age!==null&&x.age>=x.life)o.old+=x.qty});
-  const T=Object.values(ty).reduce((t,o)=>({n:t.n+o.n,val:t.val+o.val,bad:t.bad+o.bad,out:t.out+o.out,old:t.old+o.old,cost:t.cost+o.cost}),{n:0,val:0,bad:0,out:0,old:0,cost:0});
+  const T=Object.values(ty).reduce((t,o)=>({n:t.n+o.n,val:t.val+o.val,bad:t.bad+o.bad,out:t.out+o.out,old:t.old+o.old,cost:t.cost+o.cost,cx:t.cx+o.cx}),{n:0,val:0,bad:0,out:0,old:0,cost:0,cx:0});
   h+=`<h4>ثالثًا: حصر الأصول المسجلة (${al.length} بند / ${T.n} قطعة) – إجمالي قيمة الاستبدال ${money(T.val)} ج.م</h4>
-  <div style="overflow-x:auto"><table><tr>${['النوع','عدد القطع','قيمة الاستبدال','معطل / يحتاج إصلاح','مُكهّن','تجاوز العمر الافتراضي','تكلفة الصيانة المتراكمة'].map(x=>`<th>${x}</th>`).join('')}</tr>
-  ${Object.entries(ty).sort((p,q)=>q[1].val-p[1].val).map(([k,o])=>`<tr><td class="l">${esc(k)}</td><td>${o.n}</td><td>${money(o.val)}</td><td>${o.bad}</td><td>${o.out}</td><td>${o.old}</td><td>${money(o.cost)}</td></tr>`).join('')||'<tr><td colspan="7">سجل الأصول فاضي</td></tr>'}
-  <tr><td class="l"><b>الإجمالي</b></td><td><b>${T.n}</b></td><td><b>${money(T.val)}</b></td><td><b>${T.bad}</b></td><td><b>${T.out}</b></td><td><b>${T.old}</b></td><td><b>${money(T.cost)}</b></td></tr></table></div>
-  <h4>تفصيل الأصول</h4><div style="overflow-x:auto"><table><tr>${['الكود','الأصل','النوع','الموقع','العدد','الحالة','العمر / الافتراضي','قيمة الاستبدال','تكلفة الصيانة','القرار'].map(x=>`<th>${x}</th>`).join('')}</tr>
-  ${al.map(x=>`<tr><td><b>${esc(x.a.code)}</b></td><td class="l">${esc(x.a.name)}</td><td>${esc(x.a.type||'')}</td><td class="l">${esc(x.a.loc||'')}</td><td>${x.qty}</td><td class="${x.stc}">${esc(x.st)}</td><td class="${x.age!==null&&x.age>=x.life?'s-bad':''}">${x.age===null?'—':x.age}/${x.life}</td><td>${money(totVal(x.a))}</td><td>${x.cost?money(x.cost):''}</td><td>${esc(x.a.dec?x.a.dec+(x.a.decYear?' '+x.a.decYear:''):'')}</td></tr>`).join('')||'<tr><td colspan="10">سجل الأصول فاضي</td></tr>'}</table></div></div>`;
+  <div style="overflow-x:auto"><table><tr>${['النوع','عدد القطع','قيمة الاستبدال','معطل / يحتاج إصلاح','مُكهّن','تجاوز العمر الافتراضي','OPEX: تكلفة الصيانة المتراكمة','CAPEX: استبدال مخطط '+y].map(x=>`<th>${x}</th>`).join('')}</tr>
+  ${Object.entries(ty).sort((p,q)=>q[1].val-p[1].val).map(([k,o])=>`<tr><td class="l">${esc(k)}</td><td>${o.n}</td><td>${money(o.val)}</td><td>${o.bad}</td><td>${o.out}</td><td>${o.old}</td><td>${money(o.cost)}</td><td>${money(o.cx)}</td></tr>`).join('')||'<tr><td colspan="8">سجل الأصول فاضي</td></tr>'}
+  <tr><td class="l"><b>الإجمالي</b></td><td><b>${T.n}</b></td><td><b>${money(T.val)}</b></td><td><b>${T.bad}</b></td><td><b>${T.out}</b></td><td><b>${T.old}</b></td><td><b>${money(T.cost)}</b></td><td><b>${money(T.cx)}</b></td></tr></table></div>
+  <div class="msg">التصنيف تلقائي من السجل: <b>CAPEX</b> = الأصول المقرر استبدالها في ${y} (قرار «استبدال» لم يُنفَّذ بعد)، و<b>OPEX</b> = تكلفة الصيانة المتراكمة على الأصل (إخطارات وقطع غيار وJobSheet).</div>
+  <h4>تفصيل الأصول</h4><div style="overflow-x:auto"><table><tr>${['الكود','الأصل','النوع','الموقع','العدد','الحالة','العمر / الافتراضي','قيمة الاستبدال','OPEX (صيانة)','CAPEX '+y,'القرار'].map(x=>`<th>${x}</th>`).join('')}</tr>
+  ${al.map(x=>`<tr><td><b>${esc(x.a.code)}</b></td><td class="l">${esc(x.a.name)}</td><td>${esc(x.a.type||'')}</td><td class="l">${esc(x.a.loc||'')}</td><td>${x.qty}</td><td class="${x.stc}">${esc(x.st)}</td><td class="${x.age!==null&&x.age>=x.life?'s-bad':''}">${x.age===null?'—':x.age}/${x.life}</td><td>${money(totVal(x.a))}</td><td>${x.cost?money(x.cost):''}</td><td>${cx(x.a)?money(cx(x.a)):''}</td><td>${esc(x.a.dec?x.a.dec+(x.a.decYear?' '+x.a.decYear:''):'')}</td></tr>`).join('')||'<tr><td colspan="11">سجل الأصول فاضي</td></tr>'}</table></div></div>`;
   return h;
 }
 /* ---------- طباعة إخطار صيانة ---------- */
