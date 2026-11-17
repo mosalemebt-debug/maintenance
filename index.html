@@ -989,7 +989,7 @@ const secDef=t=>FURN_T.includes(t)||(GRP_TYPES.includes(t)&&!['حوض','قاعد
 const PFX_BASE_ENG=['تكييف','مولد','لوحة كهرباء','موتور مياه','مصعد','محطة غازات','غسالة / مجفف / مكواة','غسالة','مجفف','مكواة','سخان مياه','نظام نداء ممرضات','UPS','ثلاجة','شفاط','مخرج غاز طبي'];
 const CONDS=['جيد ويعمل','يعمل ويحتاج صيانة','تالف ويحتاج إصلاح','تالف ويحتاج إحلال أو استبدال','خارج الخدمة'];
 const secOf=t=>(settings.secMap||{})[t]||secDef(t);
-const secA=a=>a.sec||secA(a);
+const secA=a=>a.sec||secOf(a.type);
 let aSec='';
 function effCond(x){const a=x.a,c=a.cond||'جيد ويعمل';
   if(a.stat==='مُكهّن')return 'خارج الخدمة';
