@@ -202,6 +202,7 @@ const AREAS=[["الدور الثاني",["غرفة 201","غرفة 202","غرفة
 ["الدور الأرضي",["الريسيبشن","مكتب مدير المستشفى","الخزن","غرفة طوارئ","غرفة IT","معمل التحليل","معمل الذكورة","التعقيم","الصيدلية","المطبخ","المغسلة","حمام رجالي – الأرضي","حمام حريمي – الأرضي"]]];
 const ALL=AREAS.flatMap(([f,l])=>l.map(a=>({f,a})));
 const ST=['تم الإصلاح','غير قابل للإصلاح'];const LEGST=['تم جزئياً','إصلاح مؤقت','جاري التنفيذ','لم يتم الإصلاح'];const normN=o=>(LEGST.includes(o.status)?{...o,status:''}:o);
+const FST=['تم الطلب','تم اكتمال الاعتمادات','تمت الموافقة والتوريد','لم يتم الموافقة'];const FLATE=3;
 const PST=['لم يُطلب','جاري إعداد الطلب','تم الطلب','تم الشراء/التوريد','صرف من المخزن','تم التركيب'];
 const stCls=s=>s==='تم الإصلاح'?'s-ok':s==='غير قابل للإصلاح'?'s-bad':'s-warn';
 let db=null,notices=[],purchases=[],rounds={},tab='daily',assetLog=[],jobsheets=[],assets=[],stock=[],settings={},auditLog=[],rdate=ymd(new Date());
@@ -253,7 +254,7 @@ function goGroup(i){tab=lastTab[i]||NAVG[i][1][0][0];nav();render();window.scrol
 function go(t){tab=t;nav();render();window.scrollTo(0,0)}
 function toggleForm(){const on=document.body.classList.toggle('showf');if(on){const f=document.querySelector('.addf');if(f)f.scrollIntoView({behavior:'smooth',block:'start'})}}
 function goForm(t){go(t);document.body.classList.add('showf');const f=document.querySelector('.addf');if(f)f.scrollIntoView()}
-let nAll=false,nf={q:'',st:'',pr:'',late:false},af={q:'',t:'',st:'',lv:'',dc:''},pf2={q:'',st:''};
+let nAll=false,nf={q:'',st:'',pr:'',late:false},af={q:'',t:'',st:'',lv:'',dc:''},pf2={q:'',st:'',fin:''};
 function liveFilter(el,obj,key){obj[key]=el.type==='checkbox'?el.checked:el.value;const id=el.id,pos=el.selectionStart;window.forceR=true;render();window.forceR=false;const e=document.getElementById(id);if(e){e.focus();try{e.setSelectionRange(pos,pos)}catch(_){}}}
 const norm=v=>String(v??'').toLowerCase();
 function nFilterBar(){
@@ -265,8 +266,8 @@ function nfOK(n){
   const si=slaInfo(n);if(nf.pr&&si.pr!==nf.pr)return false;if(nf.late&&!si.over)return false;
   if(nf.q){const t=norm([n.ref,n.dept,n.details,n.action,n.rep,n.reporter,n.asset,n.notes].join(' '));if(!t.includes(norm(nf.q)))return false}return true;
 }
-function pFilterBar(){return `<div class="card"><div class="fbar"><label style="flex:2 1 200px">بحث (صنف، إخطار...)<input id="q_p" data-keep="1" value="${esc(pf2.q)}" oninput="liveFilter(this,pf2,'q')"></label><label>الحالة<select id="s_p" onchange="liveFilter(this,pf2,'st')"><option value="">الكل</option>${PST.map(x=>`<option ${pf2.st===x?'selected':''}>${x}</option>`).join('')}</select></label></div></div>`}
-const pfOK=p=>{if(pf2.st&&p.status!==pf2.st)return false;return !pf2.q||norm([p.item,p.ref,p.notes,p.code].join(' ')).includes(norm(pf2.q))};
+function pFilterBar(){return `<div class="card"><div class="fbar"><label style="flex:2 1 200px">بحث (صنف، إخطار...)<input id="q_p" data-keep="1" value="${esc(pf2.q)}" oninput="liveFilter(this,pf2,'q')"></label><label>الحالة<select id="s_p" onchange="liveFilter(this,pf2,'st')"><option value="">الكل</option>${PST.map(x=>`<option ${pf2.st===x?'selected':''}>${x}</option>`).join('')}</select></label><label>اعتماد المالية<select id="f_p" onchange="liveFilter(this,pf2,'fin')"><option value="">الكل</option><option value="__none" ${pf2.fin==='__none'?'selected':''}>لم يُرسل للمالية</option>${FST.map(x=>`<option ${pf2.fin===x?'selected':''}>${x}</option>`).join('')}</select></label></div></div>`}
+const pfOK=p=>{if(pf2.st&&p.status!==pf2.st)return false;if(pf2.fin&&(pf2.fin==='__none'?p.fin:p.fin!==pf2.fin))return false;return !pf2.q||norm([p.item,p.ref,p.notes,p.code].join(' ')).includes(norm(pf2.q))};
 function dupBanner(){
   const d=[...new Set(notices.map(n=>n.ref).filter((r,i,a)=>r&&a.indexOf(r)!==i))];
   return d.length?`<div class="card s-bad"><b>⚠ أرقام إخطارات مكررة: ${d.slice(0,6).join('، ')}</b> <span class="msg" style="color:inherit">ده بيحصل لو اتسجلت إخطارات على جهازين بدون إنترنت. راجعهم وعدّل أو احذف المكرر.</span> <button class="btn sm" onclick="nf.q='${d[0]}';go('notices')">عرض</button></div>`:'';
@@ -447,12 +448,44 @@ function vPurch(){
   <label>تاريخ الطلب<input type="date" id="p_rdate" value="${ymd(new Date())}"></label>
   <label>الصنف<input id="p_item"></label><label>الكمية<input id="p_qty" type="number" value="1" style="width:70px"></label>
   <button class="btn" onclick="savePurch()">حفظ</button><button class="btn alt" onclick="pdf('طلبات_الشراء')">تصدير PDF</button><button class="btn alt" onclick="wordExp('طلبات_الشراء')">تصدير Word</button><button class="btn" onclick="openPR()">طباعة طلب شراء PR (للأصناف المحددة)</button></div></div>
-  ${pFilterBar()}${prBar()}<div class="card wrap" id="rep"><h3>طلبات الشراء – مستشفى الابتسامة</h3><table><tr><th class="noprint"><input type="checkbox" title="تحديد الكل" onchange="selAllPR(this.checked)"></th>${['م','الإخطار','القسم','الصنف','الكمية','رقم PR','تاريخ الطلب','الحالة','تاريخ التوريد','تاريخ التركيب'].map(x=>`<th>${x}</th>`).join('')}<th class="noprint">إجراءات</th></tr>`;
+  ${finSummary()}${pFilterBar()}${prBar()}<div class="card wrap" id="rep"><h3>طلبات الشراء – مستشفى الابتسامة</h3><table><tr><th class="noprint"><input type="checkbox" title="تحديد الكل" onchange="selAllPR(this.checked)"></th>${['م','الإخطار','القسم','الصنف','الكمية','رقم PR','تاريخ الطلب','الحالة','اعتماد المالية','مرجع القرار','تاريخ التوريد','تاريخ التركيب'].map(x=>`<th>${x}</th>`).join('')}<th class="noprint">إجراءات</th></tr>`;
   purchases.slice().filter(pfOK).sort((a,b)=>(num(a.ref)||1e9)-(num(b.ref)||1e9)||a.k-b.k).forEach(p=>{const n=notices.find(x=>x.ref===p.ref)||{};
     const refSel=`<select onchange="db.collection('purchases').doc('${p.id}').update({ref:this.value})"><option value=""></option>${notices.slice().reverse().map(x=>`<option value="${x.ref}" ${x.ref===p.ref?'selected':''}>${x.ref}</option>`).join('')}</select>`;
     h+=`<tr><td class="noprint"><input type="checkbox" ${prSel.has(p.id)?'checked':''} onchange="togglePR('${p.id}',this.checked)"></td><td>${p.k}</td><td>${refSel}</td><td class="l">${esc(n.dept||p.notes)}</td><td class="l">${esc(p.item)}</td><td>${p.qty??''}</td><td>${esc(p.prNo||'')}</td><td>${fd(p.rdate)}</td>
-    <td class="${['تم الشراء/التوريد','صرف من المخزن','تم التركيب'].includes(p.status)?'s-ok':p.status==='لم يُطلب'?'s-bad':'s-warn'}"><select onchange="setPurchStatus('${p.id}',this.value)">${PST.map(s=>`<option ${s===p.status?'selected':''}>${s}</option>`).join('')}</select></td><td>${fd(p.ddate)}</td><td>${fd(p.idate)}</td><td class="noprint"><div style="display:flex;gap:4px;justify-content:center"><button class="btn sm alt" onclick="openEdit('purchases','${p.id}')">تعديل</button><button class="btn sm" style="background:#b42318" onclick="delItem('purchases','${p.id}')">حذف</button></div></td></tr>`});
+    <td class="${['تم الشراء/التوريد','صرف من المخزن','تم التركيب'].includes(p.status)?'s-ok':p.status==='لم يُطلب'?'s-bad':'s-warn'}"><select onchange="setPurchStatus('${p.id}',this.value)">${PST.map(s=>`<option ${s===p.status?'selected':''}>${s}</option>`).join('')}</select></td>${finCells(p)}<td>${fd(p.ddate)}</td><td>${fd(p.idate)}</td><td class="noprint"><div style="display:flex;gap:4px;justify-content:center"><button class="btn sm alt" onclick="openEdit('purchases','${p.id}')">تعديل</button><button class="btn sm" style="background:#b42318" onclick="delItem('purchases','${p.id}')">حذف</button></div></td></tr>`});
   return h+'</table></div>';
+}
+/* ---------- متابعة اعتماد المالية لطلب الشراء ---------- */
+const finDays=p=>{const d=iso(p.finDate);if(!d)return 0;return Math.floor((new Date(ymd(new Date())+'T12:00:00')-new Date(d+'T12:00:00'))/864e5)};
+const finLate=p=>p.fin==='تم الطلب'&&finDays(p)>=FLATE;
+const finCls=f=>f==='لم يتم الموافقة'?'s-bad':(f==='تم اكتمال الاعتمادات'||f==='تمت الموافقة والتوريد')?'s-ok':f?'s-warn':'';
+function finCells(p){
+  const late=finLate(p);
+  const sel=`<select onchange="setFin('${p.id}',this.value)"><option value="">— لم يُرسل —</option>${FST.map(s=>`<option ${s===p.fin?'selected':''}>${s}</option>`).join('')}</select>`;
+  const info=p.fin?`<div style="font-size:11px;margin-top:2px">${fd(p.finDate)}${late?` <b style="color:#b42318">⏰ متأخر ${finDays(p)} يوم</b>`:''}</div>`:'';
+  const ref=`<input value="${esc(p.finRef||'')}" placeholder="رقم/إيميل/ختم" style="min-width:110px;width:100%" onchange="saveFinRef('${p.id}',this.value)">`;
+  return `<td class="${late?'s-bad':finCls(p.fin)}">${sel}${info}</td><td class="l">${ref}${p.fin==='لم يتم الموافقة'&&p.finWhy?`<div style="font-size:11px;color:#b42318">السبب: ${esc(p.finWhy)}</div>`:''}</td>`;
+}
+function finSummary(){
+  const c=x=>purchases.filter(p=>p.fin===x).length,none=purchases.filter(p=>!p.fin&&p.status!=='تم التركيب').length,late=purchases.filter(finLate).length;
+  const b=(k,l,n,cls)=>`<button class="btn sm ${pf2.fin===k?'':'alt'}" style="${cls?'background:'+cls+';color:#fff;':''}" onclick="pf2.fin=pf2.fin==='${k}'?'':'${k}';render()">${l}: ${n}</button>`;
+  return `<div class="card"><div class="fbar qa"><b>متابعة اعتماد المالية:</b>${b('__none','لم يُرسل بعد',none)}${FST.map(x=>b(x,x,c(x),x==='لم يتم الموافقة'&&c(x)?'#b42318':'')).join('')}${late?`<b style="color:#b42318">⏰ ${late} طلب تعدّى ${FLATE} أيام بدون رد</b>`:''}</div>
+  <div class="msg hint">لما تسلّم PR للمالية اختار «تم الطلب»، وبعد رد المالية غيّرها حسب القرار واكتب المرجع (رقم الإيميل أو الختم أو الورقة). عند الرفض هيسألك عن السبب. «تمت الموافقة والتوريد» بتحوّل حالة الصنف تلقائياً إلى «تم الشراء/التوريد».</div></div>`;
+}
+async function setFin(id,v){
+  const p=purchases.find(x=>x.id===id);if(!p)return;
+  const today=ymd(new Date()),o={fin:v,finDate:v?today:'',finWhy:''};
+  if(v==='لم يتم الموافقة'){const w=prompt('سبب الرفض (مهم للمرجع):',p.finWhy||'');if(w===null){render();return}o.finWhy=w.trim()}
+  Object.assign(p,o);
+  await db.collection('purchases').doc(id).update(o);
+  const idx=PST.indexOf(p.status);
+  if(v==='تم الطلب'&&idx<2)await setPurchStatus(id,'تم الطلب');
+  if(v==='تمت الموافقة والتوريد'&&idx<3)await setPurchStatus(id,'تم الشراء/التوريد');
+  toast('تم تسجيل قرار المالية ✓');render();
+}
+async function saveFinRef(id,v){
+  const p=purchases.find(x=>x.id===id);if(!p)return;
+  p.finRef=v.trim();await db.collection('purchases').doc(id).update({finRef:p.finRef});toast('تم حفظ المرجع ✓');
 }
 async function addItemFor(ref,id){
   const item=$('#ni_'+id).value.trim();if(!item){alert('اكتب اسم الصنف');return}
@@ -468,6 +501,7 @@ async function setPurchStatus(id,v){
   const p=purchases.find(x=>x.id===id);if(!p)return;
   const today=ymd(new Date());
   const o={status:v,ddate:(v==='تم الشراء/التوريد'||v==='صرف من المخزن'||v==='تم التركيب')?(p.ddate||today):'',idate:v==='تم التركيب'?today:''};
+  if(v==='تم الطلب'&&!p.fin){o.fin='تم الطلب';o.finDate=today}
   Object.assign(p,o);await db.collection('purchases').doc(id).update(o);
   if(v!=='تم التركيب'||!p.ref)return;
   const group=purchases.filter(x=>x.ref===p.ref);
@@ -581,7 +615,7 @@ let EM=null;
 const NF=()=>[['date','التاريخ','date'],['time','الوقت','time'],['dept','القسم','text'],['reporter','مسؤول الإخطار','text'],['details','تفاصيل العطل','area'],['action','الإجراء المتخذ','area'],['status','الحالة (فارغ = مفتوح)','select',['',...ST]],['fixdate','تاريخ الإصلاح','date'],['rep','ممثل الصيانة','text'],['needbuy','يحتاج شراء؟','select',['','نعم','لا']],['prio','الأولوية (فارغ = تلقائي)','select',['',...PR]],['trade','التخصص','select',['',...TRD]],['asset','الأصل (الكود)','text'],['aff','العدد المتأثر (لو الأصل مجموعة)','number'],['cost','تكلفة الإصلاح / الخدمة (ج.م)','number'],['notes','ملاحظات','area'],['cls','التصنيف','text']];
 function openEdit(kind,id){
   const isN=kind==='notices',row=({notices,purchases,assets,stock,jobsheets}[kind]).find(x=>x.id===id);if(!row)return;
-  const F=isN?NF():kind==='assets'?AF():kind==='stock'?SF():kind==='jobsheets'?JF():[['ref','الإخطار','select',['',...notices.slice().sort((a,b)=>a.n-b.n).map(n=>n.ref)]],['rdate','تاريخ الطلب','date'],['item','الصنف','text'],['code','كود الصنف','text'],['qty','الكمية','number'],['price','سعر الشراء الفعلي للوحدة (ج.م) – يُسجل بعد الشراء','number'],['spec','مواصفات إضافية','area'],['status','الحالة','select',PST],['ddate','تاريخ التوريد','date'],['idate','تاريخ التركيب','date'],['notes','ملاحظات','area']];
+  const F=isN?NF():kind==='assets'?AF():kind==='stock'?SF():kind==='jobsheets'?JF():[['ref','الإخطار','select',['',...notices.slice().sort((a,b)=>a.n-b.n).map(n=>n.ref)]],['rdate','تاريخ الطلب','date'],['item','الصنف','text'],['code','كود الصنف','text'],['qty','الكمية','number'],['price','سعر الشراء الفعلي للوحدة (ج.م) – يُسجل بعد الشراء','number'],['spec','مواصفات إضافية','area'],['status','الحالة','select',PST],['fin','اعتماد المالية','select',['',...FST]],['finDate','تاريخ قرار المالية','date'],['finRef','مرجع القرار (رقم/إيميل/ختم)','text'],['finWhy','سبب الرفض','text'],['ddate','تاريخ التوريد','date'],['idate','تاريخ التركيب','date'],['notes','ملاحظات','area']];
   EM={kind,id,F};closeEdit();
   const d=document.createElement('div');d.id='md';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:60;overflow:auto;padding:12px';
   const fld=([k,l,t,o])=>{const v=t==='date'?iso(row[k]):row[k];
@@ -704,7 +738,7 @@ function backupJSON(){const d=bkData();dl('نسخة_احتياطية_'+ymd(new D
 function backupXlsx(){
   const wb=XLSX.utils.book_new(),add=(n,rows)=>XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows.length?rows:[{}]),n);
   add('الصيانة العلاجية',notices.map(n=>({م:n.n,المرجع:n.ref,التاريخ:n.date,الوقت:n.time,القسم:n.dept,المبلّغ:n.reporter,العطل:n.details,الإجراء:n.action,الحالة:n.status,'تاريخ الإصلاح':n.fixdate,'ممثل الصيانة':n.rep,'يحتاج شراء':n.needbuy,الأولوية:n.prio,ملاحظات:n.notes})));
-  add('طلبات الشراء',purchases.map(p=>({م:p.k,الإخطار:p.ref,الصنف:p.item,الكمية:p.qty,الحالة:p.status,'تاريخ الطلب':p.rdate,'تاريخ التوريد':p.ddate,'تاريخ التركيب':p.idate,ملاحظات:p.notes})));
+  add('طلبات الشراء',purchases.map(p=>({م:p.k,الإخطار:p.ref,الصنف:p.item,الكمية:p.qty,الحالة:p.status,'تاريخ الطلب':p.rdate,'اعتماد المالية':p.fin,'تاريخ قرار المالية':p.finDate,'مرجع القرار':p.finRef,'سبب الرفض':p.finWhy,'تاريخ التوريد':p.ddate,'تاريخ التركيب':p.idate,ملاحظات:p.notes})));
   const rr=[];Object.entries(rounds).forEach(([d,r])=>Object.entries(r.marks||{}).forEach(([k,v])=>{const [i,j]=k.split('_');rr.push({التاريخ:d,المكان:ALL[i].a,التخصص:CATS[j],النتيجة:v})}));add('المرور اليومي',rr);
   add('JobSheet',jobsheets.map(j=>({الرقم:j.no,الشركة:j.contractor,التاريخ:j.date,الإخطارات:j.refs,الموقع:j.dept,'نطاق العمل':j.scope,الحالة:j.status,'التكلفة النهائية':j.cost})));
   add('الأصول',assets.map(a=>({الكود:a.code,الاسم:a.name,النوع:a.type,الموقع:a.loc,'قيمة الاستبدال':a.value,الطريقة:a.mode||'فردي',العدد:a.qty||''})));
