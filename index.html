@@ -247,7 +247,7 @@ async function init(){
   db.collection('jobsheets').onSnapshot(s=>{jobsheets=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>num(a.no)-num(b.no));render()});
   db.collection('assetLog').onSnapshot(s=>{assetLog=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(b.at).localeCompare(String(a.at)));render()});
   db.collection('assets').onSnapshot(s=>{assets=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.code).localeCompare(String(b.code),'en',{numeric:true}));render()});
-  db.collection('pmTasks').onSnapshot(s=>{pmTasks=s.docs.map(d=>({id:d.id,...d.data()}));render()});db.collection('pmLog').onSnapshot(s=>{pmLog=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(b.at).localeCompare(String(a.at)));render()});db.collection('stock').onSnapshot(s=>{stock=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ar'));render()});
+  db.collection('pmPlan').onSnapshot(s=>{pmTasks=s.docs.map(d=>({id:d.id,...d.data()}));render()});db.collection('pmRuns').onSnapshot(s=>{pmLog=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(b.at).localeCompare(String(a.at)));render()});db.collection('stock').onSnapshot(s=>{stock=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ar'));render()});
 }
 const NAVG=[['الرئيسية',[['daily','المتابعة اليومية']]],['التشغيل',[['round','المرور اليومي'],['notices','الصيانة العلاجية'],['jobsheets','JobSheet'],['pm','الصيانة الوقائية']]],['الأصول والمشتريات',[['purch','طلبات الشراء'],['adash','لوحة الأصول'],['assets','سجل الأصول'],['stock','المخزن']]],['التقارير',[['reports','التقارير']]],['النظام',[['audit','سجل التعديلات'],['backup','نسخ احتياطي']]]];
 const lastTab={};
@@ -773,7 +773,7 @@ async function restoreJSON(f){
   if(d.app!=='maintenance'||!confirm('استعادة البيانات من النسخة؟ سيتم تحديث السجلات المطابقة.'))return;
   const m=document.getElementById('bkmsg');let c=0;
   const put=async(col,arr)=>{for(const x of arr){const {id,...rest}=x;await db.collection(col).doc(id).set(rest);c++;if(m&&c%20===0)m.textContent='جاري الاستعادة... '+c}};
-  await put('notices',d.notices||[]);await put('purchases',d.purchases||[]);await put('assets',d.assets||[]);await put('assetLog',d.assetLog||[]);await put('jobsheets',d.jobsheets||[]);await put('stock',d.stock||[]);await put('pmTasks',d.pmTasks||[]);await put('pmLog',d.pmLog||[]);
+  await put('notices',d.notices||[]);await put('purchases',d.purchases||[]);await put('assets',d.assets||[]);await put('assetLog',d.assetLog||[]);await put('jobsheets',d.jobsheets||[]);await put('stock',d.stock||[]);await put('pmPlan',d.pmTasks||[]);await put('pmRuns',d.pmLog||[]);
   for(const [id,r] of Object.entries(d.rounds||{})){await db.collection('rounds').doc(id).set(r);c++}
   if(m)m.textContent='تمت استعادة '+c+' سجل.';toast('تمت الاستعادة ✓');
 }
@@ -1211,9 +1211,9 @@ function pmDo(id){const t=pmTasks.find(x=>x.id===id);if(!t)return;
 async function pmSave(id){const t=pmTasks.find(x=>x.id===id);if(!t)return;const date=$('#pmd_date').value||ymd(new Date()),bad=$('#pmd_res').selectedIndex===1,note=$('#pmd_note').value.trim();
   if(bad&&!note){alert('اكتب وصف الملاحظة / العطل');return}
   const lid='pl'+Date.now()+'-'+DEV,o={tid:t.id,equip:t.equip,task:t.task,date,by:$('#pmd_by').value.trim(),codes:t.acodes||'',res:bad?'عطل':'سليم',read:$('#pmd_read').value.trim(),note,at:new Date().toISOString(),user:window.USER_EMAIL||''};
-  pmLog.unshift({id:lid,...o});await db.collection('pmLog').doc(lid).set(o);
+  pmLog.unshift({id:lid,...o});await db.collection('pmRuns').doc(lid).set(o);
   await Promise.all(pmCodes(t).map(c=>assetLogAdd(c,'صيانة وقائية',t.task+' – '+o.res+(o.read?' · '+o.read:'')+(note?' – '+note:'')+(o.by?' · '+o.by:''))));
-  if(!t.last||date>t.last){t.last=date;await db.collection('pmTasks').doc(id).update({last:date})}
+  if(!t.last||date>t.last){t.last=date;await db.collection('pmPlan').doc(id).update({last:date})}
   if(bad)await addNotice({date,dept:t.loc||t.equip,reporter:'الصيانة الوقائية',details:t.equip+' – '+t.task+': '+note,src:'وقائية',by:o.by});
   closeEdit();toast('اتسجل التنفيذ ✓'+(bad?' وفتح إخطار علاجي':''));render()}
 function pmEdit(id){const t=pmTasks.find(x=>x.id===id)||{equip:'',loc:'',imp:'مهمة',task:'',freq:30,resp:'',std:'',safe:'',start:ymd(new Date()),active:true};
@@ -1223,9 +1223,9 @@ async function pmSaveEdit(id){const g=k=>$('#pme_'+k).value.trim(),o={equip:g('e
   if(!o.equip||!o.task){alert('اكتب المعدة والمهمة');return}
   const nf0=pmCodes(o).filter(c=>!assetByCode(c));if(nf0.length&&!confirm('أكواد غير موجودة في سجل الأصول: '+nf0.join('، ')+'. تكمل؟'))return;
   const old=pmTasks.find(x=>x.id===id);if(old)o.last=old.last||'';else o.last='';
-  await db.collection('pmTasks').doc(id||'pm'+Date.now()+'-'+DEV).set(o);closeEdit();toast('تم الحفظ ✓');render()}
-async function pmDel(id){if(!confirm('حذف المهمة؟ سجل تنفيذها السابق يفضل محفوظ.'))return;await db.collection('pmTasks').doc(id).delete();closeEdit();render()}
-async function pmImport(){if(!confirm('استيراد '+PM_SEED.length+' مهمة من خطة الصيانة الوقائية؟'))return;let c=0;for(const s of PM_SEED){const {id,...r}=s;if(pmTasks.some(x=>x.id===id))continue;await db.collection('pmTasks').doc(id).set({...r,last:'',active:true});c++}toast('تم استيراد '+c+' مهمة ✓')}
+  await db.collection('pmPlan').doc(id||'pm'+Date.now()+'-'+DEV).set(o);closeEdit();toast('تم الحفظ ✓');render()}
+async function pmDel(id){if(!confirm('حذف المهمة؟ سجل تنفيذها السابق يفضل محفوظ.'))return;await db.collection('pmPlan').doc(id).delete();closeEdit();render()}
+async function pmImport(){if(!confirm('استيراد '+PM_SEED.length+' مهمة من خطة الصيانة الوقائية؟'))return;let c=0;for(const s of PM_SEED){const {id,...r}=s;if(pmTasks.some(x=>x.id===id))continue;await db.collection('pmPlan').doc(id).set({...r,last:'',active:true});c++}toast('تم استيراد '+c+' مهمة ✓')}
 function pmExport(){const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(pmTasks.map(t=>({المعدة:t.equip,الموقع:t.loc,الأهمية:t.imp,المهمة:t.task,التكرار:pmFq(t.freq),المسؤول:t.resp,المعيار:t.std,السلامة:t.safe,الأصول:t.acodes||'','آخر تنفيذ':t.last||'','الموعد القادم':pmDue(t),الحالة:pmSt(t)}))),'الصيانة الوقائية');
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(pmLog.length?pmLog.map(x=>({التاريخ:x.date,المعدة:x.equip,المهمة:x.task,المنفّذ:x.by,النتيجة:x.res,القراءات:x.read,ملاحظات:x.note})):[{}]),'سجل التنفيذ');
@@ -1247,7 +1247,7 @@ async function pmAutoLink(){const A=assets.filter(a=>a.stat!=='مُكهّن'),pl
   if(!pl.length){alert('مفيش أصول مطابقة لمهام غير مربوطة. اربط يدوياً من «تعديل» في كل مهمة.');return}
   const by={};pl.forEach(([t,cs])=>by[t.equip]=cs);
   if(!confirm('اقتراح الربط:\n'+Object.entries(by).map(([e,cs])=>e+' ← '+cs.length+' أصل ('+cs.slice(0,3).join('، ')+(cs.length>3?'...':'')+')').join('\n')+'\n\nتأكيد؟ (تقدر تعدّل كل مهمة بعدها)'))return;
-  for(const [t,cs] of pl)await db.collection('pmTasks').doc(t.id).update({acodes:cs.join(', ')});toast('تم ربط '+pl.length+' مهمة ✓')}
+  for(const [t,cs] of pl)await db.collection('pmPlan').doc(t.id).update({acodes:cs.join(', ')});toast('تم ربط '+pl.length+' مهمة ✓')}
 function aFilterBar(){
   const sel=(k,l,opts)=>`<label>${l}<select onchange="liveFilter(this,af,'${k}')"><option value="">الكل</option>${opts.map(o=>`<option ${af[k]===o?'selected':''}>${o}</option>`).join('')}</select></label>`;
   return `<div class="card"><div class="fbar"><label style="flex:2 1 200px">بحث (كود، اسم، موقع، ماركة)<input id="q_a" data-keep="1" value="${esc(af.q)}" oninput="liveFilter(this,af,'q')"></label>${sel('t','النوع',ATY)}${sel('m','الطريقة',['فردي','مجموعة'])}${sel('st','الحالة',['شغال','معطل','مُكهّن'])}${sel('dc','القرار',[...DECS,'بدون قرار'])}${sel('lc','الدور',[...new Set(locRows().map(r=>r.f))])}<label>أعطال من<input type="date" value="${af.d1||''}" onchange="liveFilter(this,af,'d1')"></label><label>إلى<input type="date" value="${af.d2||''}" onchange="liveFilter(this,af,'d2')"></label><button class="btn sm alt" onclick="af={q:'',t:'',m:'',st:'',dc:'',lc:'',d1:'',d2:''};render()">مسح الفلاتر</button></div></div>`;
