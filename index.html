@@ -321,9 +321,9 @@ async function addNotice(o){
 }
 /* ---------- المرور اليومي (افتراضي: الكل سليم ✓) ---------- */
 let draft=null;
-function getDraft(){if(!draft||draft.date!==rdate){const r=rounds[rdate];draft={date:rdate,dirty:false,saved:!!r,marks:{...((r&&r.marks)||{})},notes:{...((r&&r.notes)||{})},sup:(r&&r.sup)||localStorage.getItem('lastSup')||''}}return draft}
+function getDraft(){if(!draft||draft.date!==rdate){const r=rounds[rdate];draft={date:rdate,dirty:false,saved:!!r,marks:{...((r&&r.marks)||{})},notes:{...((r&&r.notes)||{})},sup:(r&&r.sup)||''}}return draft}
 const supList=()=>[...new Set(Object.values(rounds).map(r=>r.sup).filter(Boolean))];
-function dSup(v){const d=getDraft();d.sup=v.trim();d.dirty=true;if(d.sup)localStorage.setItem('lastSup',d.sup);render()}
+function dSup(v){const d=getDraft();d.sup=v.trim();d.dirty=true;render()}
 const fullMarks=d=>{const m={};ALL.forEach((x,i)=>CATS.forEach((c,j)=>m[i+'_'+j]=d.marks[i+'_'+j]||'✓'));return m};
 function roundTable(d,withOpen){
   const bad=Object.values(fullMarks(d)).filter(x=>x==='✗').length;
@@ -385,7 +385,6 @@ async function applyRound(date,marks,notes,by,sup){
 async function saveRound(){
   const d=getDraft(),marks=fullMarks(d);
   if(!(d.sup||'').trim()){alert('اكتب اسم المشرف المنفّذ للمرور قبل الحفظ');const e=document.getElementById('rsup');if(e)e.focus();return}
-  localStorage.setItem('lastSup',d.sup.trim());
   if(window.ROLE==='entry'){await send({type:'round',data:{date:rdate,marks,notes:d.notes,sup:d.sup.trim()}});draft=null;render();return}
   await applyRound(rdate,marks,d.notes,'',d.sup);draft=null;toast('تم حفظ المرور اليومي ✓');render();
 }
