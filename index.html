@@ -321,14 +321,16 @@ async function addNotice(o){
 }
 /* ---------- المرور اليومي (افتراضي: الكل سليم ✓) ---------- */
 let draft=null;
-function getDraft(){if(!draft||draft.date!==rdate){const r=rounds[rdate];draft={date:rdate,dirty:false,saved:!!r,marks:{...((r&&r.marks)||{})},notes:{...((r&&r.notes)||{})}}}return draft}
+function getDraft(){if(!draft||draft.date!==rdate){const r=rounds[rdate];draft={date:rdate,dirty:false,saved:!!r,marks:{...((r&&r.marks)||{})},notes:{...((r&&r.notes)||{})},sup:(r&&r.sup)||localStorage.getItem('lastSup')||''}}return draft}
+const supList=()=>[...new Set(Object.values(rounds).map(r=>r.sup).filter(Boolean))];
+function dSup(v){const d=getDraft();d.sup=v.trim();d.dirty=true;if(d.sup)localStorage.setItem('lastSup',d.sup);render()}
 const fullMarks=d=>{const m={};ALL.forEach((x,i)=>CATS.forEach((c,j)=>m[i+'_'+j]=d.marks[i+'_'+j]||'✓'));return m};
 function roundTable(d,withOpen){
   const bad=Object.values(fullMarks(d)).filter(x=>x==='✗').length;
   const stTxt=d.dirty?'⚠ تعديلات غير محفوظة':(d.saved&&withOpen)?'✔ محفوظ':'لم يُحفظ بعد – الكل ✓ افتراضياً';
   const stCls2=d.dirty?'s-warn':(d.saved&&withOpen)?'s-ok':'';
   let h=`<div class="card"><div class="row"><button class="btn alt" onclick="shiftDay(-1)">◀ اليوم السابق</button><button class="btn alt" onclick="goDay(ymd(new Date()))">اليوم</button><button class="btn alt" onclick="shiftDay(1)">اليوم التالي ▶</button>
-  <label>التاريخ (${DAYS[new Date(rdate+'T12:00:00').getDay()]})<input type="date" value="${rdate}" onchange="goDay(this.value)"></label></div>
+  <label>التاريخ (${DAYS[new Date(rdate+'T12:00:00').getDay()]})<input type="date" value="${rdate}" onchange="goDay(this.value)"></label><label>المشرف المنفّذ للمرور<input id="rsup" list="suplist" data-keep="1" value="${esc(d.sup)}" onchange="dSup(this.value)" placeholder="اسم المشرف"></label><datalist id="suplist">${supList().map(s=>`<option value="${esc(s)}">`).join('')}</datalist></div>
   <div class="row" style="margin-top:8px"><span class="${stCls2}" style="padding:6px 10px;border-radius:6px"><b>${stTxt}</b></span><span><b>الأعطال المحددة: ${bad}</b></span><button class="btn" onclick="saveRound()">حفظ المرور اليومي</button></div>
   <div class="row" style="margin-top:8px"><label>تاريخ النسخ<input type="date" id="cpd" value="${cpVal()}" onchange="cpDate=this.value"></label><button class="btn alt" onclick="copyRoundTo()">📋 انسخ اليوم ده إلى التاريخ</button><button class="btn alt" onclick="copyRoundFrom()">📥 انسخ من التاريخ إلى اليوم ده</button></div>
   <div class="msg hint">كل الخانات سليمة ✓ افتراضياً؛ غيّر الخانات اللي فيها مشكلة فقط (✗) واكتب الملاحظة، ثم اضغط حفظ مرة واحدة. الأعطال بتتسجل في الصيانة العلاجية عند الحفظ.</div></div>
@@ -352,7 +354,7 @@ function copyRoundTo(){
   if(!t||t===rdate){toast('اختار تاريخ مختلف عن اليوم الحالي');return}
   if(rounds[t]&&!confirm('يوم '+t+' فيه مرور محفوظ. هيتستبدل بنسخة اليوم الحالي عند الحفظ. تكمل؟'))return;
   const s=getDraft();
-  draft={date:t,dirty:true,saved:!!rounds[t],marks:{...fullMarks(s)},notes:{...s.notes}};
+  draft={date:t,dirty:true,saved:!!rounds[t],marks:{...fullMarks(s)},notes:{...s.notes},sup:''};
   rdate=t;cpDate='';toast('اتنسخ إلى '+t+' – راجع واضغط حفظ');render();
 }
 function copyRoundFrom(){
@@ -362,7 +364,7 @@ function copyRoundFrom(){
   if(!r){toast('مفيش مرور محفوظ في '+t);return}
   const d=getDraft();
   if((d.dirty||d.saved)&&!confirm('هتستبدل بيانات اليوم الحالي بمرور '+t+'. تكمل؟'))return;
-  draft={date:rdate,dirty:true,saved:!!rounds[rdate],marks:{...(r.marks||{})},notes:{...(r.notes||{})}};
+  draft={date:rdate,dirty:true,saved:!!rounds[rdate],marks:{...(r.marks||{})},notes:{...(r.notes||{})},sup:d.sup};
   toast('اتنسخ من '+t+' – راجع واضغط حفظ');render();
 }
 function vRound(){return roundTable(getDraft(),true)}
@@ -370,20 +372,22 @@ function vERound(){return roundTable(getDraft(),false)}
 function occupy(i){const d=getDraft();const all=CATS.every((c,j)=>d.marks[i+'_'+j]==='مشغولة');CATS.forEach((c,j)=>d.marks[i+'_'+j]=all?'✓':'مشغولة');d.dirty=true;render()}
 function dSet(i,j,v){const d=getDraft();d.marks[i+'_'+j]=v;d.dirty=true;render()}
 function dNote(i,v){const d=getDraft();d.notes[i]=v;d.dirty=true;render()}
-async function applyRound(date,marks,notes,by){
-  await db.collection('rounds').doc(date).set({marks,notes});
-  rounds[date]={marks,notes};
+async function applyRound(date,marks,notes,by,sup){
+  sup=(sup||'').trim();await db.collection('rounds').doc(date).set({marks,notes,sup});
+  rounds[date]={marks,notes,sup};
   for(let i=0;i<ALL.length;i++)for(let j=0;j<CATS.length;j++){
     if(marks[i+'_'+j]!=='✗')continue;
     const a=ALL[i].a,c=CATS[j];
     if(notices.find(n=>n.src==='مرور'&&n.dept===a&&n.cat===c&&(n.status!=='تم الإصلاح'||n.date===date)))continue;
-    await addNotice({date,dept:a,reporter:'المرور اليومي',details:(notes[i]||'عطل')+' – '+c,src:'مرور',cat:c,by:by||''});
+    await addNotice({date,dept:a,reporter:'المرور اليومي'+(sup?' – '+sup:''),details:(notes[i]||'عطل')+' – '+c,src:'مرور',cat:c,by:by||''});
   }
 }
 async function saveRound(){
   const d=getDraft(),marks=fullMarks(d);
-  if(window.ROLE==='entry'){await send({type:'round',data:{date:rdate,marks,notes:d.notes}});draft=null;render();return}
-  await applyRound(rdate,marks,d.notes,'');draft=null;toast('تم حفظ المرور اليومي ✓');render();
+  if(!(d.sup||'').trim()){alert('اكتب اسم المشرف المنفّذ للمرور قبل الحفظ');const e=document.getElementById('rsup');if(e)e.focus();return}
+  localStorage.setItem('lastSup',d.sup.trim());
+  if(window.ROLE==='entry'){await send({type:'round',data:{date:rdate,marks,notes:d.notes,sup:d.sup.trim()}});draft=null;render();return}
+  await applyRound(rdate,marks,d.notes,'',d.sup);draft=null;toast('تم حفظ المرور اليومي ✓');render();
 }
 /* ---------- الصيانة العلاجية ---------- */
 const FLD=['date','time','dept','reporter','details','action','status','fixdate','rep','needbuy','notes','cls'];
@@ -729,7 +733,7 @@ function vDaily(){
   <div class="grid" style="margin:8px 0">${dk('open','',open.length,'إخطارات لم يتم إصلاحها')}${dk('new','',nNew,'إخطارات جديدة اليوم')}${dk('closed','',nCl,'تم إصلاحها اليوم')}${dk('notPlaced','',notPlaced,'أصناف لم يتم عمل طلب لها')}${dk('ordered','',ordered,'تم طلبها ولم تُورَّد')}${dk('delivered','',delivered,'تم توريدها ولم تُركَّب')}${dk('overdue',overdue?'s-bad':'',overdue,'متأخرة عن مهلتها')}${dk('crit',critOpen?'s-bad':'',critOpen,'أعطال حرجة مفتوحة')}${dk('aBroken',aBroken?'s-warn':'',aBroken,'أصول معطلة الآن')}</div>
   <div class="msg noprint">اضغط على أي مربع لعرض بياناته، واضغط عليه تاني للرجوع للتقرير الكامل.</div>
   <div style="margin:6px 0"><b>الإخطارات المفتوحة حسب الحالة:</b> ${chips}</div>
-  <div style="margin:6px 0"><b>مرور اليوم:</b> ${r?(badList.length?'محفوظ – أعطال: '+esc(badList.join('، ')):'محفوظ – لا توجد أعطال'):'لم يُحفظ بعد'}</div>
+  <div style="margin:6px 0"><b>مرور اليوم:</b> ${r?(badList.length?'محفوظ – أعطال: '+esc(badList.join('، ')):'محفوظ – لا توجد أعطال')+(r.sup?' · المشرف: '+esc(r.sup):''):'لم يُحفظ بعد'}</div>
   ${body}</div>`;
 }
 /* ---------- الأولوية والمهلة ---------- */
@@ -761,7 +765,7 @@ function backupXlsx(){
   const wb=XLSX.utils.book_new(),add=(n,rows)=>XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows.length?rows:[{}]),n);
   add('الصيانة العلاجية',notices.map(n=>({م:n.n,المرجع:n.ref,التاريخ:n.date,الوقت:n.time,القسم:n.dept,المكان:n.loc,المبلّغ:n.reporter,العطل:n.details,الإجراء:n.action,الحالة:n.status,'تاريخ الإصلاح':n.fixdate,'ممثل الصيانة':n.rep,'يحتاج شراء':n.needbuy,الأولوية:n.prio,ملاحظات:n.notes})));
   add('طلبات الشراء',purchases.map(p=>({م:p.k,الإخطار:p.ref,الصنف:p.item,الكمية:p.qty,الحالة:p.status,'تاريخ الطلب':p.rdate,'اعتماد المالية':p.fin,'تاريخ قرار المالية':p.finDate,'مرجع القرار':p.finRef,'سبب الرفض':p.finWhy,'تاريخ التوريد':p.ddate,'تاريخ التركيب':p.idate,ملاحظات:p.notes})));
-  const rr=[];Object.entries(rounds).forEach(([d,r])=>Object.entries(r.marks||{}).forEach(([k,v])=>{const [i,j]=k.split('_');rr.push({التاريخ:d,المكان:ALL[i].a,التخصص:CATS[j],النتيجة:v})}));add('المرور اليومي',rr);
+  const rr=[];Object.entries(rounds).forEach(([d,r])=>Object.entries(r.marks||{}).forEach(([k,v])=>{const [i,j]=k.split('_');rr.push({التاريخ:d,المشرف:r.sup||'',المكان:ALL[i].a,التخصص:CATS[j],النتيجة:v})}));add('المرور اليومي',rr);
   add('JobSheet',jobsheets.map(j=>({الرقم:j.no,الشركة:j.contractor,التاريخ:j.date,الإخطارات:j.refs,الموقع:j.dept,'نطاق العمل':j.scope,الحالة:j.status,'التكلفة النهائية':j.cost})));
   add('الأصول',assets.map(a=>({الكود:a.code,الاسم:a.name,النوع:a.type,الموقع:a.loc,'قيمة الاستبدال':a.value,الطريقة:a.mode||'فردي',العدد:a.qty||''})));
   add('المخزن',stock.map(x=>({الصنف:x.name,الرصيد:x.qty,'الحد الأدنى':x.min,الوحدة:x.unit,'سعر الوحدة':x.cost})));
@@ -896,7 +900,7 @@ async function procInbox(list){
     try{
       if(o.type==='notice')await addNotice({...d,reporter:d.reporter||'',by:o.by});
       else if(o.type==='purchase'){const k=nextK();await db.collection('purchases').doc(uid('p',k)).set({k,ref:'',rdate:d.rdate,item:d.item,qty:d.qty,status:'جاري إعداد الطلب',ddate:'',notes:d.related||''})}
-      else if(o.type==='round')await applyRound(d.date,d.marks,d.notes||{},o.by);
+      else if(o.type==='round')await applyRound(d.date,d.marks,d.notes||{},o.by,d.sup);
       else if(o.type==='mark'){
         const r=rounds[d.date]||{marks:{},notes:{}};r.marks=r.marks||{};r.notes=r.notes||{};r.marks[d.i+'_'+d.j]=d.v;if(d.note)r.notes[d.i]=d.note;rounds[d.date]=r;
         await db.collection('rounds').doc(d.date).set(r);
