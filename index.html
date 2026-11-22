@@ -536,7 +536,13 @@ async function savePurch(){
 }
 /* ---------- التقارير الأسبوعية والشهرية ---------- */
 const REP_START='2026-11-07'; // السبت: بداية العمل بالتقارير
-let repType='w',repSel='';
+let repType='w',repSel='',repFrom='',repTo='';
+const repLbl=()=>repType==='w'?'أسبوعي':repType==='m'?'شهري':'فترة';
+function repPreset(k){const t=new Date(),f=new Date(t);let a,b=ymd(t);
+  if(k==='7'){f.setDate(f.getDate()-6);a=ymd(f)}else if(k==='30'){f.setDate(f.getDate()-29);a=ymd(f)}
+  else if(k==='mc'){a=ymd(new Date(t.getFullYear(),t.getMonth(),1))}
+  else{a=ymd(new Date(t.getFullYear(),t.getMonth()-1,1));b=ymd(new Date(t.getFullYear(),t.getMonth(),0))}
+  repFrom=a;repTo=b;render()}
 const lastThu=(y,m)=>{const d=new Date(y,m+1,0);while(d.getDay()!==4)d.setDate(d.getDate()-1);return ymd(d)};
 const dFmt=v=>{const [y,m,d]=v.split('-');return d+'/'+m+'/'+y};
 function weekOptions(){const o=[],t=ymd(new Date());let d=new Date(REP_START+'T12:00:00');
@@ -563,7 +569,7 @@ function repSave(key){try{localStorage.setItem(key,document.getElementById('narx
 function repReset(key){if(confirm('سيتم مسح تعديلاتك على هذا التقرير وإعادة كتابته من بيانات البرنامج. متابعة؟')){try{localStorage.removeItem(key)}catch(e){}render()}}
 function repStory(from,to,type,d){
   const inR=v=>{const x=iso(v);return typeof x==='string'&&x>=from&&x<=to};
-  const per=type==='w'?'الأسبوع':'الشهر',today=ymd(new Date());
+  const per=type==='w'?'الأسبوع':type==='m'?'الشهر':'الفترة',today=ymd(new Date());
   const li=a=>a.length?'<ul>'+a.map(x=>'<li>'+x+'</li>').join('')+'</ul>':'<p>لا يوجد خلال '+per+'.</p>';
   const fx=n=>{const f=iso(n.fixdate);return typeof f==='string'&&f?dFmt(f):''};
   const line=n=>'<b>'+esc(n.ref||'')+'</b> – '+esc(n.dept||'')+': '+esc(n.details||'');
@@ -601,14 +607,16 @@ function repStory(from,to,type,d){
     +'<div class="nar" id="narx" contenteditable="true" oninput="repSave(\''+key+'\')">'+(saved||gen)+'</div>';
 }
 function vReports(){
-  const opts=repType==='w'?weekOptions():monthOptions();
-  let h=`<div class="card"><div class="row"><button class="btn ${repType==='w'?'':'alt'}" onclick="repType='w';repSel='';render()">تقرير أسبوعي (السبت – الجمعة)</button><button class="btn ${repType==='m'?'':'alt'}" onclick="repType='m';repSel='';render()">تقرير شهري (حتى آخر خميس)</button></div>`;
-  if(!opts.length)return h+`<div class="msg">التقارير تبدأ من السبت ${dFmt(REP_START)}، وستظهر هنا تلقائياً.</div></div>`;
-  const cur=opts.find(x=>x.v===repSel)||opts[0];
-  h+=`<div class="row" style="margin-top:8px"><label>الفترة<select onchange="repSel=this.value;render()">${opts.map(o=>`<option value="${o.v}" ${o.v===cur.v?'selected':''}>${dFmt(o.from)} → ${dFmt(o.to)}${o.to>ymd(new Date())?' (جارية)':''}</option>`).join('')}</select></label><button class="btn" onclick="pdf('تقرير_'+(repType==='w'?'أسبوعي':'شهري')+'_'+'${cur.from}')">تصدير PDF</button><button class="btn alt" onclick="wordExp('تقرير_'+(repType==='w'?'أسبوعي':'شهري')+'_'+'${cur.from}')">تصدير Word</button></div></div>`;
+  const custom=repType==='c',opts=custom?[]:(repType==='w'?weekOptions():monthOptions());
+  let h=`<div class="card"><div class="row"><button class="btn ${repType==='w'?'':'alt'}" onclick="repType='w';repSel='';render()">تقرير أسبوعي (السبت – الجمعة)</button><button class="btn ${repType==='m'?'':'alt'}" onclick="repType='m';repSel='';render()">تقرير شهري (حتى آخر خميس)</button><button class="btn ${repType==='c'?'':'alt'}" onclick="repType='c';render()">فترة مخصصة (من – إلى)</button></div>`;
+  if(!custom&&!opts.length)return h+`<div class="msg">التقارير تبدأ من السبت ${dFmt(REP_START)}، وستظهر هنا تلقائياً.</div></div>`;
+  let cur;
+  if(custom){const t=ymd(new Date());let f=repFrom||(t.slice(0,8)+'01'),e=repTo||t;if(f>e){const x=f;f=e;e=x;repFrom=f;repTo=e}cur={v:'c',from:f,to:e}}
+  else cur=opts.find(x=>x.v===repSel)||opts[0];
+  h+=`<div class="row" style="margin-top:8px">${custom?`<label>من تاريخ<input type="date" value="${cur.from}" onchange="repFrom=this.value;render()"></label><label>إلى تاريخ<input type="date" value="${cur.to}" onchange="repTo=this.value;render()"></label><button class="btn sm alt" onclick="repPreset('7')">آخر 7 أيام</button><button class="btn sm alt" onclick="repPreset('30')">آخر 30 يوم</button><button class="btn sm alt" onclick="repPreset('mc')">هذا الشهر</button><button class="btn sm alt" onclick="repPreset('mp')">الشهر الماضي</button>`:`<label>الفترة<select onchange="repSel=this.value;render()">${opts.map(o=>`<option value="${o.v}" ${o.v===cur.v?'selected':''}>${dFmt(o.from)} → ${dFmt(o.to)}${o.to>ymd(new Date())?' (جارية)':''}</option>`).join('')}</select></label>`}<button class="btn" onclick="pdf('تقرير_'+repLbl()+'_'+'${cur.from}_${cur.to}')">تصدير PDF</button><button class="btn alt" onclick="wordExp('تقرير_'+repLbl()+'_'+'${cur.from}_${cur.to}')">تصدير Word</button></div></div>`;
   const d=repData(cur.from,cur.to);
   const tbl=(hd,rows)=>`<table><tr>${hd.map(x=>`<th>${x}</th>`).join('')}</tr>${rows.length?rows.map(r=>`<tr>${r.map((c,i)=>`<td${i===0?' class="l"':''}>${esc(c)}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${hd.length}">لا يوجد</td></tr>`}</table>`;
-  h+=`<div class="card" id="rep"><h3>تقرير ${repType==='w'?'أسبوعي':'شهري'} عن أعمال الصيانة – مستشفى الابتسامة</h3><div class="msg">الفترة: من ${dFmt(cur.from)} إلى ${dFmt(cur.to)}</div>
+  h+=`<div class="card" id="rep"><h3>تقرير ${repType==='c'?'':repLbl()+' '}عن أعمال الصيانة – مستشفى الابتسامة</h3><div class="msg">الفترة: من ${dFmt(cur.from)} إلى ${dFmt(cur.to)}</div>
   ${repStory(cur.from,cur.to,repType,d)}
   <h4 style="margin-top:18px">ملحق: الأرقام والإحصائيات</h4>
   <div class="grid" style="margin:8px 0"><div class="k"><b>${d.days}/${d.span}</b>أيام مرور محفوظة</div><div class="k"><b>${d.bad}</b>خانات ✗ في المرور</div><div class="k"><b>${d.nNew.length}</b>إخطارات جديدة</div><div class="k"><b>${d.nClosed.length}</b>إخطارات تم إصلاحها</div><div class="k"><b>${d.avg===null?'—':d.avg.toFixed(1)}</b>متوسط زمن الإصلاح (يوم)</div><div class="k"><b>${d.openNow}</b>مفتوحة حالياً</div><div class="k"><b>${d.nClosed.length?Math.round(100*d.slaOk/d.nClosed.length)+'%':'—'}</b>إغلاق ضمن المهلة</div></div>
@@ -617,7 +625,7 @@ function vReports(){
   <h4>أعطال متكررة (نفس المكان والتخصص أكثر من مرة)</h4>${tbl(['المكان – التخصص','مرات التكرار'],d.rec)}
   <h4>أقدم الأعطال المفتوحة</h4>${tbl(['القسم','العطل','الحالة','العمر (يوم)'],d.open.map(n=>[n.dept,n.details,n.status,n.age]))}
   <h4>طلبات الشراء</h4>${tbl(['البند','العدد'],[['طُلبت في الفترة',d.pa],['تم توريدها',d.pd],['تم تركيبها',d.pi],['غير مكتملة حالياً',d.pp]])}`;
-  if(repType==='m'){
+  if(repType==='m'||(repType==='c'&&Math.round((new Date(cur.to)-new Date(cur.from))/864e5)>7)){
     const rows=[];let x=new Date(cur.from+'T12:00:00');
     while(ymd(x)<=cur.to){const e=new Date(x);e.setDate(e.getDate()+((5-e.getDay()+7)%7));const end=ymd(e)>cur.to?cur.to:ymd(e);const w=repData(ymd(x),end);rows.push([dFmt(ymd(x))+' → '+dFmt(end),w.nNew.length,w.nClosed.length,w.bad]);x=new Date(e);x.setDate(x.getDate()+1)}
     h+=`<h4>التوزيع الأسبوعي</h4>${tbl(['الأسبوع','جديدة','تم إصلاحها','✗ في المرور'],rows)}`;
