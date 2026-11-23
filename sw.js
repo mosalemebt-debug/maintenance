@@ -1,5 +1,5 @@
 /* Service Worker – برنامج الصيانة (تشغيل بدون إنترنت) */
-const V = 'maint-v14';
+const V = 'maint-v15';
 const FB = 'https://www.gstatic.com/firebasejs/10.12.2/';
 const PRE = [
   './', 'index.html', 'style.css', 'firebase-config.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png',
@@ -32,7 +32,7 @@ self.addEventListener('fetch', e => {
   if (same) {
     // ملفات الموقع: الشبكة أولاً (عشان التحديثات)، ولو مفيش إنترنت نرجع للنسخة المحفوظة
     e.respondWith(
-      Promise.race([fetch(r), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000))])
+      Promise.race([fetch(r), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 3000))])
         .then(res => { if (res && res.ok) { const cp = res.clone(); caches.open(V).then(c => c.put(r, cp)); } return res; })
         .catch(() => caches.match(r, { ignoreSearch: true })
           .then(m => m || (r.mode === 'navigate' ? caches.match('index.html') : null) || new Response('', { status: 504 })))
