@@ -1,4 +1,7 @@
 /* التشغيل والتنقل والرسم (init / nav / render) */
+/* إعادة رسم مؤجّلة: عشرات مستمعات Firestore بتنادي الرسم مع بعض، فنجمعهم في رسمة واحدة */
+let _rq=0;
+function renderSoon(){if(_rq)return;_rq=setTimeout(()=>{_rq=0;render()},80)}
 async function init(){
   nav();render();
   try{db=wrapDb(await claude.use('db'))}catch(e){db=null}
@@ -6,15 +9,15 @@ async function init(){
   if(window.ROLE==='entry'){tab='e_round';nav();render();return}
   db.collection('inbox').onSnapshot(s=>procInbox(s.docs.map(d=>({id:d.id,o:d.data()}))));
   const t=setTimeout(()=>{},10000);
-  db.collection('notices').onSnapshot(s=>{notices=s.docs.map(d=>normN({id:d.id,...d.data()})).sort((a,b)=>a.n-b.n);clearTimeout(t);render()});
-  db.collection('purchases').onSnapshot(s=>{purchases=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.k-b.k);render()});
-  db.collection('rounds').onSnapshot(s=>{rounds={};s.docs.forEach(d=>rounds[d.id]=d.data());render()});
-  db.collection('settings').onSnapshot(s=>{settings={};s.docs.forEach(d=>settings[d.id]=d.data());applyAssetLists();render()});
-  db.collection('auditLog').onSnapshot(s=>{auditLog=s.docs.map(d=>d.data()).sort((a,b)=>String(b.at).localeCompare(String(a.at)));render()});
-  db.collection('jobsheets').onSnapshot(s=>{jobsheets=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>num(a.no)-num(b.no));render()});
-  db.collection('assetLog').onSnapshot(s=>{assetLog=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(b.at).localeCompare(String(a.at)));render()});
-  db.collection('assets').onSnapshot(s=>{assets=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.code).localeCompare(String(b.code),'en',{numeric:true}));render()});
-  db.collection('stock').onSnapshot(s=>{stock=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ar'));render()});
+  db.collection('notices').onSnapshot(s=>{notices=s.docs.map(d=>normN({id:d.id,...d.data()})).sort((a,b)=>a.n-b.n);clearTimeout(t);renderSoon()});
+  db.collection('purchases').onSnapshot(s=>{purchases=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.k-b.k);renderSoon()});
+  db.collection('rounds').onSnapshot(s=>{rounds={};s.docs.forEach(d=>rounds[d.id]=d.data());renderSoon()});
+  db.collection('settings').onSnapshot(s=>{settings={};s.docs.forEach(d=>settings[d.id]=d.data());applyAssetLists();renderSoon()});
+  db.collection('auditLog').onSnapshot(s=>{auditLog=s.docs.map(d=>d.data()).sort((a,b)=>String(b.at).localeCompare(String(a.at)));renderSoon()});
+  db.collection('jobsheets').onSnapshot(s=>{jobsheets=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>num(a.no)-num(b.no));renderSoon()});
+  db.collection('assetLog').onSnapshot(s=>{assetLog=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(b.at).localeCompare(String(a.at)));renderSoon()});
+  db.collection('assets').onSnapshot(s=>{assets=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.code).localeCompare(String(b.code),'en',{numeric:true}));renderSoon()});
+  db.collection('stock').onSnapshot(s=>{stock=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ar'));renderSoon()});
 }
 const NAVG=[['الرئيسية',[['daily','المتابعة اليومية']]],['التشغيل',[['round','المرور اليومي'],['notices','الصيانة العلاجية'],['jobsheets','JobSheet']]],['الأصول والمشتريات',[['purch','طلبات الشراء'],['adash','لوحة الأصول'],['assets','سجل الأصول'],['stock','المخزن']]],['التقارير',[['reports','التقارير']]],['النظام',[['audit','سجل التعديلات'],['backup','نسخ احتياطي']]]];
 const lastTab={};
