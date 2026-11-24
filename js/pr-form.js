@@ -74,8 +74,7 @@ function prRender(){
     <table style="margin-top:4px"><tr><td>${bi('Item Code','كود الصنف')}</td><td>${bi('Current Stock','الرصيد الحالي')}</td><td>${bi('Current Stock Value','قيمة الرصيد')}</td></tr></table>
     <table style="margin-top:4px"><tr><th style="width:6%">S<br>م</th><th style="width:16%">Item Code<br>كود الصنف</th><th>Description<br>وصف الصنف</th><th style="width:18%">Quantity Per Month/Year/Single<br>الكمية</th></tr>${rows}</table>
     <table style="margin-top:4px"><tr><td style="text-align:left">${bi('Budget/Planned','الموازنة والخطط')}<div style="text-align:center">Yes ${ck(PRS.budget==='نعم')} &nbsp; No ${ck(PRS.budget==='لا')}</div></td></tr></table>
-    <table style="margin-top:6px">${hd}${sig('Maintenance Manager','مدير الصيانة',PRS.head)}${sig('Hospital Manager','مدير المستشفى','')}${sig('Finance Department','الإدارة المالية','')}</table>
-    <table style="margin-top:6px"><tr><td style="text-align:left;height:34px">${bi('Received Date With Required Authorization By Supply Chain','تم الاستلام بالتاريخ والاعتمادات المطلوبة في')}<div style="margin-top:6px">By: ____________ &nbsp;&nbsp; On: ____________ &nbsp;&nbsp; At: ____________</div></td></tr></table></div>`}).join('');
+    <table style="margin-top:6px">${hd}${sig('Maintenance Manager','مدير الصيانة',PRS.head)}${sig('Hospital Manager','مدير المستشفى','د/ علاء ذكي')}${sig('Finance Department','الإدارة المالية','')}</table></div>`}).join('');
 }
 async function prPdf(share){if(typeof PRS!=='undefined'&&PRS&&PRS.ids)await prCommit();
   const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:'p',unit:'pt',format:'a4'}),W=doc.internal.pageSize.getWidth()-30,Hh=doc.internal.pageSize.getHeight()-30;
@@ -108,4 +107,3 @@ function wordExp(name){
    +'<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]--><style>'+css+'</style></head><body dir="rtl">'+el.innerHTML+'</body></html>';
   return dl(name+'_'+ymd(new Date())+'.doc',new TextEncoder().encode('\ufeff'+html).buffer);
 }
-
