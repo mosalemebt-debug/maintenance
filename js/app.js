@@ -19,7 +19,7 @@ async function init(){
   db.collection('assets').onSnapshot(s=>{assets=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.code).localeCompare(String(b.code),'en',{numeric:true}));renderSoon()});
   db.collection('stock').onSnapshot(s=>{stock=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ar'));renderSoon()});
 }
-const NAVG=[['الرئيسية',[['daily','المتابعة اليومية']]],['التشغيل',[['round','المرور اليومي'],['notices','الصيانة العلاجية'],['jobsheets','JobSheet']]],['الأصول والمشتريات',[['purch','طلبات الشراء'],['adash','لوحة الأصول'],['assets','سجل الأصول'],['stock','المخزن']]],['التقارير',[['reports','التقارير']]],['النظام',[['audit','سجل التعديلات'],['backup','نسخ احتياطي']]]];
+const NAVG=[['الرئيسية',[['daily','المتابعة اليومية']]],['التشغيل',[['round','المرور اليومي'],['notices','الصيانة العلاجية'],['jobsheets','JobSheet']]],['الأصول والمشتريات',[['purch','طلبات الشراء'],['adash','لوحة الأصول'],['assets','سجل الأصول'],['acassets','أصول التكييف'],['stock','المخزن']]],['التقارير',[['reports','التقارير']]],['النظام',[['audit','سجل التعديلات'],['backup','نسخ احتياطي']]]];
 const lastTab={};
 function badges(){
   const o={};try{o.notices=notices.filter(n=>n.status!=='تم الإصلاح').length;o.stock=stock.filter(x=>+x.qty<=+x.min).length;o.purch=purchases.filter(p=>p.status!=='تم التركيب').length;o.jobsheets=jobsheets.filter(j=>['صادر','قيد التنفيذ'].includes(j.status)).length}catch(e){}
@@ -62,7 +62,7 @@ function render(){
   if(window._lt!==tab){document.body.classList.remove('showf');window._lt=tab}
   const keepV={};document.querySelectorAll('#main input[id],#main select[id],#main textarea[id]').forEach(e=>{if(/^(f|p|as|st|ni|nq)_/.test(e.id)&&e.value!=='')keepV[e.id]=e.value});
   const wy=window.scrollY,ws=[...document.querySelectorAll('.wrap:not(#rep)')].map(w=>[w.scrollTop,w.scrollLeft]);
-  $('#main').innerHTML=({round:vRound,notices:vNotices,purch:vPurch,reports:vReports,daily:vDaily,backup:vBackup,audit:vAudit,adash:vADash,assets:vAssets,stock:vStock,jobsheets:vJobs,e_round:vERound,e_notice:vENotice,e_purch:vEPurch})[tab]();
+  $('#main').innerHTML=({round:vRound,notices:vNotices,purch:vPurch,reports:vReports,daily:vDaily,backup:vBackup,audit:vAudit,adash:vADash,assets:vAssets,acassets:vACAssets,stock:vStock,jobsheets:vJobs,e_round:vERound,e_notice:vENotice,e_purch:vEPurch})[tab]();
   document.querySelectorAll('textarea').forEach(fit);
   labelize();
   Object.entries(keepV).forEach(([id,v])=>{const e=document.getElementById(id);if(e&&e.tagName!=='BUTTON')e.value=v});

@@ -1,7 +1,7 @@
 /* عمليات الأصول (الأدوار، التقسيم، الإحصاء، سجل الأصل) */
 async function setFloor(id,v){const a=assets.find(x=>x.id===id);if(!a)return;a.f=v;await db.collection('assets').doc(id).update({f:v});await assetLogAdd(a.code,'تحديد الدور',v||'—');toast('اتحدد الدور ✓')}
 async function bulkFloor(){const v=$('#bf_f').value;if(!v){alert('اختار الدور الأول');return}
-  const l=assets.map(a=>({a,...assetStats(a)})).filter(x=>(!aSec||secA(x.a)===aSec)&&afOK(x));
+  const l=assets.filter(a=>!isAC(a)).map(a=>({a,...assetStats(a)})).filter(x=>(!aSec||secA(x.a)===aSec)&&afOK(x));
   if(!l.length||!confirm('تحديد «'+v+'» لـ '+l.length+' أصل (الظاهرين في الجدول حسب الفلاتر الحالية)؟'))return;
   for(const x of l){x.a.f=v;await db.collection('assets').doc(x.a.id).update({f:v})}
   await assetLogAdd('—','تحديد الدور بالجملة',v+' ← '+l.length+' أصل');toast('تم ✓');render()}
