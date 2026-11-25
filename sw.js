@@ -1,5 +1,5 @@
 /* Service Worker – برنامج الصيانة (تشغيل بدون إنترنت) */
-const V = 'maint-v16';
+const V = 'maint-v17';
 const FB = 'https://www.gstatic.com/firebasejs/10.12.2/';
 const PRE = [
   './', 'index.html', 'style.css', 'firebase-config.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png',

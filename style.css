@@ -141,3 +141,6 @@ table.compact th:nth-child(1),table.compact td:nth-child(1),table.compact th:nth
 .jfoot{margin-top:auto;text-align:center;font-weight:700;color:#5b6775;font-size:13px;padding-top:30px}
 @media print{.prpage.jsp{margin:0}.jsin{min-height:272mm}}
 @media (min-width:1400px){main{max-width:1500px}}
+
+/* ---- اختيار الأصل في الإخطار ---- */
+.asug{display:none;position:absolute;inset-inline:0;top:100%;z-index:30;background:var(--card);border:1px solid var(--bd);border-radius:8px;max-height:260px;overflow:auto;box-shadow:0 4px 14px rgba(0,0,0,.18);color:var(--tx)}.asug.on{display:block}.asug-i{padding:7px 10px;border-bottom:1px solid var(--bd);cursor:pointer;font-size:13px}.asug-i:hover{background:var(--bg)}
