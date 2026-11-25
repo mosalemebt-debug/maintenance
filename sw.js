@@ -3,7 +3,7 @@ const V = 'maint-v16';
 const FB = 'https://www.gstatic.com/firebasejs/10.12.2/';
 const PRE = [
   './', 'index.html', 'style.css', 'firebase-config.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png',
-  'js/firebase-layer.js', 'js/core.js', 'js/app.js', 'js/round.js', 'js/notices.js', 'js/purchases.js', 'js/reports.js', 'js/edit.js', 'js/daily-report.js', 'js/sla.js', 'js/backup.js', 'js/pr-form.js', 'js/inbox.js', 'js/audit.js', 'js/assets-base.js', 'js/assets-locations.js', 'js/assets-dashboard.js', 'js/assets-ops.js', 'js/assets-registry.js', 'js/xlsx-template.js', 'js/assets-import.js', 'js/stock.js', 'js/print.js', 'js/jobsheets.js', 'js/inputs.js', 'js/sync.js', 'js/boot.js',
+  'js/firebase-layer.js', 'js/core.js', 'js/app.js', 'js/round.js', 'js/notices.js', 'js/purchases.js', 'js/reports.js', 'js/edit.js', 'js/daily-report.js', 'js/sla.js', 'js/backup.js', 'js/pr-form.js', 'js/inbox.js', 'js/audit.js', 'js/assets-base.js', 'js/assets-locations.js', 'js/assets-dashboard.js', 'js/assets-ops.js', 'js/assets-registry.js', 'js/xlsx-template.js', 'js/assets-import.js', 'js/assets-ac.js', 'js/assets-matrix.js', 'js/stock.js', 'js/print.js', 'js/jobsheets.js', 'js/inputs.js', 'js/sync.js', 'js/boot.js',
   FB + 'firebase-app.js', FB + 'firebase-firestore.js', FB + 'firebase-auth.js',
   'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
