@@ -53,3 +53,19 @@ function assetLogAdd(code,kind,text){
   const id='al'+Date.now()+'-'+DEV+Math.random().toString(36).slice(2,4),o={code,at:new Date().toISOString(),kind,text,by:window.USER_EMAIL||''};
   assetLog.unshift({id,...o});return db.collection('assetLog').doc(id).set(o);
 }
+
+/* تعديل جماعي: بيانات عامة (قدرة، ماركة، موديل، سنة، عمر، قيمة) تتطبق على كل الأصول الظاهرة في الجدول بعد الفلاتر */
+const bulkRows=()=>assets.filter(a=>!isAC(a)).map(a=>({a,...assetStats(a)})).filter(x=>(!aSec||secA(x.a)===aSec)&&afOK(x)&&(!aTab||ATABS[aTab].f(x)));
+function vBulkEdit(){return `<div class="card addf"><b>تعديل جماعي للأصول الظاهرة</b><div class="msg hint">فلتر الجدول الأول (نوع، دور، مكان…) واكتب بس الخانات اللي عايز تطبّقها على كل الأصول الظاهرة، والخانات الفاضية بتتساب زي ما هي. للمجموعات بتتطبق نفس البيانات على كل الأصول المجموعة الظاهرة.</div><div class="row" style="margin-top:6px"><label>القدرة<input id="be_cap" type="number" step="0.25" min="0" data-keep="1" style="width:90px"></label><label>الوحدة<select id="be_cu">${CAPU.map(u=>`<option>${u}</option>`).join('')}</select></label><label>الماركة<input id="be_b" data-keep="1"></label><label>الموديل<input id="be_m" data-keep="1"></label><label>سنة التركيب<input id="be_y" type="number" min="1980" max="2100" data-keep="1" style="width:100px"></label><label>العمر الافتراضي (سنة)<input id="be_l" type="number" min="1" data-keep="1" style="width:100px"></label><label>قيمة الاستبدال (ج.م)<input id="be_v" type="number" min="0" data-keep="1" style="width:120px"></label><button class="btn" onclick="assetBulkEdit()">تطبيق على الظاهر</button></div><div class="msg" id="be_n">يتطبق حالياً على ${bulkRows().length} أصل.</div></div>`}
+async function assetBulkEdit(){
+  const g=id=>$('#'+id).value.trim(),p={};
+  if(+g('be_cap')>0){p.cap=+g('be_cap');p.capu=$('#be_cu').value}
+  if(g('be_b'))p.brand=g('be_b');if(g('be_m'))p.model=g('be_m');
+  if(+g('be_y')>0)p.inst=+g('be_y');if(+g('be_l')>0)p.life=+g('be_l');if(+g('be_v')>0)p.value=+g('be_v');
+  const ks=Object.keys(p);if(!ks.length){alert('اكتب قيمة في خانة واحدة على الأقل');return}
+  const l=bulkRows();if(!l.length){alert('مفيش أصول ظاهرة في الجدول');return}
+  const lbl={cap:'القدرة',capu:'',brand:'الماركة',model:'الموديل',inst:'سنة التركيب',life:'العمر الافتراضي',value:'قيمة الاستبدال'},sm=ks.filter(k=>lbl[k]).map(k=>lbl[k]+': '+p[k]+(k==='cap'?' '+p.capu:'')).join('، ');
+  if(!confirm('تطبيق ('+sm+') على '+l.length+' أصل (الظاهرين في الجدول حسب الفلاتر الحالية)؟'))return;
+  for(let i=0;i<l.length;i+=15)await Promise.all(l.slice(i,i+15).map(x=>{Object.assign(x.a,p);return db.collection('assets').doc(x.a.id).update(p)}));
+  await assetLogAdd('—','تعديل جماعي',sm+' ← '+l.length+' أصل');toast('تم تحديث '+l.length+' أصل ✓');render();
+}

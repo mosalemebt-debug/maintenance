@@ -5,7 +5,7 @@ function vNotices(){
   let h=`<div class="card addf"><b>إخطار جديد</b><div class="row">
   <label>التاريخ<input type="date" id="f_date" value="${ymd(new Date())}"></label>
   <label>الوقت<input type="time" id="f_time"></label>
-  <label>القسم<input id="f_dept"></label><label>المكان<input id="f_loc" placeholder="مثال: حمام 201" oninput="nAssetSuggest()"></label><label>مسؤول الإخطار<input id="f_reporter"></label>
+  <label>القسم<input id="f_dept"></label><label>الدور<select id="f_floor"><option value="">—</option>${nFloors().map(x=>`<option>${esc(x)}</option>`).join('')}</select></label><label>المكان<input id="f_loc" placeholder="مثال: حمام 201" oninput="nAssetSuggest()"></label><label>مسؤول الإخطار<input id="f_reporter"></label>
   <label>تفاصيل العطل<input id="f_details" style="width:220px" oninput="nAssetSuggest()"></label><label>الإجراء المتخذ<input id="f_action" style="width:200px"></label>
   <label>الحالة<select id="f_status"><option value="" selected>مفتوح</option>${ST.map(s=>`<option>${s}</option>`).join('')}</select></label>
   <label>ممثل الصيانة<input id="f_rep"></label>
@@ -15,9 +15,9 @@ function vNotices(){
   <button class="btn" onclick="saveNotice()">حفظ</button></div></div>
   <div class="card"><div class="row"><button class="btn" onclick="exportXlsx()">تصدير Excel</button>
   <label class="btn alt" style="flex-direction:row">استيراد من ملف الإكسل<input type="file" accept=".xlsx" onchange="importXlsx(this.files[0])" hidden></label></div><div id="imsg" class="msg"></div></div>
-  ${nFilterBar()}<div class="card wrap"><table class="ntbl ${nAll?'':'compact'}"><tr>${['م','المرجع','التاريخ','الوقت','القسم','المكان','الأصل','المبلّغ','العطل','الإجراء','الحالة','تاريخ الإصلاح','ممثل الصيانة','شراء؟','ملاحظات','الأولوية','المهلة','إجراءات'].map(x=>`<th>${x}</th>`).join('')}</tr>`;
+  ${nFilterBar()}<div class="card wrap"><table class="ntbl ${nAll?'':'compact'}"><tr>${['م','المرجع','التاريخ','الوقت','القسم','الدور','المكان','الأصل','المبلّغ','العطل','الإجراء','الحالة','تاريخ الإصلاح','ممثل الصيانة','شراء؟','ملاحظات','الأولوية','المهلة','إجراءات'].map(x=>`<th>${x}</th>`).join('')}</tr>`;
   notices.slice().reverse().filter(nfOK).forEach(n=>{const si=slaInfo(n);
-    h+=`<tr><td>${n.n}</td><td>${n.ref}</td><td>${fd(n.date)}</td><td>${esc(n.time)}</td><td class="l">${esc(n.dept)}</td><td class="l">${esc(n.loc||'')}</td><td>${n.asset?`<a href="#" onclick="assetDetailByCode('${esc(n.asset)}');return false">${esc(n.asset)}</a>`:''}</td><td>${esc(n.reporter)}</td><td class="l">${esc(n.details)}</td>
+    h+=`<tr><td>${n.n}</td><td>${n.ref}</td><td>${fd(n.date)}</td><td>${esc(n.time)}</td><td class="l">${esc(n.dept)}</td><td class="l">${esc(nFloor(n))}</td><td class="l">${esc(n.loc||'')}</td><td>${n.asset?`<a href="#" onclick="assetDetailByCode('${esc(n.asset)}');return false">${esc(n.asset)}</a>`:''}</td><td>${esc(n.reporter)}</td><td class="l">${esc(n.details)}</td>
     <td class="l"><textarea rows="1" data-keep="1" oninput="fit(this)" onchange="upd('${n.id}',{action:this.value})">${esc(n.action)}</textarea></td>
     <td class="${stCls(n.status)}"><select onchange="setStatus('${n.id}',this.value)"><option value="" ${!n.status?'selected':''}>مفتوح</option>${ST.map(s=>`<option ${s===n.status?'selected':''}>${s}</option>`).join('')}</select></td>
     <td><input type="date" value="${iso(n.fixdate)}" onchange="upd('${n.id}',{fixdate:this.value})"></td>
@@ -29,7 +29,7 @@ function vNotices(){
 const upd=(id,o)=>db.collection('notices').doc(id).update(o);
 function setStatus(id,s){const o={status:s};if(s==='تم الإصلاح')o.fixdate=ymd(new Date());upd(id,o)}
 async function saveNotice(){
-  const o={};['date','time','dept','loc','reporter','details','action','status','rep','needbuy','prio'].forEach(k=>o[k]=$('#f_'+k).value);
+  const o={};['date','time','dept','floor','loc','reporter','details','action','status','rep','needbuy','prio'].forEach(k=>o[k]=$('#f_'+k).value);
   ['trade','asset','cost','aff'].forEach(k=>{const e=$('#f_'+k);if(e)o[k]=(k==='cost'||k==='aff')?(+e.value||0):e.value});
   if(o.asset){o.asset=o.asset.trim();const _a=assetByCode(o.asset);if(!_a&&!confirm('الكود «'+o.asset+'» غير موجود في سجل الأصول. تكمل التسجيل بدون ربط؟'))return;if(_a&&_a.stat==='مُكهّن'&&!confirm('الأصل «'+_a.code+'» مُكهّن (خارج الخدمة). تكمل؟'))return}
   if(!o.dept||!o.details){alert('اكتب القسم وتفاصيل العطل');return}
@@ -39,12 +39,12 @@ async function saveNotice(){
 }
 function dl(name,data){return claude.use('downloads').then(d=>d?d.save({filename:name,data}):alert('التنزيل غير متاح'))}
 async function exportXlsx(){
-  const head=['م','الرقم المرجعي','التاريخ','الوقت','القسم','مسؤول الإخطار','تفاصيل العطل','الإجراء المتخذ','الحالة','تاريخ الإصلاح','ممثل الصيانة','يحتاج شراء؟','عدد أصناف الشراء','حالة الشراء','ملاحظات','التصنيف الأصلي للعطل'];
+  const head=['م','الرقم المرجعي','التاريخ','الوقت','القسم','مسؤول الإخطار','تفاصيل العطل','الإجراء المتخذ','الحالة','تاريخ الإصلاح','ممثل الصيانة','يحتاج شراء؟','عدد أصناف الشراء','حالة الشراء','ملاحظات','التصنيف الأصلي للعطل','الدور'];
   const rows=notices.map(n=>{const ps=purchases.filter(p=>p.ref===n.ref);const done=ps.filter(p=>p.status==='تم الشراء/التوريد').length;
     const bs=!ps.length?(n.needbuy==='نعم'?'لم يُسجل صنف':''):done===ps.length?'تم الشراء كاملاً':done>0?'جزئي':'معلق';
-    return [n.n,n.ref,toD(n.date),n.time||'',n.dept,n.reporter||'',n.details,n.action||'',n.status,toD(n.fixdate),n.rep||'',n.needbuy||'',ps.length,bs,n.notes||'',n.cls||'']});
+    return [n.n,n.ref,toD(n.date),n.time||'',n.dept,n.reporter||'',n.details,n.action||'',n.status,toD(n.fixdate),n.rep||'',n.needbuy||'',ps.length,bs,n.notes||'',n.cls||'',nFloor(n)]});
   const ws=XLSX.utils.aoa_to_sheet([['سجل الصيانة العلاجية (إخطارات الصيانة) – مستشفى الابتسامة'],[],head,...rows],{cellDates:true});
-  ws['!cols']=[5,11,12,9,22,14,40,35,15,12,16,10,11,17,30,24].map(w=>({wch:w}));ws['!views']=[{RTL:true}];
+  ws['!cols']=[5,11,12,9,22,14,40,35,15,12,16,10,11,17,30,24,14].map(w=>({wch:w}));ws['!views']=[{RTL:true}];
   const wb=XLSX.utils.book_new();wb.Workbook={Views:[{RTL:true}]};XLSX.utils.book_append_sheet(wb,ws,'الصيانة العلاجية');
   dl('الصيانة_العلاجية_'+ymd(new Date())+'.xlsx',XLSX.write(wb,{type:'array',bookType:'xlsx',cellDates:true}));
 }
@@ -54,7 +54,7 @@ async function importXlsx(f){
   const ws=wb.Sheets['الصيانة العلاجية'];
   if(ws){const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true}).slice(3);
     for(const r of rows){if(!r[1])continue;const n=num(r[1]);if(notices.find(x=>x.n===n))continue;
-      await db.collection('notices').doc(uid('n',n)).set({n,ref:r[1],date:iso(r[2]),time:r[3] instanceof Date?r[3].toTimeString().slice(0,5):String(r[3]),dept:String(r[4]),reporter:String(r[5]),details:String(r[6]),action:String(r[7]),status:String(r[8]),fixdate:iso(r[9]),rep:String(r[10]),needbuy:String(r[11]),notes:String(r[14]??''),cls:String(r[15]??'')});c++}}
+      await db.collection('notices').doc(uid('n',n)).set({n,ref:r[1],date:iso(r[2]),time:r[3] instanceof Date?r[3].toTimeString().slice(0,5):String(r[3]),dept:String(r[4]),reporter:String(r[5]),details:String(r[6]),action:String(r[7]),status:String(r[8]),fixdate:iso(r[9]),rep:String(r[10]),needbuy:String(r[11]),notes:String(r[14]??''),cls:String(r[15]??''),floor:String(r[16]??'')});c++}}
   const wp=wb.Sheets['طلبات الشراء'];
   if(wp&&!purchases.length){const rows=XLSX.utils.sheet_to_json(wp,{header:1,defval:'',raw:true}).slice(4);let k=1;
     for(const r of rows){if(!r[1]||!r[6])continue;await db.collection('purchases').doc(uid('p',k)).set({k,ref:String(r[1]),rdate:iso(r[5]),item:String(r[6]),qty:r[7],status:String(r[8]),ddate:iso(r[9]),notes:String(r[10]??'')});k++;p++}}
@@ -64,7 +64,7 @@ async function importXlsx(f){
 /* اختيار الأصل في الإخطار: بحث بالكود/النوع/الاسم/المكان، وترشيح تلقائي من «المكان» و«تفاصيل العطل» */
 function nAssetPick(code){
   const a=assetByCode(code);if(!a)return;const g=id=>document.getElementById(id);
-  g('f_asset').value=a.code;const l=g('f_loc');if(l&&!l.value)l.value=a.loc||'';
+  g('f_asset').value=a.code;const fe=g('f_floor');if(fe&&!fe.value)fe.value=aFloor(a);const l=g('f_loc');if(l&&!l.value)l.value=a.loc||'';
   const t=g('f_trade');if(t&&!t.value&&TYPE_TRADE[a.type])t.value=TYPE_TRADE[a.type];
   nAssetSuggest();
 }
@@ -85,3 +85,8 @@ function nAssetSuggest(){
   box.innerHTML=res.length?res.slice(0,8).map(({a})=>`<div class="asug-i" onmousedown="nAssetPick('${esc(a.code)}');return false"><b>${esc(a.code)}</b> ${esc(a.name)}<span class="msg"> · ${esc(a.loc||'—')}${isGrp(a)?' · مجموعة':''}</span></div>`).join('')+(res.length>8?'<div class="msg" style="padding:4px 8px">… زوّد كلمات البحث لتضييق النتائج</div>':''):'<div class="msg" style="padding:6px">مفيش أصل مطابق – لو الأصل مش مسجل سيب الخانة فاضية</div>';
 }
 document.addEventListener('click',e=>{if(!e.target.closest||e.target.closest('#f_asset')||e.target.closest('#as_sug'))return;const b=document.getElementById('as_sug');if(b)b.className='asug'});
+
+/* الدور في الإخطار: المسجّل، وإلا دور الأصل المربوط */
+const nFloors=()=>[...new Set(locRows().map(r=>r.f))];
+const aFloor=a=>!a?'':(a.f||nFloors().find(f=>String(a.loc||'').startsWith(f))||'');
+const nFloor=n=>n.floor||(n.asset?aFloor(assetByCode(n.asset)):'');
