@@ -5,13 +5,13 @@ function vNotices(){
   let h=`<div class="card addf"><b>إخطار جديد</b><div class="row">
   <label>التاريخ<input type="date" id="f_date" value="${ymd(new Date())}"></label>
   <label>الوقت<input type="time" id="f_time"></label>
-  <label>القسم<input id="f_dept"></label><label>المكان<input id="f_loc" placeholder="مثال: حمام 201"></label><label>مسؤول الإخطار<input id="f_reporter"></label>
-  <label>تفاصيل العطل<input id="f_details" style="width:220px"></label><label>الإجراء المتخذ<input id="f_action" style="width:200px"></label>
+  <label>القسم<input id="f_dept"></label><label>المكان<input id="f_loc" placeholder="مثال: حمام 201" oninput="nAssetSuggest()"></label><label>مسؤول الإخطار<input id="f_reporter"></label>
+  <label>تفاصيل العطل<input id="f_details" style="width:220px" oninput="nAssetSuggest()"></label><label>الإجراء المتخذ<input id="f_action" style="width:200px"></label>
   <label>الحالة<select id="f_status"><option value="" selected>مفتوح</option>${ST.map(s=>`<option>${s}</option>`).join('')}</select></label>
   <label>ممثل الصيانة<input id="f_rep"></label>
   <label>يحتاج شراء؟<select id="f_needbuy"><option>لا</option><option>نعم</option></select></label>
   <label>الأولوية<select id="f_prio"><option value="">تلقائي</option>${PR.map(p=>`<option>${p}</option>`).join('')}</select></label>
-  <label>التخصص<select id="f_trade"><option value="">تلقائي</option>${TRD.map(t=>`<option>${t}</option>`).join('')}</select></label><label>الأصل (الكود)<input id="f_asset" list="assetlist" placeholder="مثال: AC-05"></label><label>التكلفة (ج.م)<input id="f_cost" type="number" min="0"></label><label>العدد المتأثر (لو الأصل مجموعة)<input id="f_aff" type="number" min="1" style="width:110px"></label><datalist id="assetlist">${assets.map(a=>`<option value="${esc(a.code)}">${esc(a.name)}</option>`).join('')}</datalist>
+  <label>التخصص<select id="f_trade"><option value="">تلقائي</option>${TRD.map(t=>`<option>${t}</option>`).join('')}</select></label><label style="flex:2 1 260px;position:relative">الأصل – اكتب كود أو نوع أو مكان<input id="f_asset" autocomplete="off" placeholder="مثال: WH-03 أو سخان 107" oninput="nAssetSuggest()" onfocus="nAssetSuggest()"><div id="as_sug" class="asug"></div></label><label>التكلفة (ج.م)<input id="f_cost" type="number" min="0"></label><label>العدد المتأثر (لو الأصل مجموعة)<input id="f_aff" type="number" min="1" style="width:110px"></label>
   <button class="btn" onclick="saveNotice()">حفظ</button></div></div>
   <div class="card"><div class="row"><button class="btn" onclick="exportXlsx()">تصدير Excel</button>
   <label class="btn alt" style="flex-direction:row">استيراد من ملف الإكسل<input type="file" accept=".xlsx" onchange="importXlsx(this.files[0])" hidden></label></div><div id="imsg" class="msg"></div></div>
@@ -60,3 +60,28 @@ async function importXlsx(f){
     for(const r of rows){if(!r[1]||!r[6])continue;await db.collection('purchases').doc(uid('p',k)).set({k,ref:String(r[1]),rdate:iso(r[5]),item:String(r[6]),qty:r[7],status:String(r[8]),ddate:iso(r[9]),notes:String(r[10]??'')});k++;p++}}
   $('#imsg').textContent=`تم استيراد ${c} إخطار و${p} صنف شراء`;
 }
+
+/* اختيار الأصل في الإخطار: بحث بالكود/النوع/الاسم/المكان، وترشيح تلقائي من «المكان» و«تفاصيل العطل» */
+function nAssetPick(code){
+  const a=assetByCode(code);if(!a)return;const g=id=>document.getElementById(id);
+  g('f_asset').value=a.code;const l=g('f_loc');if(l&&!l.value)l.value=a.loc||'';
+  const t=g('f_trade');if(t&&!t.value&&TYPE_TRADE[a.type])t.value=TYPE_TRADE[a.type];
+  nAssetSuggest();
+}
+function nAssetClear(){const e=document.getElementById('f_asset');if(e){e.value='';e.focus()}nAssetSuggest()}
+function nAssetSuggest(){
+  const box=document.getElementById('as_sug'),inp=document.getElementById('f_asset');if(!box||!inp)return;
+  const v=id=>(document.getElementById(id)||{}).value||'',q=inp.value.trim(),cur=q?assetByCode(q):null;
+  if(cur){box.className='asug on';box.innerHTML=`<div class="msg" style="padding:6px">✔ ${esc(cur.name)} · ${esc(cur.type||'')} · ${esc(cur.loc||'—')}${isGrp(cur)?' · مجموعة ('+(+cur.qty||1)+')':''} <a href="#" onmousedown="nAssetClear();return false">تغيير</a></div>`;return}
+  const tk=s=>String(s||'').split(/[\s+\-_\/()،,]+/).map(nk).map(t=>t.length>3?t.replace(/^ال/,'').replace(/ات$/,''):t).filter(Boolean),hit=(hay,t)=>/^\d+$/.test(t)?new RegExp('(?<!\\d)'+t+'(?!\\d)').test(hay):hay.includes(t);
+  const qt=tk(q),lt=tk(v('f_loc')),dt=tk(v('f_details')).filter(t=>t.length>=3);
+  if(!qt.length&&!lt.length){box.className='asug';box.innerHTML='';return}
+  const res=assets.filter(a=>a.stat!=='مُكهّن').map(a=>{
+    const hay=nk([a.code,a.name,a.type,a.loc,a.brand,a.model].join(' ')),ty=nk([a.type,a.name].join(' '));
+    if(!((q&&nk(a.code).startsWith(nk(q)))||qt.every(t=>hit(hay,t)))||!lt.every(t=>hit(hay,t)))return null;
+    return{a,s:(qt.length&&nk(a.code).startsWith(qt[0])?5:0)+dt.filter(t=>ty.includes(t)).length*2}
+  }).filter(Boolean).sort((x,y)=>y.s-x.s||String(x.a.code).localeCompare(String(y.a.code),'en',{numeric:true}));
+  box.className='asug on';
+  box.innerHTML=res.length?res.slice(0,8).map(({a})=>`<div class="asug-i" onmousedown="nAssetPick('${esc(a.code)}');return false"><b>${esc(a.code)}</b> ${esc(a.name)}<span class="msg"> · ${esc(a.loc||'—')}${isGrp(a)?' · مجموعة':''}</span></div>`).join('')+(res.length>8?'<div class="msg" style="padding:4px 8px">… زوّد كلمات البحث لتضييق النتائج</div>':''):'<div class="msg" style="padding:6px">مفيش أصل مطابق – لو الأصل مش مسجل سيب الخانة فاضية</div>';
+}
+document.addEventListener('click',e=>{if(!e.target.closest||e.target.closest('#f_asset')||e.target.closest('#as_sug'))return;const b=document.getElementById('as_sug');if(b)b.className='asug'});

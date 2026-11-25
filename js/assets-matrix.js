@@ -21,12 +21,15 @@ function mxParse(wb){
     const{raw,hi,fi,pi,h}=M,W=Math.max(...raw.slice(0,hi+3).map(r=>r.length));
     const sub0=raw[hi+1]||[],hasSub=XS(sub0[pi])===''&&sub0.some(c=>/^(العدد|نوع)/.test(XS(c))),sub=hasSub?sub0.map(XS):[],start=hasSub?hi+2:hi+1;
     const body=raw.slice(start).filter(r=>XS(r[pi])!==''),isNum=v=>typeof v==='number'||/^[\d.\s]*$/.test(XS(v));
+    let lastH='';
     for(let j=pi+1;j<W;j++){
-      if(!(h[j]||''))continue;
+      const isSub=x=>x&&!/^(العدد|نوع)/.test(x);let hj=h[j]||'';
+      if(!hj){if(hasSub&&isSub(sub[j])&&lastH)hj=lastH;else continue}else lastH=hj;
+      const sfx=hasSub&&isSub(sub[j])?sub[j]:'';if(sfx)hj=hj+' '+sfx;
       const k=j+1;let tj=-1;
       if(k<W&&!(h[k]||'')){const hasTxt=body.some(r=>XS(r[k])!==''&&!isNum(r[k]));if(/^نوع/.test(sub[k]||'')||hasTxt)tj=k}
-      const t=mxGuess(h[j]),mm=h[j].match(/^(.*?)\s*\((.*)\)\s*$/),nm=(mm?mm[1]:h[j]).replace(/\s*\+\s*/g,' + ').replace(/\s+/g,' ').trim();
-      m.cols.push({j,tj,h:h[j].replace(/\s+/g,' ').trim(),name:nm,notes:mm?mm[2].replace(/\s+/g,' ').trim():'',type:t,mode:t&&GRP_TYPES.includes(t)?'مجموعة':'فردي'});
+      const t=mxGuess(hj),mm=hj.match(/^(.*?)\s*\((.*)\)\s*$/),nm=(mm?mm[1]:hj).replace(/\s*\+\s*/g,' + ').replace(/\s+/g,' ').trim();
+      m.cols.push({j,tj,h:hj.replace(/\s+/g,' ').trim(),name:nm,notes:mm?mm[2].replace(/\s+/g,' ').trim():'',type:t,mode:t&&GRP_TYPES.includes(t)?'مجموعة':'فردي'});
     }
     let lastF='';
     for(let i=start;i<raw.length;i++){const r=raw[i];
@@ -76,6 +79,9 @@ function mxCompute(){
     const keys=[];for(let k=0;k<qty;k++)if(!keysSeen.has(base+'|'+k))keys.push({k,key:base+'|'+k});
     rec.action=keys.length?'create':'skip';rec.keys=keys;rec.n=keys.length;rows.push(rec);
   }));
+  const emptyP=mx.data.filter(d=>!d.qty.some(q=>q>0)&&!d.txt.some(Boolean)).map(d=>d.place);
+  if(emptyP.length)warn.push(emptyP.length+' مكان من غير أي عدد في الجدول (لم يُحصر بعد؟): '+emptyP.slice(0,8).join('، ')+(emptyP.length>8?'…':''));
+  mx.cols.forEach((c,ci)=>{if(c.type==='باب'&&/حمام/.test(c.h)){const ps=mx.data.filter(d=>d.qty[ci]>0&&!/حمام/.test(d.place)).map(d=>d.place);if(ps.length)warn.push('«'+c.h+'» مسجل في مكان مش حمام ('+ps.join('، ')+') – راجع: ممكن يكون المقصود صف الحمام بتاعه')}});
   mx.cols.forEach((c,ci)=>{if(c.tj<0||!c.type)return;const ps=mx.data.filter(d=>d.qty[ci]>0&&!d.txt[ci]).map(d=>d.place);if(ps.length)warn.push('«'+c.h+'»: '+ps.length+' مكان فيه عدد ومن غير نوع/ماركة ('+ps.slice(0,6).join('، ')+(ps.length>6?'…':'')+')')});
   mx.unset=mx.cols.filter(c=>!c.type&&mx.data.some(d=>d.qty[mx.cols.indexOf(c)]>0));
   mx.rows=rows;mx.warn=[...new Set(warn)];
