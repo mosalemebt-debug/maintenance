@@ -4,6 +4,7 @@ const lk=s=>nk(s).replace(/ه/g,'');
 const mxItemKey=s=>nk(s).replace(/^ال/,'').replace(/(ات|ه)$/,'');
 const MX_GUESS=[[/كشاف|لمب|اضاء|إضاء/,'كشاف'],[/باب/,'باب'],[/شباك|نافذ/,'شباك'],[/حوض|مغسل/,'حوض'],[/قاعد|مرحاض|كرسي\s*حمام/,'قاعدة'],[/(^|\s)دش|شاور/,'دش'],[/شفاط/,'شفاط'],[/سخان/,'سخان مياه'],[/خلاط|حنفي/,'خلاط'],[/ثلاج/,'ثلاجة'],[/تلفزيون|شاشة/,'تلفزيون'],[/سرير/,'سرير'],[/دولاب|خزان/,'دولاب'],[/مكتب/,'مكتب'],[/ترابيز|طاول/,'ترابيزة'],[/كنب|انتريه|أنتريه/,'كنب'],[/كرسي/,'كرسي'],[/ستار|ستاير/,'ستارة']];
 function mxGuess(h){for(const [rx,t] of MX_GUESS)if(rx.test(h)&&ATY.includes(t))return t;return ''}
+function mxSplitType(t){t=XS(t).replace(/[\\\/\s]+$/,'').replace(/\s+/g,' ');const m=t.match(/^(.*?\S)\s+(\d.*)$/);return m?{brand:m[1],model:m[2]}:{brand:t,model:''}}
 const mxTypes=()=>ATY.filter(t=>t!=='تكييف');
 function mxFindMatrix(ws){
   const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
@@ -13,13 +14,21 @@ function mxFindMatrix(ws){
 function mxParse(wb){
   const m={cols:[],data:[],details:[],note:[]};let mName=null;
   for(const name of wb.SheetNames){const ws=wb.Sheets[name];if(!ws)continue;const M=mxFindMatrix(ws);if(!M)continue;mName=name;
-    const{raw,hi,fi,pi,h}=M;
-    for(let j=pi+1;j<h.length;j++)if(h[j]){const t=mxGuess(h[j]);m.cols.push({j,h:h[j].replace(/\s+/g,' ').trim(),type:t,mode:t&&GRP_TYPES.includes(t)?'مجموعة':'فردي'})}
+    const{raw,hi,fi,pi,h}=M,W=Math.max(...raw.slice(0,hi+3).map(r=>r.length));
+    const sub0=raw[hi+1]||[],hasSub=XS(sub0[pi])===''&&sub0.some(c=>/^(العدد|نوع)/.test(XS(c))),sub=hasSub?sub0.map(XS):[],start=hasSub?hi+2:hi+1;
+    const body=raw.slice(start).filter(r=>XS(r[pi])!==''),isNum=v=>typeof v==='number'||/^[\d.\s]*$/.test(XS(v));
+    for(let j=pi+1;j<W;j++){
+      if(!(h[j]||''))continue;
+      const k=j+1;let tj=-1;
+      if(k<W&&!(h[k]||'')){const hasTxt=body.some(r=>XS(r[k])!==''&&!isNum(r[k]));if(/^نوع/.test(sub[k]||'')||hasTxt)tj=k}
+      const t=mxGuess(h[j]),mm=h[j].match(/^(.*?)\s*\((.*)\)\s*$/),nm=(mm?mm[1]:h[j]).replace(/\s*\+\s*/g,' + ').replace(/\s+/g,' ').trim();
+      m.cols.push({j,tj,h:h[j].replace(/\s+/g,' ').trim(),name:nm,notes:mm?mm[2].replace(/\s+/g,' ').trim():'',type:t,mode:t&&GRP_TYPES.includes(t)?'مجموعة':'فردي'});
+    }
     let lastF='';
-    for(let i=hi+1;i<raw.length;i++){const r=raw[i];
+    for(let i=start;i<raw.length;i++){const r=raw[i];
       if(XS(r[fi])!=='')lastF=XS(r[fi]);
       const place=XS(r[pi]);if(!place)continue;
-      m.data.push({row:i+1,f:fixFloor(lastF),place,qty:m.cols.map(c=>Math.max(0,Math.floor(XN(r[c.j]))))});
+      m.data.push({row:i+1,f:fixFloor(lastF),place,qty:m.cols.map(c=>Math.max(0,Math.floor(XN(r[c.j])))),txt:m.cols.map(c=>c.tj>=0?XS(r[c.tj]):'')});
     }
     break;
   }
@@ -52,7 +61,8 @@ function mxCompute(){
     const dets=colDet(c),mine=dets.find(x=>x.locs.some(l=>lk(l)===lk(d.place)));
     if(dets.length&&!mine)warn.push('«'+c.h+'» في «'+d.place+'» (عدد '+qty+') مش مذكور في قائمة الأماكن بورقة التفاصيل – هيتسجل من غير ماركة/مقاس/سنة');
     const mode=c.mode,base=['mx',nk(c.h),nk(d.f),lk(d.place)].join('|'),pl=placeLabel(d.place),loc=d.f?d.f+' – '+pl:pl;
-    const rec={col:c.h,name:c.h,type:c.type,mode,qty,f:d.f,place:pl,loc,brand:mine?mine.brand:'',model:mine?mine.model:'',inst:mine?mine.inst:'',base};
+    const cb=mxSplitType(d.txt[ci]);
+    const rec={col:c.h,name:c.name||c.h,notes:c.notes||'',type:c.type,mode,qty,f:d.f,place:pl,loc,brand:cb.brand||(mine?mine.brand:''),model:cb.model||(mine?mine.model:''),inst:mine?mine.inst:'',base};
     if(mode==='مجموعة'){
       const ex=assets.find(a=>a.impKey===base);
       if(ex){const same=(+ex.qty||0)===qty&&(!rec.brand||ex.brand===rec.brand)&&(!rec.model||ex.model===rec.model)&&(!rec.inst||+ex.inst===+rec.inst);rec.action=same?'skip':'update';rec.id=ex.id;rec.old=+ex.qty||0}else rec.action='create';
@@ -62,6 +72,7 @@ function mxCompute(){
     const keys=[];for(let k=0;k<qty;k++)if(!keysSeen.has(base+'|'+k))keys.push({k,key:base+'|'+k});
     rec.action=keys.length?'create':'skip';rec.keys=keys;rec.n=keys.length;rows.push(rec);
   }));
+  mx.cols.forEach((c,ci)=>{if(c.tj<0||!c.type)return;const ps=mx.data.filter(d=>d.qty[ci]>0&&!d.txt[ci]).map(d=>d.place);if(ps.length)warn.push('«'+c.h+'»: '+ps.length+' مكان فيه عدد ومن غير نوع/ماركة ('+ps.slice(0,6).join('، ')+(ps.length>6?'…':'')+')')});
   mx.unset=mx.cols.filter(c=>!c.type&&mx.data.some(d=>d.qty[mx.cols.indexOf(c)]>0));
   mx.rows=rows;mx.warn=[...new Set(warn)];
 }
@@ -89,7 +100,7 @@ function vMxImport(){
     const cr=mx.rows.filter(r=>r.action==='create'),up=mx.rows.filter(r=>r.action==='update'),sk=mx.rows.filter(r=>r.action==='skip');
     const nI=cr.filter(r=>r.mode==='فردي').reduce((t,r)=>t+r.n,0),nG=cr.filter(r=>r.mode==='مجموعة').length,show=mx.rows.filter(r=>r.action!=='skip');
     h+=`<div style="margin-top:10px"><b>معاينة الملف: ${esc(mx.file)}</b> · ${mx.data.length} مكان · ${mx.cols.length} عمود</div>
-    <div class="wrap" style="max-height:280px;margin:8px 0"><table><tr><th>العمود</th><th>النوع</th><th>طريقة التسجيل</th></tr>${mx.cols.map((c,i)=>`<tr><td class="l">${esc(c.h)}</td><td><select onchange="mxSet(${i},'type',this.value)"><option value="">— تجاهل العمود —</option>${mxTypes().map(t=>`<option ${c.type===t?'selected':''}>${esc(t)}</option>`).join('')}</select></td><td><select onchange="mxSet(${i},'mode',this.value)">${['فردي','مجموعة'].map(o=>`<option ${c.mode===o?'selected':''}>${o}</option>`).join('')}</select></td></tr>`).join('')}</table></div>`;
+    <div class="wrap" style="max-height:280px;margin:8px 0"><table><tr><th>العمود</th><th>الاسم اللي هيتسجل</th><th>النوع</th><th>طريقة التسجيل</th></tr>${mx.cols.map((c,i)=>`<tr><td class="l">${esc(c.h)}${c.tj>=0?'<div class="msg">+ عمود نوع/ماركة</div>':''}</td><td><input value="${esc(c.name)}" onchange="mxSet(${i},'name',this.value)" style="min-width:140px"></td><td><select onchange="mxSet(${i},'type',this.value)"><option value="">— تجاهل العمود —</option>${mxTypes().map(t=>`<option ${c.type===t?'selected':''}>${esc(t)}</option>`).join('')}</select></td><td><select onchange="mxSet(${i},'mode',this.value)">${['فردي','مجموعة'].map(o=>`<option ${c.mode===o?'selected':''}>${o}</option>`).join('')}</select></td></tr>`).join('')}</table></div>`;
     if(mx.unset.length)h+=`<div class="card s-warn" style="margin-bottom:8px">أعمدة فيها أعداد ونوعها مش محدد (مش هتتسجل): ${mx.unset.map(c=>esc(c.h)).join('، ')}. اختار نوعها من الجدول فوق، ولو النوع مش في القايمة ضيفه من «إضافة نوع أصل».</div>`;
     h+=`<div class="grid" style="margin:8px 0"><div class="k s-ok"><b>${nI}</b>أصل فردي جديد</div><div class="k s-ok"><b>${nG}</b>مجموعة جديدة</div><div class="k"><b>${up.length}</b>تحديث عدد مجموعة</div><div class="k"><b>${sk.length}</b>متخطى (موجود)</div><div class="k ${mx.warn.length?'s-warn':''}"><b>${mx.warn.length}</b>تنبيه</div></div>`;
     if(mx.warn.length)h+=`<div class="card s-warn" style="margin-bottom:8px"><b>تنبيهات (راجعها قبل التأكيد):</b><br>${mx.warn.slice(0,30).map(esc).join('<br>')}${mx.warn.length>30?'<br>… وتنبيهات أخرى':''}</div>`;
@@ -108,7 +119,7 @@ async function mxApply(){
       const ex=assets.find(a=>a.id===r.id);if(ex)Object.assign(ex,p);
       jobs.push(()=>db.collection('assets').doc(r.id).update(p));uG++;
     }else if(r.action==='create'){
-      const mk=(code,name,key)=>({code,name,type:r.type,loc:r.loc,...(r.f?{f:r.f}:{}),r:r.place,cap:0,capu:'',brand:r.brand,model:r.model,inst:r.inst,life:'',value:0,notes:'',mode:r.mode,qty:r.mode==='مجموعة'?r.qty:0,qtyFix:0,qtyDead:0,impKey:key,src:'استيراد حصر الغرف'});
+      const mk=(code,name,key)=>({code,name,type:r.type,loc:r.loc,...(r.f?{f:r.f}:{}),r:r.place,cap:0,capu:'',brand:r.brand,model:r.model,inst:r.inst,life:'',value:0,notes:r.notes||'',mode:r.mode,qty:r.mode==='مجموعة'?r.qty:0,qtyFix:0,qtyDead:0,impKey:key,src:'استيراد حصر الغرف'});
       if(r.mode==='مجموعة'){const code=nextCodes(r.type,1)[0],id='as_'+code,o=mk(code,r.name,r.base);assets.push({id,...o});jobs.push(()=>db.collection('assets').doc(id).set(o));cG++}
       else r.keys.forEach(({k,key})=>{const code=nextCodes(r.type,1)[0],id='as_'+code,o=mk(code,r.name+(r.qty>1?' '+(k+1):''),key);assets.push({id,...o});jobs.push(()=>db.collection('assets').doc(id).set(o));cI++});
     }
