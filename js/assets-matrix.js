@@ -3,7 +3,11 @@ let mx=null;
 const lk=s=>nk(s).replace(/ه/g,'');
 const mxItemKey=s=>nk(s).replace(/^ال/,'').replace(/(ات|ه)$/,'');
 const MX_GUESS=[[/كشاف|لمب|اضاء|إضاء/,'كشاف'],[/باب/,'باب'],[/شباك|نافذ/,'شباك'],[/حوض|مغسل/,'حوض'],[/قاعد|مرحاض|كرسي\s*حمام/,'قاعدة'],[/(^|\s)دش|شاور/,'دش'],[/شفاط/,'شفاط'],[/سخان/,'سخان مياه'],[/خلاط|حنفي/,'خلاط'],[/ثلاج/,'ثلاجة'],[/تلفزيون|شاشة/,'تلفزيون'],[/سرير/,'سرير'],[/دولاب|خزان/,'دولاب'],[/مكتب/,'مكتب'],[/ترابيز|طاول/,'ترابيزة'],[/كنب|انتريه|أنتريه/,'كنب'],[/كرسي/,'كرسي'],[/ستار|ستاير/,'ستارة']];
-function mxGuess(h){for(const [rx,t] of MX_GUESS)if(rx.test(h)&&ATY.includes(t))return t;return ''}
+const mxRoot=w=>String(w).toLowerCase().replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/^ال/,'').replace(/(ات|ه)$/,'');
+const mxToks=s=>String(s||'').split(/[\s+\-_\/()]+/).map(mxRoot).filter(w=>w.length>1);
+/* الأنواع اللي أضافها المستخدم (إضافة نوع أصل) لها أولوية: مطابقة بالكلمات (لمبة كاسة = لمبات الكاسة) */
+function mxCustomGuess(h){const ht=mxToks(h);let best='',bl=0;for(const t of ((settings.assetLists||{}).types||[])){const n=t&&t.name;if(!n||!ATY.includes(n))continue;const tt=mxToks(n);if(tt.length&&tt.every(w=>ht.includes(w))&&tt.length>bl){best=n;bl=tt.length}}return best}
+function mxGuess(h){const c=mxCustomGuess(h);if(c)return c;for(const [rx,t] of MX_GUESS)if(rx.test(h)&&ATY.includes(t))return t;return ''}
 function mxSplitType(t){t=XS(t).replace(/[\\\/\s]+$/,'').replace(/\s+/g,' ');const m=t.match(/^(.*?\S)\s+(\d.*)$/);return m?{brand:m[1],model:m[2]}:{brand:t,model:''}}
 const mxTypes=()=>ATY.filter(t=>t!=='تكييف');
 function mxFindMatrix(ws){
