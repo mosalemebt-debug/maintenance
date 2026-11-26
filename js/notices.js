@@ -23,7 +23,7 @@ function vNotices(){
     <td><input type="date" value="${iso(n.fixdate)}" onchange="upd('${n.id}',{fixdate:this.value})"></td>
     <td><textarea rows="1" data-keep="1" oninput="fit(this)" onchange="upd('${n.id}',{rep:this.value})" style="min-width:110px">${esc(n.rep)}</textarea></td>
     <td><select onchange="upd('${n.id}',{needbuy:this.value})">${['','نعم','لا'].map(s=>`<option ${s===(n.needbuy||'')?'selected':''}>${s}</option>`).join('')}</select></td>
-    <td class="l">${esc(n.notes)}</td><td class="${prCls(si.pr)}">${si.pr}</td><td class="${si.cls}">${si.txt}</td><td><div style="display:flex;gap:4px;justify-content:center"><button class="btn sm alt" onclick="openEdit('notices','${n.id}')">تعديل</button><button class="btn sm alt" onclick="openNT('${n.id}')">طباعة</button><button class="btn sm alt" onclick="createJS('${n.id}')">JobSheet</button><button class="btn sm" style="background:#b42318" onclick="delItem('notices','${n.id}')">حذف</button></div></td></tr>`});
+    <td class="l">${esc(n.notes)}</td><td class="${prCls(si.pr)}">${si.pr}</td><td class="${si.cls}">${si.txt}</td><td><div style="display:flex;gap:4px;justify-content:center">${n.asset?'':`<button class="btn sm" onclick="nLink('${n.id}')">ربط أصل</button>`}<button class="btn sm alt" onclick="openEdit('notices','${n.id}')">تعديل</button><button class="btn sm alt" onclick="openNT('${n.id}')">طباعة</button><button class="btn sm alt" onclick="createJS('${n.id}')">JobSheet</button><button class="btn sm" style="background:#b42318" onclick="delItem('notices','${n.id}')">حذف</button></div></td></tr>`});
   return h+'</table></div>';
 }
 const upd=(id,o)=>db.collection('notices').doc(id).update(o);
@@ -69,20 +69,41 @@ function nAssetPick(code){
   nAssetSuggest();
 }
 function nAssetClear(){const e=document.getElementById('f_asset');if(e){e.value='';e.focus()}nAssetSuggest()}
-function nAssetSuggest(){
-  const box=document.getElementById('as_sug'),inp=document.getElementById('f_asset');if(!box||!inp)return;
-  const v=id=>(document.getElementById(id)||{}).value||'',q=inp.value.trim(),cur=q?assetByCode(q):null;
-  if(cur){box.className='asug on';box.innerHTML=`<div class="msg" style="padding:6px">✔ ${esc(cur.name)} · ${esc(cur.type||'')} · ${esc(cur.loc||'—')}${isGrp(cur)?' · مجموعة ('+(+cur.qty||1)+')':''} <a href="#" onmousedown="nAssetClear();return false">تغيير</a></div>`;return}
+function nAssetFind(q,locT,detT){
   const tk=s=>String(s||'').split(/[\s+\-_\/()،,]+/).map(nk).map(t=>t.length>3?t.replace(/^ال/,'').replace(/ات$/,''):t).filter(Boolean),hit=(hay,t)=>/^\d+$/.test(t)?new RegExp('(?<!\\d)'+t+'(?!\\d)').test(hay):hay.includes(t);
-  const qt=tk(q),lt=tk(v('f_loc')),dt=tk(v('f_details')).filter(t=>t.length>=3);
-  if(!qt.length&&!lt.length){box.className='asug';box.innerHTML='';return}
-  const res=assets.filter(a=>a.stat!=='مُكهّن').map(a=>{
+  const qt=tk(q),lt=tk(locT),dt=tk(detT).filter(t=>t.length>=3);
+  if(!qt.length&&!lt.length)return null;
+  return assets.filter(a=>a.stat!=='مُكهّن').map(a=>{
     const hay=nk([a.code,a.name,a.type,a.loc,a.brand,a.model].join(' ')),ty=nk([a.type,a.name].join(' '));
     if(!((q&&nk(a.code).startsWith(nk(q)))||qt.every(t=>hit(hay,t)))||!lt.every(t=>hit(hay,t)))return null;
     return{a,s:(qt.length&&nk(a.code).startsWith(qt[0])?5:0)+dt.filter(t=>ty.includes(t)).length*2}
   }).filter(Boolean).sort((x,y)=>y.s-x.s||String(x.a.code).localeCompare(String(y.a.code),'en',{numeric:true}));
+}
+function nAssetSuggest(){
+  const box=document.getElementById('as_sug'),inp=document.getElementById('f_asset');if(!box||!inp)return;
+  const v=id=>(document.getElementById(id)||{}).value||'',q=inp.value.trim(),cur=q?assetByCode(q):null;
+  if(cur){box.className='asug on';box.innerHTML=`<div class="msg" style="padding:6px">✔ ${esc(cur.name)} · ${esc(cur.type||'')} · ${esc(cur.loc||'—')}${isGrp(cur)?' · مجموعة ('+(+cur.qty||1)+')':''} <a href="#" onmousedown="nAssetClear();return false">تغيير</a></div>`;return}
+  const res=nAssetFind(q,v('f_loc'),v('f_details'));
+  if(!res){box.className='asug';box.innerHTML='';return}
   box.className='asug on';
   box.innerHTML=res.length?res.slice(0,8).map(({a})=>`<div class="asug-i" onmousedown="nAssetPick('${esc(a.code)}');return false"><b>${esc(a.code)}</b> ${esc(a.name)}<span class="msg"> · ${esc(a.loc||'—')}${isGrp(a)?' · مجموعة':''}</span></div>`).join('')+(res.length>8?'<div class="msg" style="padding:4px 8px">… زوّد كلمات البحث لتضييق النتائج</div>':''):'<div class="msg" style="padding:6px">مفيش أصل مطابق – لو الأصل مش مسجل سيب الخانة فاضية</div>';
+}
+/* ربط إخطار قديم بأصل: نافذة بحث مملية مسبقاً من مكان الإخطار وتفاصيله */
+function nLink(id){
+  const n=notices.find(x=>x.id===id);if(!n)return;
+  const d=document.createElement('div');d.id='md';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:60;overflow:auto;padding:12px';
+  d.innerHTML=`<div class="card" style="max-width:640px;margin:30px auto"><b>ربط ${esc(n.ref)} بأصل</b><div class="msg hint">${esc(n.dept||'')} – ${esc(n.details||'')}</div><div class="row" style="margin-top:6px"><label>المكان<input id="nl_l" value="${esc(nLoc(n)||'')}" oninput="nLinkList('${id}')"></label><label>بحث (كود / نوع / اسم)<input id="nl_q" placeholder="مثال: سخان" oninput="nLinkList('${id}')"></label></div><div id="nl_r" style="margin-top:6px"></div><div class="row" style="margin-top:8px"><button class="btn alt" onclick="closeEdit()">إغلاق</button></div></div>`;
+  document.body.appendChild(d);nLinkList(id);
+}
+function nLinkList(id){
+  const n=notices.find(x=>x.id===id),r=document.getElementById('nl_r');if(!n||!r)return;
+  const res=nAssetFind(document.getElementById('nl_q').value,document.getElementById('nl_l').value,n.details);
+  r.innerHTML=!res?'<div class="msg">اكتب المكان أو اسم/نوع الأصل علشان تظهر الاقتراحات.</div>':res.length?res.slice(0,12).map(({a})=>`<div class="asug-i" onclick="nLinkDo('${id}','${esc(a.code)}')"><b>${esc(a.code)}</b> ${esc(a.name)}<span class="msg"> · ${esc(a.loc||'—')}${isGrp(a)?' · مجموعة':''}</span></div>`).join('')+(res.length>12?'<div class="msg">… زوّد كلمات البحث لتضييق النتائج</div>':''):'<div class="msg">مفيش أصل مطابق – جرّب تمسح المكان أو تغيّر كلمة البحث.</div>';
+}
+async function nLinkDo(id,code){
+  const n=notices.find(x=>x.id===id),a=assetByCode(code);if(!n||!a)return;
+  const p={asset:code};if(!n.floor&&aFloor(a))p.floor=aFloor(a);if(!n.loc&&a.loc)p.loc=String(a.loc).split(' – ').pop();
+  await upd(id,p);closeEdit();toast('تم ربط '+n.ref+' بالأصل '+code+' ✓');
 }
 document.addEventListener('click',e=>{if(!e.target.closest||e.target.closest('#f_asset')||e.target.closest('#as_sug'))return;const b=document.getElementById('as_sug');if(b)b.className='asug'});
 
