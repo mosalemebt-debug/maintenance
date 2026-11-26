@@ -108,7 +108,7 @@ html{-webkit-text-size-adjust:100%}
 body.showf .addf{display:block}
 #fab{position:fixed;bottom:18px;left:18px;width:56px;height:56px;border-radius:50%;background:var(--pri);color:#fff;border:0;font-size:30px;line-height:1;box-shadow:0 3px 12px rgba(0,0,0,.35);z-index:30;display:none;align-items:center;justify-content:center;cursor:pointer}
 body.showf #fab{background:#b42318;transform:rotate(45deg)}
-table.compact th:nth-child(1),table.compact td:nth-child(1),table.compact th:nth-child(4),table.compact td:nth-child(4),table.compact th:nth-child(7),table.compact td:nth-child(7),table.compact th:nth-child(11),table.compact td:nth-child(11),table.compact th:nth-child(12),table.compact td:nth-child(12),table.compact th:nth-child(13),table.compact td:nth-child(13),table.compact th:nth-child(14),table.compact td:nth-child(14){display:none!important}
+table.compact th:nth-child(1),table.compact td:nth-child(1),table.compact th:nth-child(4),table.compact td:nth-child(4),table.compact th:nth-child(8),table.compact td:nth-child(8),table.compact th:nth-child(12),table.compact td:nth-child(12),table.compact th:nth-child(13),table.compact td:nth-child(13),table.compact th:nth-child(14),table.compact td:nth-child(14),table.compact th:nth-child(15),table.compact td:nth-child(15){display:none!important}
 /* ---- نموذج أمر العمل ---- */
 .prpage.jsp{padding:0;direction:rtl;font-family:"Segoe UI",Tahoma,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .jsin{border:3px solid #1b3a57;padding:12px;min-height:1030px;display:flex;flex-direction:column;box-sizing:border-box}
