@@ -9,6 +9,14 @@ const mxToks=s=>String(s||'').split(/[\s+\-_\/()]+/).map(mxRoot).filter(w=>w.len
 function mxCustomGuess(h){const ht=mxToks(h);let best='',bl=0;for(const t of ((settings.assetLists||{}).types||[])){const n=t&&t.name;if(!n||!ATY.includes(n))continue;const tt=mxToks(n);if(tt.length&&tt.every(w=>ht.includes(w))&&tt.length>bl){best=n;bl=tt.length}}return best}
 function mxGuess(h){const c=mxCustomGuess(h);if(c)return c;for(const [rx,t] of MX_GUESS)if(rx.test(h)&&ATY.includes(t))return t;return ''}
 function mxSplitType(t){t=XS(t).replace(/[\\\/\s]+$/,'').replace(/\s+/g,' ');const m=t.match(/^(.*?\S)\s+(\d.*)$/);return m?{brand:m[1],model:m[2]}:{brand:t,model:''}}
+/* النوع والقدرة من خلية واحدة: «LG 55 بوصة» ← ماركة LG + قدرة 55 بوصة، «فريش 20 لتر»، «36 وات» */
+function mxSpec(t){
+  t=XS(t);let cap=0,capu='';
+  const m=t.match(/(\d+(?:[.,]\d+)?)\s*(كيلو\s*وات|kw|وات|بوص[ةه]|[اإ]نش|inch|لتر|حصان|hp|[اأ]مبير|سم|cm|كجم)/i);
+  if(m){cap=+m[1].replace(',','.');const u=m[2].replace(/\s+/g,'');capu=/^(كيلووات|kw)$/i.test(u)?'كيلووات':u==='وات'?'وات':/^(بوص|[اإ]نش|inch)/i.test(u)?'بوصة':u==='لتر'?'لتر':/^(حصان|hp)$/i.test(u)?'حصان':/مبير/.test(u)?'أمبير':/^(سم|cm)$/i.test(u)?'سم':'كجم';
+    t=(t.slice(0,m.index)+' '+t.slice(m.index+m[0].length)).replace(/\s+/g,' ').trim()}
+  return{...mxSplitType(t),cap,capu};
+}
 const mxTypes=()=>ATY.filter(t=>t!=='تكييف');
 function mxFindMatrix(ws){
   const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
@@ -68,11 +76,11 @@ function mxCompute(){
     const dets=colDet(c),mine=dets.find(x=>x.locs.some(l=>lk(l)===lk(d.place)));
     if(dets.length&&!mine)warn.push('«'+c.h+'» في «'+d.place+'» (عدد '+qty+') مش مذكور في قائمة الأماكن بورقة التفاصيل – هيتسجل من غير ماركة/مقاس/سنة');
     const mode=c.mode,base=['mx',nk(c.h),nk(d.f),lk(d.place)].join('|'),pl=placeLabel(d.place),loc=d.f?d.f+' – '+pl:pl;
-    const cb=mxSplitType(d.txt[ci]);
-    const rec={col:c.h,name:c.name||c.h,notes:c.notes||'',type:c.type,mode,qty,f:d.f,place:pl,loc,brand:cb.brand||(mine?mine.brand:''),model:cb.model||(mine?mine.model:''),inst:mine?mine.inst:'',base};
+    const cb=mxSpec(d.txt[ci]);
+    const rec={col:c.h,name:c.name||c.h,notes:c.notes||'',type:c.type,mode,qty,f:d.f,place:pl,loc,brand:cb.brand||(mine?mine.brand:''),model:cb.model||(mine?mine.model:''),cap:cb.cap,capu:cb.capu,inst:mine?mine.inst:'',base};
     if(mode==='مجموعة'){
       const ex=assets.find(a=>a.impKey===base);
-      if(ex){const same=(+ex.qty||0)===qty&&(!rec.brand||ex.brand===rec.brand)&&(!rec.model||ex.model===rec.model)&&(!rec.inst||+ex.inst===+rec.inst);rec.action=same?'skip':'update';rec.id=ex.id;rec.old=+ex.qty||0}else rec.action='create';
+      if(ex){const same=(+ex.qty||0)===qty&&(!rec.brand||ex.brand===rec.brand)&&(!rec.model||ex.model===rec.model)&&(!rec.cap||(+ex.cap===rec.cap&&ex.capu===rec.capu))&&(!rec.inst||+ex.inst===+rec.inst);rec.action=same?'skip':'update';rec.id=ex.id;rec.old=+ex.qty||0}else rec.action='create';
       rec.n=1;rows.push(rec);return;
     }
     if(qty>200){warn.push('«'+c.h+'» في «'+d.place+'»: العدد '+qty+' أكبر من 200 كأصول فردية – اتخطى');return}
@@ -114,7 +122,7 @@ function vMxImport(){
     if(mx.unset.length)h+=`<div class="card s-warn" style="margin-bottom:8px">أعمدة فيها أعداد ونوعها مش محدد (مش هتتسجل): ${mx.unset.map(c=>esc(c.h)).join('، ')}. اختار نوعها من الجدول فوق، ولو النوع مش في القايمة ضيفه من «إضافة نوع أصل».</div>`;
     h+=`<div class="grid" style="margin:8px 0"><div class="k s-ok"><b>${nI}</b>أصل فردي جديد</div><div class="k s-ok"><b>${nG}</b>مجموعة جديدة</div><div class="k"><b>${up.length}</b>تحديث عدد مجموعة</div><div class="k"><b>${sk.length}</b>متخطى (موجود)</div><div class="k ${mx.warn.length?'s-warn':''}"><b>${mx.warn.length}</b>تنبيه</div></div>`;
     if(mx.warn.length)h+=`<div class="card s-warn" style="margin-bottom:8px"><b>تنبيهات (راجعها قبل التأكيد):</b><br>${mx.warn.slice(0,30).map(esc).join('<br>')}${mx.warn.length>30?'<br>… وتنبيهات أخرى':''}</div>`;
-    if(show.length)h+=`<div class="wrap" style="max-height:300px"><table><tr>${['الإجراء','النوع','الاسم','الطريقة','العدد','الموقع','الماركة / الموديل / السنة'].map(x=>`<th>${x}</th>`).join('')}</tr>${show.slice(0,60).map(r=>`<tr><td class="${r.action==='create'?'s-ok':''}">${r.action==='create'?'جديد':'تحديث (كان '+r.old+')'}</td><td>${esc(r.type)}</td><td class="l">${esc(r.name)}</td><td>${r.mode}</td><td>${r.mode==='مجموعة'?r.qty:r.n+(r.n<r.qty?' من '+r.qty:'')}</td><td class="l">${esc(r.loc)}</td><td class="l">${[r.brand,r.model,r.inst].filter(Boolean).map(esc).join(' · ')||'—'}</td></tr>`).join('')}</table></div>${show.length>60?'<div class="msg">معروض أول 60 سطر فقط.</div>':''}`;
+    if(show.length)h+=`<div class="wrap" style="max-height:300px"><table><tr>${['الإجراء','النوع','الاسم','الطريقة','العدد','الموقع','الماركة / الموديل / السنة'].map(x=>`<th>${x}</th>`).join('')}</tr>${show.slice(0,60).map(r=>`<tr><td class="${r.action==='create'?'s-ok':''}">${r.action==='create'?'جديد':'تحديث (كان '+r.old+')'}</td><td>${esc(r.type)}</td><td class="l">${esc(r.name)}</td><td>${r.mode}</td><td>${r.mode==='مجموعة'?r.qty:r.n+(r.n<r.qty?' من '+r.qty:'')}</td><td class="l">${esc(r.loc)}</td><td class="l">${[r.brand,r.model,r.cap?r.cap+' '+r.capu:'',r.inst].filter(Boolean).map(esc).join(' · ')||'—'}</td></tr>`).join('')}</table></div>${show.length>60?'<div class="msg">معروض أول 60 سطر فقط.</div>':''}`;
     h+=`<div class="row" style="margin-top:8px"><button class="btn" ${cr.length+up.length?'':'disabled'} onclick="mxApply()">تأكيد الاستيراد</button><button class="btn alt" onclick="mxCancel()">إلغاء</button></div><div id="mxmsg" class="msg"></div>`;
   }
   return h+'</div>';
@@ -125,11 +133,11 @@ async function mxApply(){
   const jobs=[];let cI=0,cG=0,uG=0;
   for(const r of mx.rows){
     if(r.action==='update'){
-      const p={qty:r.qty};if(r.brand)p.brand=r.brand;if(r.model)p.model=r.model;if(r.inst)p.inst=r.inst;
+      const p={qty:r.qty};if(r.brand)p.brand=r.brand;if(r.model)p.model=r.model;if(r.cap){p.cap=r.cap;p.capu=r.capu}if(r.inst)p.inst=r.inst;
       const ex=assets.find(a=>a.id===r.id);if(ex)Object.assign(ex,p);
       jobs.push(()=>db.collection('assets').doc(r.id).update(p));uG++;
     }else if(r.action==='create'){
-      const mk=(code,name,key)=>({code,name,type:r.type,loc:r.loc,...(r.f?{f:r.f}:{}),r:r.place,cap:0,capu:'',brand:r.brand,model:r.model,inst:r.inst,life:'',value:0,notes:r.notes||'',mode:r.mode,qty:r.mode==='مجموعة'?r.qty:0,qtyFix:0,qtyDead:0,impKey:key,src:'استيراد حصر الغرف'});
+      const mk=(code,name,key)=>({code,name,type:r.type,loc:r.loc,...(r.f?{f:r.f}:{}),r:r.place,cap:r.cap||0,capu:r.capu||'',brand:r.brand,model:r.model,inst:r.inst,life:'',value:0,notes:r.notes||'',mode:r.mode,qty:r.mode==='مجموعة'?r.qty:0,qtyFix:0,qtyDead:0,impKey:key,src:'استيراد حصر الغرف'});
       if(r.mode==='مجموعة'){const code=nextCodes(r.type,1)[0],id='as_'+code,o=mk(code,r.name,r.base);assets.push({id,...o});jobs.push(()=>db.collection('assets').doc(id).set(o));cG++}
       else r.keys.forEach(({k,key})=>{const code=nextCodes(r.type,1)[0],id='as_'+code,o=mk(code,r.name+(r.qty>1?' '+(k+1):''),key);assets.push({id,...o});jobs.push(()=>db.collection('assets').doc(id).set(o));cI++});
     }
