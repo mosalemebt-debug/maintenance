@@ -17,7 +17,7 @@ function vNotices(){
   <label class="btn alt" style="flex-direction:row">استيراد من ملف الإكسل<input type="file" accept=".xlsx" onchange="importXlsx(this.files[0])" hidden></label></div><div id="imsg" class="msg"></div></div>
   ${nFilterBar()}<div class="card wrap"><table class="ntbl ${nAll?'':'compact'}"><tr>${['م','المرجع','التاريخ','الوقت','القسم','الدور','المكان','الأصل','المبلّغ','العطل','الإجراء','الحالة','تاريخ الإصلاح','ممثل الصيانة','شراء؟','ملاحظات','الأولوية','المهلة','إجراءات'].map(x=>`<th>${x}</th>`).join('')}</tr>`;
   notices.slice().reverse().filter(nfOK).forEach(n=>{const si=slaInfo(n);
-    h+=`<tr><td>${n.n}</td><td>${n.ref}</td><td>${fd(n.date)}</td><td>${esc(n.time)}</td><td class="l">${esc(n.dept)}</td><td class="l">${esc(nFloor(n))}</td><td class="l">${esc(n.loc||'')}</td><td>${n.asset?`<a href="#" onclick="assetDetailByCode('${esc(n.asset)}');return false">${esc(n.asset)}</a>`:''}</td><td>${esc(n.reporter)}</td><td class="l">${esc(n.details)}</td>
+    h+=`<tr><td>${n.n}</td><td>${n.ref}</td><td>${fd(n.date)}</td><td>${esc(n.time)}</td><td class="l">${esc(n.dept)}</td><td class="l">${esc(nFloor(n))}</td><td class="l">${esc(nLoc(n))}</td><td>${n.asset?`<a href="#" onclick="assetDetailByCode('${esc(n.asset)}');return false">${esc(n.asset)}</a>`:''}</td><td>${esc(n.reporter)}</td><td class="l">${esc(n.details)}</td>
     <td class="l"><textarea rows="1" data-keep="1" oninput="fit(this)" onchange="upd('${n.id}',{action:this.value})">${esc(n.action)}</textarea></td>
     <td class="${stCls(n.status)}"><select onchange="setStatus('${n.id}',this.value)"><option value="" ${!n.status?'selected':''}>مفتوح</option>${ST.map(s=>`<option ${s===n.status?'selected':''}>${s}</option>`).join('')}</select></td>
     <td><input type="date" value="${iso(n.fixdate)}" onchange="upd('${n.id}',{fixdate:this.value})"></td>
@@ -90,3 +90,4 @@ document.addEventListener('click',e=>{if(!e.target.closest||e.target.closest('#f
 const nFloors=()=>[...new Set(locRows().map(r=>r.f))];
 const aFloor=a=>!a?'':(a.f||nFloors().find(f=>String(a.loc||'').startsWith(f))||'');
 const nFloor=n=>n.floor||(n.asset?aFloor(assetByCode(n.asset)):'');
+const nLoc=n=>n.loc||(n.asset?String((assetByCode(n.asset)||{}).loc||'').split(' – ').pop():'');
